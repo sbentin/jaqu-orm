@@ -1,5 +1,5 @@
-#summary One-sentence summary of this page.
-Getting started with Jaqu ORM and eclipse.
+#summary Getting started with Jaqu ORM and eclipse.
+
 = Introduction =
 
 JaQu stands for Java Query and allows to access databases using pure Java. The original JaQu was developed by Thomas Mueller and can be found at http://www.h2database.com/html/jaqu.html. This extension of JaQu is following a different path then intended by the original author, it extends the abilities of JaQu into an ORM tool allowing for pure java grammar and Object Relational Mapping. With JaQu ORM you can persist objects into the Database with One2One, One2Many and Many2Many relationships. You can lazy load or eager load your relationships and manage primary key relations.
