@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
+   <category-def name="Jaqu-orm" label="Jaqu ORM"/>
    <feature url="features/JaquOrmFeature_1.0.4.201107012058.jar" id="JaquOrmFeature" version="1.0.4.201107012058">
       <category name="Jaqu-orm"/>
    </feature>
-   <category-def name="Jaqu-orm" label="Jaqu ORM"/>
 </site>
