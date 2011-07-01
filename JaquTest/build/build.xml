@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!-- ==================================================================================== -->
+<!-- Copyright (c) 2007-2010 Centimia Ltd.                                                -->
+<!-- All rights reserved.  Unpublished rights reserved                                    -->
+<!--                                                                                      -->
+<!-- Use of a copyright notice is precautionary only, and does                            -->
+<!-- not imply publication or disclosure.                                                 -->
+<!-- ==================================================================================== -->
+<project name="JaquTest" default="JaquAssembly" basedir=".">
+	<!-- Set the property of your output dir -->
+	<property name="outputDir" value="../bin"/>
+	<!-- Set the property of your java source -->
+	<property name="source" value="../test"/>
+	<!-- Where all the jar files are -->
+	<property name="libDir" value="../lib"/>
+	<path id="projectPath">
+		<pathelement location="${outputDir}"/>
+		<fileset dir="${libDir}">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+	
+	<!-- Definition of the jaqu assembly task-->
+	<taskdef classpathref="projectPath" name="JaquAssembly" classname="org.h2.jaqu.ext.ant.JaquAssemblyTask" />
+
+	<!-- The following compiles your code in a regular fashion -->
+	<target name="main">
+		<delete followsymlinks="false" verbose="on">
+			<fileset dir="${outputDir}"/>
+		</delete>
+		<javac debug="true" destdir="${outputDir}" listfiles="true" verbose="off" optimize="true" >
+			<classpath>
+				<path refid="projectPath" />
+			</classpath>
+			<src path="${source}" />
+		</javac>
+	</target>
+
+	<!-- This target does the instrumentation on all table classes. It should be called on a clean compilation of your code -->
+	<!-- Notice above, that before compiling the output dir is deleted. If you instrument an already instrumented class it will fail on runtime class loading -->
+	<target name="JaquAssembly" depends="main">
+		<JaquAssembly classOutputDirectory="${outputDir}" />
+	</target>
+</project>
+
