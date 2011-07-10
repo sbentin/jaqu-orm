@@ -8,8 +8,9 @@
 	<classpathentry kind="lib" path="lib/orai18n.jar"/>
 	<classpathentry kind="lib" path="lib/btm-1.3.2.jar" sourcepath="/btm"/>
 	<classpathentry kind="lib" path="lib/geronimo-jta_1.0.1B_spec-1.0.1.jar"/>
-	<classpathentry kind="lib" path="/MiracleCore/lib/slf4j-api-1.5.10.jar"/>
-	<classpathentry kind="lib" path="/MiracleCore/lib/slf4j-simple-1.5.10.jar"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.13-bin.jar"/>
+	<classpathentry kind="con" path="com.centimia.jaqu.plugin.nature.JAQU"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-jdk14-1.5.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
