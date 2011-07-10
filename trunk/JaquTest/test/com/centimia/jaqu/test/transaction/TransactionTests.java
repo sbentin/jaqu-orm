@@ -37,6 +37,14 @@ import com.centimia.jaqu.test.entity.Person;
  */
 public class TransactionTests extends JaquTest {
 
+	/* (non-Javadoc)
+	 * @see com.centimia.jaqu.test.JaquTest#tearDown()
+	 */
+	@Override
+	protected void tearDown() throws Exception {
+		System.out.println(String.format("Ending %s --> session opened for: %s milliseconds. Connection closed!!!", getName(), (System.currentTimeMillis() - time)));
+	}
+
 	BitronixTransactionManager btm = null;
 	
 	/* (non-Javadoc)
@@ -79,6 +87,7 @@ public class TransactionTests extends JaquTest {
 			e.printStackTrace();
 		}
 		time = System.currentTimeMillis();
+		System.out.println(String.format("Starting %s --> ", getName()));
 	}
 	
 
