@@ -17,6 +17,8 @@ package com.centimia.jaqu.test.transaction;
 
 import java.sql.Connection;
 
+import javax.transaction.SystemException;
+
 import junit.framework.TestResult;
 
 import org.h2.jaqu.Db;
@@ -24,7 +26,6 @@ import org.h2.jaqu.JaquSessionFactory;
 
 import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
-import bitronix.tm.resource.jdbc.PoolingDataSource;
 
 import com.centimia.jaqu.test.JaquTest;
 import com.centimia.jaqu.test.entity.Person;
@@ -47,27 +48,36 @@ public class TransactionTests extends JaquTest {
 	}	
 	
 	protected void setup() {
-		PoolingDataSource pool = new PoolingDataSource();
+//		PoolingDataSource pool = new PoolingDataSource();
 //		pool.setAllowLocalTransactions(true);
 		
-		pool.setClassName("org.h2.jdbcx.JdbcDataSource");
-		pool.getDriverProperties().setProperty("URL", "jdbc:h2:tcp://localhost/~/test;SCHEMA=MIRACLE;LOCK_TIMEOUT=30000");
-		pool.getDriverProperties().setProperty("user", "sa");
-		pool.getDriverProperties().setProperty("password", "ei01nt");
+//		pool.setClassName("org.h2.jdbcx.JdbcDataSource");
+//		pool.getDriverProperties().setProperty("URL", "jdbc:h2:tcp://localhost/~/test;SCHEMA=MIRACLE;LOCK_TIMEOUT=30000");
+//		pool.getDriverProperties().setProperty("user", "sa");
+//		pool.getDriverProperties().setProperty("password", "ei01nt");
 		
 //		pool.setClassName("oracle.jdbc.xa.client.OracleXADataSource");
 //		pool.getDriverProperties().setProperty("URL", "jdbc:oracle:thin:@normanserver:1521:EMIDEV");
 //		pool.getDriverProperties().setProperty("user", "JAQU");
 //		pool.getDriverProperties().setProperty("password", "JAQU");
-		pool.setMaxPoolSize(5);
-		pool.setUniqueName("JAQU");
-		pool.init();
-		
-		sessionFactory = new JaquSessionFactory(pool, false, Connection.TRANSACTION_READ_UNCOMMITTED);
-		
-//		sessionFactory.setDialect(Dialect.ORACLE);
+//		pool.setMaxPoolSize(5);
+//		pool.setUniqueName("JAQU");
+//		pool.init();
+
+		com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
+		pool.setURL("jdbc:mysql://12.0.0.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+		pool.setUser("JAQU");
+		pool.setPassword("JAQU");
+
+		sessionFactory = new JaquSessionFactory(pool, false, Connection.TRANSACTION_READ_COMMITTED);
 		
 		btm = TransactionManagerServices.getTransactionManager();
+		try {
+			btm.setTransactionTimeout(40);
+		}
+		catch (SystemException e) {
+			e.printStackTrace();
+		}
 		time = System.currentTimeMillis();
 	}
 	
@@ -92,7 +102,8 @@ public class TransactionTests extends JaquTest {
 			tearDown();
 		}
 		catch (Throwable e) {
-			
+			e.printStackTrace();
+			fail();
 		}
 	}
 	
@@ -110,8 +121,6 @@ public class TransactionTests extends JaquTest {
 		public void run() {
 			try {
 				System.out.println("Running thread " + name);
-				if (name.equals("Thread B"))
-					btm.setTransactionTimeout(40);
 				btm.begin();
 				
 				dbSession = sessionFactory.getSession();
