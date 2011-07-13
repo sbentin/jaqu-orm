@@ -340,6 +340,8 @@ public class Db {
      * @return Collection<T>
      */
 	<T> Collection<T> getRelationFromDb(String fieldName, Object myObject, Class<T> type) {
+		if (closed)
+			throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 		TableDefinition<?> def = define(myObject.getClass());
 		FieldDefinition definition = def.getDefinitionForField(fieldName);
 		

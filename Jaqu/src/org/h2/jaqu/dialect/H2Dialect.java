@@ -100,6 +100,9 @@ public class H2Dialect implements SQLDialect{
 				return "ARRAY";
 			}
 		}
+		else if (fieldClass.isEnum()) {
+			return "VARCHAR";
+		}
 		return "VARCHAR";
 	}
 	

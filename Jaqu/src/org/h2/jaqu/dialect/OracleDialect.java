@@ -94,6 +94,9 @@ public class OracleDialect implements SQLDialect {
 						"Array of type 'org.h2.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			return "BLOB";
 		}
+		else if (fieldClass.isEnum()) {
+			return "VARCHAR2";
+		}
 		return "VARCHAR2";
 	}
 
@@ -145,6 +148,7 @@ public class OracleDialect implements SQLDialect {
     		case CLOB: return rs.getClob(columnName);
     		case BYTE: return (rs.getObject(columnName) != null) ? rs.getByte(columnName): null;
     		case STRING: return rs.getString(columnName);
+    		case ENUM: return rs.getString(columnName);
     		case DOUBLE: return (rs.getObject(columnName) != null) ? rs.getDouble(columnName): null;
     		case FLOAT: return (rs.getObject(columnName) != null) ? rs.getFloat(columnName): null;
     		case SHORT: return (rs.getObject(columnName) != null) ? rs.getShort(columnName): null;

@@ -75,6 +75,8 @@ class TableDefinition<T> {
 
 		Object getValue(Object obj) {
 			try {
+				if (type == Types.ENUM)
+					return field.get(obj).toString();
 				return field.get(obj);
 			}
 			catch (Exception e) {
@@ -82,9 +84,16 @@ class TableDefinition<T> {
 			}
 		}
 
+		@SuppressWarnings("unchecked")
 		void initWithNewObject(Object obj) {
-			Object o = Utils.newObject(field.getType());
-			setValue(obj, o, null);
+			if (type == Types.ENUM) {
+				Class enumClass = field.getType();
+				setValue(obj, enumClass.getEnumConstants()[0].toString(), null);
+			}
+			else {
+				Object o = Utils.newObject(field.getType());
+				setValue(obj, o, null);
+			}
 		}
 
 		@SuppressWarnings("unchecked")
@@ -93,7 +102,12 @@ class TableDefinition<T> {
 				Object tmp = o;
 				switch (fieldType) {
 					case NORMAL:
-						field.set(obj, o);
+						if (type == Types.ENUM) {
+							Class enumClass = field.getType();
+							field.set(obj, Enum.valueOf(enumClass, (String)o));
+						}
+						else
+							field.set(obj, o);
 						break;
 					case FK: {
 						o = Utils.convert(o, field.getType());
@@ -469,7 +483,7 @@ class TableDefinition<T> {
 			Class<?> classType = f.getType();
 			if (java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
-					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray()) {
+					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum()) {
 				f.setAccessible(true);
 				FieldDefinition fieldDef = new FieldDefinition();
 				fieldDef.field = f;
@@ -477,7 +491,7 @@ class TableDefinition<T> {
 				fieldDef.dataType = getDataType(f);
 				fieldDef.type = getTypes(classType);
 				fields.add(fieldDef);
-				if (String.class.isAssignableFrom(classType)) {
+				if (String.class.isAssignableFrom(classType)|| classType.isEnum()) {
 					// strings have a default size
 					fieldDef.maxLength = 256;
 				}
@@ -601,6 +615,8 @@ class TableDefinition<T> {
 
 	private Types getTypes(Class<?> classType) {
 		try {
+			if (classType.isEnum())
+				return Types.ENUM;
 			return Types.valueOf(classType.getSimpleName().toUpperCase());
 		}
 		catch (RuntimeException e) {
@@ -952,11 +968,18 @@ class TableDefinition<T> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	void initSelectObject(SelectTable<T> table, Object obj, Map<Object, SelectColumn<T>> map) {
 		for (FieldDefinition def : fields) {
 			def.initWithNewObject(obj);
 			SelectColumn<T> column = new SelectColumn<T>(table, def);
-			map.put(def.getValue(obj), column);
+			if (def.type == Types.ENUM) {
+				Class type = def.field.getType();
+				map.put(Enum.valueOf(type, (String)def.getValue(obj)), column);
+			}
+			else {
+				map.put(def.getValue(obj), column);
+			}
 		}
 	}
 

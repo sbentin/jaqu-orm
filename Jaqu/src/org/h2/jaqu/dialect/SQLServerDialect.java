@@ -111,6 +111,9 @@ public class SQLServerDialect implements SQLDialect {
 						"Array of type 'org.h2.jaqu.Table' are relations. Either mark as transient or use a Collection type instead.");
 			return "VARBINARY(MAX)";
 		}
+		else if (fieldClass.isEnum()) {
+			return "VARCHAR";
+		}
 		return "VARCHAR";
 	}
 
