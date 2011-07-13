@@ -111,6 +111,9 @@ public class MySqlDialect implements SQLDialect {
 						"Array of type 'org.h2.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			return "BLOB";
 		}
+		else if (fieldClass.isEnum()) {
+			return "VARCHAR";
+		}
 		return "VARCHAR";
 	}
 
@@ -119,11 +122,12 @@ public class MySqlDialect implements SQLDialect {
 	 *  mapping is very close between DB types and java types so we just return the object at hand!
 	 */
 	public Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException {
-		if (type == Types.BOOLEAN)
-			return rs.getBoolean(columnName);
-		else if (type == Types.BYTE)
-			return rs.getByte(columnName);
-		return rs.getObject(columnName);
+		switch (type) {
+			case BOOLEAN: return rs.getBoolean(columnName);
+			case BYTE: return rs.getByte(columnName);
+			case ENUM: return rs.getString(columnName);
+			default: return rs.getObject(columnName);
+		}
 	}
 
 	/**

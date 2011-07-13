@@ -130,6 +130,9 @@ public class PostgresDialect implements SQLDialect {
 						"Array of type 'org.h2.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			}
 		}
+		else if (fieldClass.isEnum()) {
+			return "VARCHAR";
+		}
 		return "VARCHAR";
 	}
 
