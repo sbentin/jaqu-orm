@@ -180,5 +180,33 @@ public interface QueryInterface<T> {
 	 * @param expr
 	 * @return QueryInterface
 	 */
-	public abstract QueryInterface<T> orderByDesc(Object expr);
+	public abstract QueryInterface<T> orderByDesc(Object ... expr);
+
+	/**
+	 * Order by one or more columns in descending order
+	 * @param expr
+	 * @return QueryWhere<T> - the query
+	 */
+	public QueryInterface<T> orderByNullsFirst(Object ... expr);
+
+	/**
+	 * Order by one or more columns in ascending order
+	 * @param expr
+	 * @return QueryWhere<T>
+	 */
+	public QueryInterface<T> orderByNullsLast(Object ... expr);
+
+	/**
+	 * Order by in descending order nulls will be first
+	 * @param expr
+	 * @return QueryWhere<T>
+	 */
+	public QueryInterface<T> orderByDescNullsFirst(Object ... expr);
+
+	/**
+	 * Order by in descending order nulls will be last
+	 * @param expr
+	 * @return QueryWhere<T>
+	 */
+	public QueryInterface<T> orderByDescNullsLast(Object ... expr);
 }

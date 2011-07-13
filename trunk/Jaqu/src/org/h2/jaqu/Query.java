@@ -428,31 +428,144 @@ public class Query<T> implements FullQueryInterface<T> {
         addConditionToken(token);
         return new QueryWhere<T>(this);
     }
-//## Java 1.5 end ##
+    
+    /*
+     * (non-Javadoc)
+     * @see org.h2.jaqu.QueryInterface#orderBy(java.lang.Object[])
+     */
+	public QueryInterface<T> orderBy(Object... expressions) {
+		for (Object expr : expressions) {
+			OrderExpression<T> e = new OrderExpression<T>(this, expr, false, false, false);
+			this.addOrderBy(e);
+		}
+		return this;
+	}
 
-    /* (non-Javadoc)
-	 * @see org.h2.jaqu.FullQueryInterface#orderBy(java.lang.Object)
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.QueryInterface#orderByNullsFirst(java.lang.Object[])
 	 */
-//## Java 1.5 begin ##
-    public QueryInterface<T> orderBy(Object... expressions) {
-        for (Object expr : expressions) {
-            OrderExpression<T> e =
-                new OrderExpression<T>(this, expr, false, false, false);
-            addOrderBy(e);
-        }
-        return this;
-    }
+	public QueryInterface<T> orderByNullsFirst(Object ... expr) {
+		int length = expr.length;
+		switch (length) {
+			case 0: return this;
+			case 1: {
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], false, true, false);
+				this.addOrderBy(e);
+				return this;
+			}
+			default: {
+				for (int i = 0; i < length - 1; i++) {
+					OrderExpression<T> e = new OrderExpression<T>(this, expr[i], false, false, false);
+					this.addOrderBy(e);
+				}
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], false, true, false);
+				this.addOrderBy(e);
+				return this;
+			}
+		}
+	}
 
-    /* (non-Javadoc)
-	 * @see org.h2.jaqu.FullQueryInterface#orderByDesc(java.lang.Object)
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.QueryInterface#orderByNullsLast(java.lang.Object[])
 	 */
-    public QueryInterface<T> orderByDesc(Object expr) {
-        OrderExpression<T> e =
-            new OrderExpression<T>(this, expr, true, false, false);
-        addOrderBy(e);
-        return this;
-    }
+	public QueryInterface<T> orderByNullsLast(Object ... expr) {
+		int length = expr.length;
+		switch (length) {
+			case 0: return this;
+			case 1: {
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], false, false, true);
+				this.addOrderBy(e);
+				return this;
+			}
+			default: {
+				for (int i = 0; i < length - 1; i++) {
+					OrderExpression<T> e = new OrderExpression<T>(this, expr[i], false, false, false);
+					this.addOrderBy(e);
+				}
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], false, false, true);
+				this.addOrderBy(e);
+				return this;
+			}
+		}
+	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.QueryInterface#orderByDesc(java.lang.Object[])
+	 */
+	public QueryInterface<T> orderByDesc(Object ... expr) {
+		int length = expr.length;
+		switch (length) {
+			case 0: return this;
+			case 1: {
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], true, false, false);
+				this.addOrderBy(e);
+				return this;
+			}
+			default: {
+				for (int i = 0; i < length - 1; i++) {
+					OrderExpression<T> e = new OrderExpression<T>(this, expr[i], false, false, false);
+					this.addOrderBy(e);
+				}
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], true, true, false);
+				this.addOrderBy(e);
+				return this;
+			}
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.QueryInterface#orderByDescNullsFirst(java.lang.Object[])
+	 */
+	public QueryInterface<T> orderByDescNullsFirst(Object ... expr) {
+		int length = expr.length;
+		switch (length) {
+			case 0: return this;
+			case 1: {
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], true, true, false);
+				this.addOrderBy(e);
+				return this;
+			}
+			default: {
+				for (int i = 0; i < length - 1; i++) {
+					OrderExpression<T> e = new OrderExpression<T>(this, expr[i], false, false, false);
+					this.addOrderBy(e);
+				}
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], true, true, false);
+				this.addOrderBy(e);
+				return this;
+			}
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.QueryInterface#orderByDescNullsLast(java.lang.Object[])
+	 */
+	public QueryInterface<T> orderByDescNullsLast(Object ... expr) {
+		int length = expr.length;
+		switch (length) {
+			case 0: return this;
+			case 1: {
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], true, false, true);
+				this.addOrderBy(e);
+				return this;
+			}
+			default: {
+				for (int i = 0; i < length - 1; i++) {
+					OrderExpression<T> e = new OrderExpression<T>(this, expr[i], false, false, false);
+					this.addOrderBy(e);
+				}
+				OrderExpression<T> e = new OrderExpression<T>(this, expr[length - 1], true, false, true);
+				this.addOrderBy(e);
+				return this;
+			}
+		}
+	}
+	
     /* (non-Javadoc)
 	 * @see org.h2.jaqu.FullQueryInterface#groupBy(java.lang.Object)
 	 */
