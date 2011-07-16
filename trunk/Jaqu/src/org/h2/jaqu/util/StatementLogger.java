@@ -6,7 +6,6 @@
  */
 package org.h2.jaqu.util;
 
-import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -20,7 +19,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class StatementLogger {
 
-    private static PrintWriter out = new PrintWriter(System.out);
     private static final AtomicLong SELECT_COUNT = new AtomicLong();
     private static final AtomicLong CREATE_COUNT = new AtomicLong();
     private static final AtomicLong INSERT_COUNT = new AtomicLong();
@@ -65,12 +63,12 @@ public class StatementLogger {
     }
 
     private static void log(String statement) {
-    	out.println(statement);
+    	System.out.println(statement);
     }
 
     public static void printStats() {
-        out.println("JaQu Runtime Statistics");
-        out.println("=======================");
+    	System.out.println("JaQu Runtime Statistics");
+    	System.out.println("=======================");
         printStat("CREATE", CREATE_COUNT);
         printStat("INSERT", INSERT_COUNT);
         printStat("UPDATE", UPDATE_COUNT);
@@ -83,7 +81,7 @@ public class StatementLogger {
     private static void printStat(String name, AtomicLong value) {
         if (value.get() > 0) {
             DecimalFormat df = new DecimalFormat("###,###,###,###");
-            out.println(name + "=" + df.format(CREATE_COUNT.get()));
+            System.out.println(name + "=" + df.format(CREATE_COUNT.get()));
         }
     }
 }

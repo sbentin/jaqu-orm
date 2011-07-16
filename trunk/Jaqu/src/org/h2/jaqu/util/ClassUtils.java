@@ -6,30 +6,26 @@
  */
 package org.h2.jaqu.util;
 
-
 /**
- * This utility class contains functions related to class loading.
- * There is a mechanism to restrict class loading.
+ * This utility class contains functions related to class loading. There is a mechanism to restrict class loading.
  */
 public class ClassUtils {
 
-    private ClassUtils() {
-        // utility class
-    }
+	private ClassUtils() {
+	// utility class
+	}
 
-//## Java 1.5 begin ##
+	@SuppressWarnings("unchecked")
+	public static <X> Class<X> getClass(X x) {
+		return (Class<X>) x.getClass();
+	}
 
-    @SuppressWarnings("unchecked")
-    public static <X> Class<X> getClass(X x) {
-        return (Class<X>) x.getClass();
-    }
-
-    public static Class<?> loadClass(String className) {
-        try {
-            return Class.forName(className);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-//## Java 1.5 end ##
+	public static Class<?> loadClass(String className) {
+		try {
+			return Class.forName(className);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
 }
