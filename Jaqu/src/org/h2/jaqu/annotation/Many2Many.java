@@ -39,16 +39,11 @@ public @interface Many2Many {
 	/** 
 	 * The class type of the related object. 
 	 */
-	Class<?> childType();
+	Class<?> childType() default Object.class;
 	/** 
 	 * The name of the DB table maintaining the relationship. Default no relation table 
 	 */
 	String joinTableName();
-	/** 
-	 * If empty then column name will be used, otherwise denotes the name of the column representing 'this'
-     * side in the relationship table. 
-     */
-	String myFieldNameInRelation() default "";
 	/**
 	 * The name of the column representing the other side of the relation. Must have value!
 	 */
@@ -58,7 +53,7 @@ public @interface Many2Many {
 	 */
 	String relationFieldName();
 	/**
-	 * The other side of the relation primary key field should be named here. Correlates to the relation table
+	 * The other side of the relation primary key field could be named here. Correlates to the relation table. If not present JaQu attempts to find it. or fail
 	 */
-	Class<?> childPkType();
+	Class<?> childPkType() default Object.class;
 }
