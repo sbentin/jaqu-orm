@@ -60,10 +60,11 @@ public abstract class JaquTest extends TestCase {
 
 		
 			sessionFactory = new JaquSessionFactory(pool, false, Connection.TRANSACTION_READ_COMMITTED);
+			sessionFactory.setShowSQL(true);
 		}
 		time = System.currentTimeMillis();
 		db = sessionFactory.getSession();
-		System.out.println(String.format("Starting %s --> db connection took: %s milliseconds", getName(), (System.currentTimeMillis() - time)));
+		System.out.println(String.format("\nStarting %s --> db connection took: %s milliseconds", getName(), (System.currentTimeMillis() - time)));
 	}
 
 	/* (non-Javadoc)

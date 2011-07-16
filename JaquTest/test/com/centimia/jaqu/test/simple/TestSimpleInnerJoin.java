@@ -46,7 +46,7 @@ public class TestSimpleInnerJoin extends JaquTest {
 			final TestTable2 t2Desc = new TestTable2();
 			// the following returns a list of the left hand side of join. (TestTable1)
 			System.out.println(db.from(t1Desc).innerJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).getSQL());
-			List<?> t1Results = db.from(t1Desc).innerJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).select();			
+			List<TestTable1> t1Results = db.from(t1Desc).innerJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).select();			
 			assertTrue(t1Results.size() == 3);
 			
 			// to get the right side of the join. You can do this on a multiple join as well.

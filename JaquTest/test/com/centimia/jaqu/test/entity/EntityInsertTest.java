@@ -45,12 +45,16 @@ public class EntityInsertTest extends JaquTest {
 		result.startTest(this);
 		try {
 			setUp();
+			// create a table for phone. 1. We check that this API works, 2. Phone does not include owner, we use the table 
+			db.createTable(com.centimia.jaqu.test.table.PhoneTable.class);
+			
 			// notice person is outside the DB session to start with.
 			db.insertAll(Person.getSomeData());
 			
 			Person descriptor = new Person();
 			Person me = db.from(descriptor).primaryKey().is(1L).selectFirst();
 			assertNotNull(me);
+			
 			// since we marked phones as being eager loaded, if we break point here we should see them
 			Set<Phone> phones = me.getPhones();
 			assertEquals(2, phones.size());
@@ -63,6 +67,19 @@ public class EntityInsertTest extends JaquTest {
 			assertEquals(1, works.size());
 			assertEquals("unemployed", works.get(0).getName());
 			
+			// check that person 2L is actually a parent of 3L (this relationship was entered with person 3L
+			Person s = db.from(descriptor).primaryKey().is(2L).selectFirst();
+			List<Person> children = s.getChildren();
+			assertEquals(1, children.size());
+			
+			Person child = new Person(4L, "Adi", "Bentin");
+			// we added a child to the collection of children
+			children.add(child);
+			db.update(s);
+			// notice on the next select how you pass an object not a primary key on a one to one or many to one relationships.
+			List<Person> childrenOf2 = db.from(descriptor).where(descriptor.getParent()).is(s).select();
+			assertEquals(2, childrenOf2.size());
+			
 			db.commit();
 			tearDown();
 		}
@@ -71,5 +88,4 @@ public class EntityInsertTest extends JaquTest {
 			result.addError(this, e);
 		}
 	}
-
 }

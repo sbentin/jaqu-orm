@@ -15,6 +15,8 @@
  */
 package com.centimia.jaqu.test.entity;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import junit.framework.TestResult;
@@ -45,18 +47,18 @@ public class EntityDeleteTest extends JaquTest {
 		result.startTest(this);
 		try {
 			setUp();
-			Person p = new Person(3L, "child1", "lastName2");
+			Person p = new Person(5L, "child1", "lastName2");
 			// insert this object into the DB.
 			db.insert(p);
 			
 			final Person desc = new Person();
 			// select from db see that this child was inserted
-			Person child = db.from(desc).primaryKey().is(2L).selectFirst();
+			Person child = db.from(desc).primaryKey().is(5L).selectFirst();
 			assertNotNull(child);
 			
 			db.delete(child);
 			// select again from db see that it was removed.
-			child = db.from(desc).primaryKey().is(2L).selectFirst();
+			child = db.from(desc).primaryKey().is(5L).selectFirst();
 			assertNull(child);
 			
 			// cascade delete on entities
@@ -72,8 +74,14 @@ public class EntityDeleteTest extends JaquTest {
 			final Address aDesc = new Address();
 			// get all addresses. Because we only entered addresses of person me into the DB, and the relation is cascade delete there should be not addresses in there
 			List<Address> addrList = db.from(aDesc).select();
-			assertTrue(addrList.isEmpty());
+			// all the addresses of one should be erased. Only addresses belonging to 2 exist
+			assertEquals(2, addrList.size());
+			Person e = db.from(desc).primaryKey().is(2L).selectFirst();
+			List<Address> addr2List = e.getAddresses();
 			
+			for (Address a: addrList) {
+				assertTrue(addr2List.contains(a));
+			}
 			
 			// Simple delete on entities...
 			final Phone pdesc = new Phone();
@@ -86,8 +94,21 @@ public class EntityDeleteTest extends JaquTest {
 			deleted = db.from(wDesc).where(wDesc.getId()).is(1L).delete();
 			assertEquals(1, deleted);
 			
-			// reinsert all data into db
-			db.insertAll(Person.getSomeData());
+			// reinsert person 1L into db
+			me = new Person(1L, "Shai", "Bentin");
+			HashSet<Phone> phoneList = new HashSet<Phone>();
+			phoneList.add(new Phone(1L, "1234567"));
+			phoneList.add(new Phone(2L, "98765432"));
+			me.setPhones(phoneList);
+			ArrayList<Address> addresses = new ArrayList<Address>();
+			addresses.add(new Address(1L, "street1", "city1", "Somewhere"));
+			addresses.add(new Address(2L, "street2", "city2", "Nowhere"));
+			me.setAddresses(addresses);
+			ArrayList<WorkPlace> workplaces = new ArrayList<WorkPlace>();
+			workplaces.add(new WorkPlace(1L, "unemployed"));
+			me.setWorkPlaces(workplaces);
+			
+			db.insert(me);
 			db.commit();
 			tearDown();
 		}
