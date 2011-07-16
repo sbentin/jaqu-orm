@@ -10,18 +10,18 @@ package org.h2.jaqu;
  * This class represents a query with a join.
  */
 //## Java 1.5 begin ##
-public class QueryJoin {
+public class QueryJoin<T> {
 
-    private QueryInterface<?> query;
-    private SelectTable< ? > join;
+    private QueryInterface<T> query;
+    private SelectTable<T> join;
 
-    QueryJoin(QueryInterface<?> query, SelectTable< ? > join) {
+    QueryJoin(QueryInterface<T> query, SelectTable<T> join) {
         this.query = query;
         this.join = join;
     }
 
-    public <A> QueryJoinCondition<A> on(A x) {
-        return new QueryJoinCondition<A>(query, join, x);
+    public <A> QueryJoinCondition<T, A> on(A x) {
+        return new QueryJoinCondition<T, A>(query, join, x);
     }
 }
 //## Java 1.5 end ##

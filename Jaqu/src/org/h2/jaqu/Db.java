@@ -156,7 +156,7 @@ public class Db {
     public <T> void createTable(Class<T> clazz) {
     	if (this.closed)
     		throw new IllegalStateException("Session is closed!!!");
-        define(clazz).createTableIfRequired(this);
+        define(clazz);
     }
 
     /**
@@ -196,7 +196,7 @@ public class Db {
             this.closed  = true;
         } 
         catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         }
     }
 
@@ -215,7 +215,7 @@ public class Db {
             return conn.createStatement().executeQuery(sql);
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new JaquError(e.getMessage(), e);
         }
     }
     
@@ -237,7 +237,7 @@ public class Db {
             return updateCount;
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new JaquError(e.getMessage(), e);
         }
     }
 	
@@ -301,7 +301,7 @@ public class Db {
 			catch (Exception e) {
 				if (e instanceof RuntimeException)
 					throw (RuntimeException)e;
-				else throw new RuntimeException(e.getMessage(), e);
+				else throw new JaquError(e.getMessage(), e);
 			}
     	}
     }
@@ -327,7 +327,7 @@ public class Db {
 		catch (Exception e) {
 			if (e instanceof RuntimeException)
 				throw (RuntimeException)e;
-			throw new RuntimeException(e.getMessage(), e);
+			throw new JaquError(e.getMessage(), e);
 		}
     }
     
@@ -341,13 +341,13 @@ public class Db {
      */
 	<T> Collection<T> getRelationFromDb(String fieldName, Object myObject, Class<T> type) {
 		if (closed)
-			throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+			throw new JaquError("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 		TableDefinition<?> def = define(myObject.getClass());
 		FieldDefinition definition = def.getDefinitionForField(fieldName);
 		
 		
 		if (!Collection.class.isAssignableFrom(definition.field.getType()))
-			throw new RuntimeException(fieldName + " relation is not a collection type!!!");
+			throw new JaquError(fieldName + " relation is not a collection type!!!");
 		try {
 			List<T> result = (List<T>) getRelationFromDb(definition, factory.getPrimaryKey(myObject), type);
 			if (definition.field.getType().isAssignableFrom(result.getClass()))
@@ -362,7 +362,7 @@ public class Db {
 		catch (Exception e) {
 			if (e instanceof RuntimeException)
 				throw (RuntimeException) e;
-			throw new RuntimeException(e.getMessage(), e);
+			throw new JaquError(e.getMessage(), e);
 		}
 	}
 	
@@ -376,7 +376,7 @@ public class Db {
             return conn.prepareStatement(sql);
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         }
     }
 
@@ -449,7 +449,7 @@ public class Db {
 		// for String primary keys do the following
 		String pk = (myPrimaryKey instanceof String) ? "'"+myPrimaryKey.toString()+"'" : myPrimaryKey.toString();
 		StatementBuilder builder = new StatementBuilder("SELECT target.* FROM ").append(targetDef.tableName).append(" target, ").append(def.relationDefinition.relationTableName);
-		builder.append(" rt where rt.").append(def.relationDefinition.thisNameInRelationship).append("=").append(pk).append(" and rt.").append(def.relationDefinition.relationColumnName);
+		builder.append(" rt where rt.").append(def.relationDefinition.relationFieldName).append("=").append(pk).append(" and rt.").append(def.relationDefinition.relationColumnName);
 		builder.append("= target.").append(targetDef.getPrimaryKeyFields().get(0).columnName);
 
 		List<T> result = Utils.newArrayList();
@@ -463,7 +463,7 @@ public class Db {
             }
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new JaquError(e.getMessage(), e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -500,8 +500,7 @@ public class Db {
 				 * @see org.h2.jaqu.StringFilter#getConditionString(org.h2.jaqu.SelectTable)
 				 */
 				public String getConditionString(SelectTable<?> st) {
-					FieldDefinition fdef = st.getAliasDefinition().getDefinitionForField(def.relationDefinition.relationFieldName);
-					return st.getAs() + "." + fdef.columnName  + " = " + myPrimaryKey.toString();
+					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + myPrimaryKey.toString();
 				}
 			}).select();
 		}
@@ -523,7 +522,7 @@ public class Db {
 		catch (Exception e) {
 			if (e instanceof RuntimeException)
 				throw (RuntimeException)e;
-			throw new RuntimeException(e.getMessage(), e);
+			throw new JaquError(e.getMessage(), e);
 		}
 	}
 
@@ -586,14 +585,14 @@ public class Db {
 				// Calling define here costs very little since this table's definition is cached.
 				TableDefinition<?> def = define(table.getClass());
 				StatementBuilder updateQuery = new StatementBuilder("UPDATE ").append(def.tableName);
-				updateQuery.append(" SET ").append(field.relationDefinition.relationColumnName).append(" = ").append(primaryKey);
+				updateQuery.append(" SET ").append(field.relationDefinition.relationFieldName).append(" = ").append(relationPK);
 				// we assume that our table has a single column primary key.
-				updateQuery.append(" WHERE ").append(def.getPrimaryKeyFields().get(0).columnName).append(" = ").append(relationPK);
+				updateQuery.append(" WHERE ").append(def.getPrimaryKeyFields().get(0).columnName).append(" = ").append(primaryKey);
 				
 				executeUpdate(updateQuery.toString());
 			}
 			catch (Exception e) {
-				throw new RuntimeException(e.getMessage(), e);
+				throw new JaquError(e.getMessage(), e);
 			}			
 			return;
 		}
@@ -610,7 +609,7 @@ public class Db {
 	 */
 	private void mergeRelationTable(FieldDefinition field, String primaryKey, String relationPK) {
 		StatementBuilder checkExistsQuery = new StatementBuilder("SELECT * FROM ").append(field.relationDefinition.relationTableName).append(" WHERE ");
-		checkExistsQuery.append(field.relationDefinition.relationColumnName).append(" = ").append(primaryKey).append(" AND ").append(field.relationDefinition.thisNameInRelationship);
+		checkExistsQuery.append(field.relationDefinition.relationColumnName).append(" = ").append(primaryKey).append(" AND ").append(field.relationDefinition.relationFieldName);
 		checkExistsQuery.append(" = ").append(relationPK);
 		
 		ResultSet rs = executeQuery(checkExistsQuery.toString());
@@ -619,14 +618,14 @@ public class Db {
 			if (!rs.next()) {
 				// the relationship is missing
 				StatementBuilder insertStmnt = new StatementBuilder("INSERT INTO ").append(field.relationDefinition.relationTableName);
-				insertStmnt.append(" (").append(field.relationDefinition.relationColumnName).append(',').append(field.relationDefinition.thisNameInRelationship).append(") ");
+				insertStmnt.append(" (").append(field.relationDefinition.relationColumnName).append(',').append(field.relationDefinition.relationFieldName).append(") ");
 				insertStmnt.append(" VALUES (").append(primaryKey).append(',').append(relationPK).append(')');
 				
 				executeUpdate(insertStmnt.toString());
 			}
 		}
 		catch (SQLException se) {
-			throw new RuntimeException(se);
+			throw new JaquError(se);
 		}
 		finally {
 			JdbcUtils.closeSilently(rs);
@@ -655,7 +654,7 @@ public class Db {
 				if (e instanceof RuntimeException)
 					throw (RuntimeException)e;
 				else
-					throw new RuntimeException(e.getMessage(), e);
+					throw new JaquError(e.getMessage(), e);
 			}
 		}
 		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) {
@@ -679,7 +678,7 @@ public class Db {
 				executeUpdate(builder.toString());
 			}
 			catch (Exception e) {
-				throw new RuntimeException(e.getMessage(), e);
+				throw new JaquError(e.getMessage(), e);
 			}
 			return;
 		}
@@ -687,7 +686,7 @@ public class Db {
 		if (fdef.relationDefinition.relationTableName != null) {
 			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
 			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
-			builder.append(fdef.relationDefinition.thisNameInRelationship).append("=").append(pk);
+			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
 			executeUpdate(builder.toString());
 		}
 	}
@@ -709,7 +708,7 @@ public class Db {
 				otherSideRelation.setAccessible(false);
 			}
 			catch (Exception e) {
-				throw new RuntimeException(e.getMessage(), e);
+				throw new JaquError(e.getMessage(), e);
 			}
 		}
 		// relationTables exist both in O2M and M2M relations. In this case all we need to remove a specific entry in the relation table.
@@ -717,7 +716,7 @@ public class Db {
 			String pk = (factory.getPrimaryKey(child) instanceof String) ? "'" + factory.getPrimaryKey(child).toString() + "'" : factory.getPrimaryKey(child).toString();
 			String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
 			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
-			builder.append(fdef.relationDefinition.thisNameInRelationship).append("=").append(pPk).append(" AND ").append(fdef.relationDefinition.relationColumnName);
+			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pPk).append(" AND ").append(fdef.relationDefinition.relationColumnName);
 			builder.append(" = ").append(pk);
 			executeUpdate(builder.toString());
 		}

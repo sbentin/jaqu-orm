@@ -135,13 +135,13 @@ public final class JaquSessionFactory {
     Object getPrimaryKey(Object pk) {
     	 TableDefinition<?> def = getTableDefinition(pk.getClass());
     	 if (def == null)
-    		 throw new RuntimeException("Missing table definition on Object " + pk.getClass().getSimpleName());
+    		 throw new JaquError("Missing table definition on Object " + pk.getClass().getSimpleName());
     	 FieldDefinition pkDef = def.getPrimaryKeyFields().get(0);
     	 try {
 			return pkDef.field.get(pk);
 		}
 		catch (Exception e) {
-			throw new RuntimeException(e.getMessage(), e);
+			throw new JaquError(e.getMessage(), e);
 		}
     }
     

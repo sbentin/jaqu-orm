@@ -56,7 +56,7 @@ public class SQLStatement {
             return prepare().executeQuery();
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         }
     }
 
@@ -65,7 +65,7 @@ public class SQLStatement {
             return prepare().executeUpdate();
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         }
     }
 
@@ -78,7 +78,7 @@ public class SQLStatement {
             prep.setObject(parameterIndex, x);
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         }
     }
 

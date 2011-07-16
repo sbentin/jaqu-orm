@@ -156,7 +156,7 @@ public interface QueryInterface<T> {
 	 * @param alias an alias for the table to join
 	 * @return the joined query
 	 */
-	public abstract <U> QueryJoin innerJoin(U alias);
+	public abstract <U> QueryJoin<T> innerJoin(U alias);
 	
 	/**
 	 * Left Outer Join another table. (Return all rows from left table, and matching from rightHandSide)
@@ -164,7 +164,7 @@ public interface QueryInterface<T> {
 	 * @param alias an alias for the table to join
 	 * @return the joined query
 	 */
-	public abstract <U> QueryJoin leftOuterJoin(U alias);
+	public abstract <U> QueryJoin<T> leftOuterJoin(U alias);
 
 	/**
 	 * Order by a number of columns.

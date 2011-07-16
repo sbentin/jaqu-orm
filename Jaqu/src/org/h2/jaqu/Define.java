@@ -89,9 +89,7 @@ public class Define {
 
     private static void checkInDefine() {
         if (currentTable == null) {
-            throw new RuntimeException("This method may only be called " +
-                "from within the define() method, and the define() method " +
-                "is called by the framework.");
+            throw new JaquError("This method may only be called from within the define() method, and the define() method is called by the framework.");
         }
     }
 }

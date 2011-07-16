@@ -7,17 +7,14 @@
  */
 package org.h2.jaqu;
 
-import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 
 import org.h2.jaqu.TableDefinition.FieldDefinition;
-import org.h2.jaqu.bytecode.ClassReader;
 import org.h2.jaqu.util.JdbcUtils;
 import org.h2.jaqu.util.StatementLogger;
 import org.h2.jaqu.util.Utils;
@@ -64,7 +61,7 @@ public class Query<T> implements FullQueryInterface<T> {
             return value;
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -125,7 +122,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -175,7 +172,7 @@ public class Query<T> implements FullQueryInterface<T> {
     
     private <U> List<U> selectRightHandJoin(Class<U> tableClass, boolean distinct) {
     	if (tableClass.isAnonymousClass())
-    		throw new RuntimeException("To get a subset of the fields or a a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+    		throw new JaquError("To get a subset of the fields or a a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
     	if (this.joins == null || this.joins.isEmpty())
     		throw new IllegalStateException("Entity based on " + tableClass.getName() + " must be part of a join query!!");
     	
@@ -197,7 +194,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         } 
         catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -232,7 +229,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	            }
 	        } 
 	        catch (SQLException e) {
-	            throw new RuntimeException(e);
+	            throw new JaquError(e);
 	        } 
 	        finally {
 	            JdbcUtils.closeSilently(rs);
@@ -303,7 +300,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 result.add(row);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         } finally {
             JdbcUtils.closeSilently(rs);
         }
@@ -323,12 +320,12 @@ public class Query<T> implements FullQueryInterface<T> {
                     result.add(value);
                 } 
                 catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw new JaquError(e);
                 }
             }
         } 
         catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new JaquError(e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -384,41 +381,6 @@ public class Query<T> implements FullQueryInterface<T> {
     	}
 		return null;
 	}
-    
-    /**
-	 * Start the where clause from here.
-	 * NOT SUPPORTED YET
-	 * @param <A>
-	 * @param filter - a filter on fields of the object, to run through a compiler/ parser
-	 * @return QueryWhere<T>
-	 */
-    public <A> QueryWhere<T> where(Filter filter) {
-        HashMap<String, Object> fieldMap = Utils.newHashMap();
-        for (Field f : filter.getClass().getDeclaredFields()) {
-            f.setAccessible(true);
-            try {
-                Object obj = f.get(filter);
-                if (obj == from.getAlias()) {
-                    List<TableDefinition.FieldDefinition> fields = from.getAliasDefinition().getFields();
-                    String name = f.getName();
-                    for (TableDefinition.FieldDefinition field : fields) {
-                        String n = name + "." + field.field.getName();
-                        Object o = field.field.get(obj);
-                        fieldMap.put(n, o);
-                    }
-                }
-                fieldMap.put(f.getName(), f.get(filter));
-            } 
-            catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            f.setAccessible(false);
-        }
-        Token filterCode = new ClassReader().decompile(filter, fieldMap, "where");
-        // String filterQuery = filterCode.toString();
-        conditions.add(filterCode);
-        return new QueryWhere<T>(this);
-    }
 
     /* (non-Javadoc)
 	 * @see org.h2.jaqu.FullQueryInterface#whereTrue(java.lang.Boolean)
