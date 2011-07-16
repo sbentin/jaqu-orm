@@ -29,7 +29,7 @@ public class QueryWhere<T> {
 	/**
 	 * Perform an 'AND' operator in the query
 	 * @param <A> - represents any field type that exists on Object <T> 
-	 * @param x- The field (gives field name) that should be attached with 'AND' to the query
+	 * @param x - The field (gives field name) that should be attached with 'AND' to the query
 	 * @return QueryCondition
 	 */
 	public <A> QueryCondition<T, A> and(A x) {

@@ -9,6 +9,7 @@ package org.h2.jaqu;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
@@ -80,7 +81,7 @@ class TableDefinition<T> {
 				return field.get(obj);
 			}
 			catch (Exception e) {
-				throw new RuntimeException(e);
+				throw new JaquError(e);
 			}
 		}
 
@@ -162,7 +163,12 @@ class TableDefinition<T> {
 									
 									public String getConditionString(SelectTable<?> st) {
 										FieldDefinition fdef = st.getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
-										return  st.getAs() + "." + fdef.columnName + " = " + db.factory.getPrimaryKey(obj).toString();
+										if (null != fdef)
+											// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
+											// different we use the columnName property.
+											return  st.getAs() + "." + fdef.columnName + " = " + db.factory.getPrimaryKey(obj).toString();
+										// This is the case of one sided relationship. In this case the name of the FK is given to us in the relationFieldName
+										return st.getAs() + "." + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(obj).toString();
 									}
 								}).select();
 								if (!resultList.isEmpty())
@@ -212,7 +218,7 @@ class TableDefinition<T> {
 			catch (Exception e) {
 				if (e instanceof RuntimeException)
 					throw (RuntimeException) e;
-				throw new RuntimeException(e.getMessage(), e);
+				throw new JaquError(e.getMessage(), e);
 			}
 		}
 
@@ -221,7 +227,7 @@ class TableDefinition<T> {
 				return DIALECT.getValueByType(type, rs, this.columnName);
 			}
 			catch (SQLException e) {
-				throw new RuntimeException(e);
+				throw new JaquError(e);
 			}
 		}
 	}
@@ -242,7 +248,7 @@ class TableDefinition<T> {
 		 */
 		boolean eagerLoad = false;
 		/** The name of the column in the relation table for the table holding this definition */
-		String thisNameInRelationship;
+//		String thisNameInRelationship;
 		/** The data type of the relationship object */
 		Class<?> dataType;
 		/** type of cascade relation with the related child. relevant to O2M relations only. Currently only CascadeType.DELETE is supported */
@@ -345,21 +351,30 @@ class TableDefinition<T> {
 		}
 	}
 
-	void addManyToMany(FieldDefinition fieldDefinition, Class<?> childType, String joinTableName, String myColumnNameInRelation,
-			String relationColumnName, String relationFieldName, Class<?> childPkName, Db db) {
-		if (fieldDefinition == null || joinTableName == null || relationFieldName == null)
-			throw new NullPointerException("fieldName, joinTableName, relationFieldName must have value");
+	void addManyToMany(FieldDefinition fieldDefinition, Many2Many many2Many, Db db) {
+		Class<?> childType = many2Many.childType();
+		if (Object.class.equals(childType)) {
+			try {
+				childType = (Class<?>) ((ParameterizedType)fieldDefinition.field.getGenericType()).getActualTypeArguments()[0];
+			}
+			catch (Exception e) {
+				throw new JaquError("Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' annotation parameter on @Many2Many annotation", e);
+			}
+		}
 
-		if (myColumnNameInRelation == null)
-			myColumnNameInRelation = tableName;
-
-		if (relationColumnName == null)
-			relationColumnName = childType.getName();
-
+		String relationFieldName = many2Many.relationFieldName();
+		if (relationFieldName == null || "".equals(relationFieldName))
+			relationFieldName = tableName;
+		
+		String relationColumnName = many2Many.relationColumnName();
+		if (null == relationColumnName || "".equals(relationColumnName)) {
+			relationColumnName = childType.getSimpleName();
+		}
+			
 		RelationDefinition def = new RelationDefinition();
 		def.eagerLoad = false;
-		def.relationTableName = joinTableName;
-		def.thisNameInRelationship = myColumnNameInRelation;
+		def.relationTableName = many2Many.joinTableName();
+//		def.thisNameInRelationship = relationFieldName;
 
 		if (fieldDefinition != null) {
 			fieldDefinition.relationDefinition = def;
@@ -371,43 +386,71 @@ class TableDefinition<T> {
 			def.relationColumnName = relationColumnName;
 			def.relationFieldName = relationFieldName;
 		}
-		// add relation table creation
-		createRelationTable(childType, joinTableName, myColumnNameInRelation, childPkName, def.relationColumnName, db);
+		// Try to get the primary key of the relationship
+		Class<?> childPkType = many2Many.childPkType();
+		if (Object.class.equals(childPkType)) {
+			try {
+				childPkType = extractPrimaryKeyFromClass(childType);
+			}
+			catch (Exception e) {
+				throw new JaquError("You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation", e);
+			}
+		}
+		createRelationTable(childType, many2Many.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 	}
 
-	void addOneToMany(FieldDefinition fieldDefinition, Class<?> childType, String joinTableName, String myColumnNameInRelation,
-			String relationColumnName, String relationFieldName, Class<?> chlidPkName, boolean eagerLoad, CascadeType cascadeType, Db db) {
-		if (fieldDefinition == null || relationColumnName == null || childType == null)
-			throw new NullPointerException("fieldName, relationColumnName, childType must have value");
-
-		if (myColumnNameInRelation == null || "".equals(myColumnNameInRelation))
-			myColumnNameInRelation = tableName;
-
+	void addOneToMany(FieldDefinition fieldDefinition, One2Many one2ManyAnnotation, Db db) {
+		Class<?> childType = one2ManyAnnotation.childType();
+		if (Object.class.equals(childType)) {
+			try {
+				childType = (Class<?>) ((ParameterizedType)fieldDefinition.field.getGenericType()).getActualTypeArguments()[0];
+			}
+			catch (Exception e) {
+				throw new JaquError("Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' annotation parameter on @One2Many annotation", e);
+			}
+		}
+		
+		String relationFieldName = one2ManyAnnotation.relationFieldName();
 		if (relationFieldName == null || "".equals(relationFieldName))
 			relationFieldName = tableName;
 
-		RelationDefinition def = new RelationDefinition();
-		def.eagerLoad = eagerLoad;
-		if (!"".equals(joinTableName)) {
-			def.relationTableName = joinTableName;
-			def.thisNameInRelationship = myColumnNameInRelation;
+		String relationColumnName = one2ManyAnnotation.relationColumnName();
+		if (null == relationColumnName || "".equals(relationColumnName)) {
+			relationColumnName = childType.getSimpleName();
 		}
-		if (cascadeType != null)
-			def.cascadeType = cascadeType;
+		
+		RelationDefinition def = new RelationDefinition();
+		def.eagerLoad = one2ManyAnnotation.eagerLoad();
+		if (!"".equals(one2ManyAnnotation.joinTableName())) {
+			def.relationTableName = one2ManyAnnotation.joinTableName();
+//			def.thisNameInRelationship = relationFieldName;
+		}
+		if (one2ManyAnnotation.cascadeType() != null)
+			def.cascadeType = one2ManyAnnotation.cascadeType();
 
 		if (fieldDefinition != null) {
 			fieldDefinition.relationDefinition = def;
 			fieldDefinition.fieldType = FieldType.O2M;
 			def.dataType = childType;
-			if (def.dataType == null || def.dataType.getAnnotation(Entity.class) == null)
-				throw new IllegalStateException("field " + fieldDefinition.columnName
-						+ " was marked as a relationship, but does not point to a TABLE Type");
+			if (def.dataType.getAnnotation(Entity.class) == null)
+				throw new IllegalStateException("field " + fieldDefinition.columnName + " was marked as a relationship, but does not point to an Entity Type");
 			def.relationColumnName = relationColumnName;
 			def.relationFieldName = relationFieldName;
 		}
+		
 		// add relation table creation
-		if (joinTableName != null && !"".equals(joinTableName)) {
-			createRelationTable(childType, joinTableName, myColumnNameInRelation, chlidPkName, def.relationColumnName, db);
+		if (one2ManyAnnotation.joinTableName() != null && !"".equals(one2ManyAnnotation.joinTableName())) {
+			// Try to get the primary key of the relationship
+			Class<?> childPkType = one2ManyAnnotation.childPkType();
+			if (Object.class.equals(childPkType)) {
+				try {
+					childPkType = extractPrimaryKeyFromClass(childType);
+				}
+				catch (Exception e) {
+					throw new JaquError("You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation", e);
+				}
+			}
+			createRelationTable(childType, one2ManyAnnotation.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 		}
 	}
 
@@ -534,21 +577,17 @@ class TableDefinition<T> {
 					fieldDef.getter = m;
 				}
 				catch (NoSuchMethodException nsme) {
-					throw new RuntimeException("Relation fields must have a getter in the form of get" + methodName + " in class "
+					throw new JaquError("Relation fields must have a getter in the form of get" + methodName + " in class "
 							+ clazz.getName(), nsme);
 				}
 				One2Many one2ManyAnnotation = f.getAnnotation(One2Many.class);
 				if (one2ManyAnnotation != null) {
-					addOneToMany(fieldDef, one2ManyAnnotation.childType(), one2ManyAnnotation.joinTableName(), one2ManyAnnotation
-							.myFieldNameInRelation(), one2ManyAnnotation.relationColumnName(), one2ManyAnnotation.relationFieldName(),
-							one2ManyAnnotation.childPkType(), one2ManyAnnotation.eagerLoad(), one2ManyAnnotation.cascadeType(), db);
+					addOneToMany(fieldDef, one2ManyAnnotation, db);
 					continue;
 				}
 				Many2Many many2ManyAnnotation = f.getAnnotation(Many2Many.class);
 				if (many2ManyAnnotation != null) {
-					addManyToMany(fieldDef, many2ManyAnnotation.childType(), many2ManyAnnotation.joinTableName(), many2ManyAnnotation
-							.myFieldNameInRelation(), many2ManyAnnotation.relationColumnName(), many2ManyAnnotation.relationFieldName(),
-							many2ManyAnnotation.childPkType(), db);
+					addManyToMany(fieldDef, many2ManyAnnotation, db);
 					continue;
 				}
 			}
@@ -742,7 +781,7 @@ class TableDefinition<T> {
 				this.insert(db, obj);
 		}
 		catch (SQLException e) {
-			throw new RuntimeException(e);
+			throw new JaquError(e);
 		}
 		finally {
             JdbcUtils.closeSilently(rs);
@@ -763,12 +802,12 @@ class TableDefinition<T> {
 				field.field.set(obj, value); // add the new id to the object
 			}
 			catch (SQLException e) {
-				throw new RuntimeException("Unable to generate key.", e);
+				throw new JaquError("Unable to generate key.", e);
 			}
 			catch (Exception e) {
 				if (e instanceof RuntimeException)
 					throw (RuntimeException) e;
-				throw new RuntimeException(e.getMessage(), e);
+				throw new JaquError(e.getMessage(), e);
 			}
 			finally {
 				JdbcUtils.closeSilently(rs);
@@ -870,7 +909,7 @@ class TableDefinition<T> {
 		catch (Exception e) {
 			if (e instanceof RuntimeException)
 				throw (RuntimeException) e;
-			throw new RuntimeException(e.getMessage(), e);
+			throw new JaquError(e.getMessage(), e);
 		}
 		finally {
 			JdbcUtils.closeSilently(rs);
@@ -1042,6 +1081,15 @@ class TableDefinition<T> {
 		return primaryKeyColumnNames;
 	}
 
+	private Class<?> extractPrimaryKeyFromClass(Class<?> childType) {
+		Field[] fields = childType.getDeclaredFields();
+		for (Field field: fields) {
+			if (null != field.getAnnotation(PrimaryKey.class))
+				return field.getType();
+		}
+		return null;
+	}
+	
 	private List<String> mapColumnNames(Object[] columns) {
 		List<String> columnNames = Utils.newArrayList();
 		for (Object column : columns) {
@@ -1089,7 +1137,7 @@ class TableDefinition<T> {
 		catch (Exception e) {
 			if (e instanceof RuntimeException)
 				throw (RuntimeException) e;
-			throw new RuntimeException(e.getMessage(), e);
+			throw new JaquError(e.getMessage(), e);
 		}
 	}
 }

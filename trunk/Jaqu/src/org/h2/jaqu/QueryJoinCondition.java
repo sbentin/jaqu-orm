@@ -12,19 +12,19 @@ package org.h2.jaqu;
  * @param <A> the incomplete condition data type
  */
 //## Java 1.5 begin ##
-public class QueryJoinCondition<A> {
+public class QueryJoinCondition<T, A> {
 
-    private QueryInterface<?> query;
-    private SelectTable< ? > join;
+    private QueryInterface<T> query;
+    private SelectTable<T> join;
     private A x;
 
-    QueryJoinCondition(QueryInterface<?> query, SelectTable< ? > join, A x) {
+    QueryJoinCondition(QueryInterface<T> query, SelectTable<T> join, A x) {
         this.query = query;
         this.join = join;
         this.x = x;
     }
 
-    public QueryInterface<?> is(A y) {
+    public QueryInterface<T> is(A y) {
         join.addConditionToken(new Condition<A>(x, y, CompareType.EQUAL));
         return query;
     }
