@@ -36,7 +36,7 @@ public class WorkPlace {
 	private Long id;
 	private String name;
 	
-	@Many2Many(childType=Person.class, childPkType=Long.class, joinTableName="workplace_for_person", myFieldNameInRelation="workplace", relationColumnName="person", relationFieldName="workplaces")
+	@Many2Many(joinTableName="workplace_for_person", relationColumnName="persons", relationFieldName="workPlaces")
 	private List<Person> persons = null;
 	
 	public WorkPlace() {

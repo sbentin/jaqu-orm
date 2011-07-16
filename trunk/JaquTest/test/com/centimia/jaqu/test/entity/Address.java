@@ -98,4 +98,20 @@ public class Address {
 	public void setCountry(String country) {
 		this.country = country;
 	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		return id.hashCode();
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {		
+		return obj.getClass().isAssignableFrom(this.getClass()) && this.id.equals(((Address)obj).id);
+	}
 }

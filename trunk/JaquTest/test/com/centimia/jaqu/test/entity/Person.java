@@ -43,16 +43,19 @@ public class Person implements Serializable{
 	private String lastName;
 	private Person parent;
 	
-	@One2Many(relationFieldName="parent", childPkType=Long.class, childType=Person.class)
+	/* Demonstrates a relationship to the same object via an existing other side field */
+	@One2Many(relationFieldName="parent")
 	private List<Person> children;
 	
-	@One2Many(childType=Phone.class, childPkType=Long.class, relationFieldName="owner", eagerLoad=true)
+	/* Demonstrates a single sided relationship, the FK is maintained in the DB only */
+	@One2Many(relationFieldName="owner", eagerLoad=true)
 	private Set<Phone> phones;
 	
-	@One2Many(childType=Address.class, childPkType=Long.class, relationFieldName="person", joinTableName="address_for_person", myFieldNameInRelation="person", relationColumnName="address", cascadeType=CascadeType.DELETE)
+	/* Demonstrates a relationship which is maintained by a relation table */
+	@One2Many(joinTableName="address_for_person", relationColumnName="address", cascadeType=CascadeType.DELETE)
 	private List<Address> addresses;
 	
-	@Many2Many(childType=WorkPlace.class, childPkType=Long.class, joinTableName="workplace_for_person", myFieldNameInRelation="person", relationColumnName="workplace", relationFieldName="persons")
+	@Many2Many(joinTableName="workplace_for_person", relationColumnName="workPlaces", relationFieldName="persons")
 	private List<WorkPlace> workPlaces;
 	
 	public Person() {}
@@ -68,8 +71,8 @@ public class Person implements Serializable{
 		ArrayList<Person> persons = new ArrayList<Person>();
 		Person shai = new Person(1L, "Shai", "Bentin");
 		HashSet<Phone> phoneList = new HashSet<Phone>();
-		phoneList.add(new Phone(1L, "1234567", null));
-		phoneList.add(new Phone(2L, "98765432", null));
+		phoneList.add(new Phone(1L, "1234567"));
+		phoneList.add(new Phone(2L, "98765432"));
 		shai.setPhones(phoneList);
 		ArrayList<Address> addresses = new ArrayList<Address>();
 		addresses.add(new Address(1L, "street1", "city1", "Somewhere"));
@@ -82,8 +85,8 @@ public class Person implements Serializable{
 		
 		Person einat = new Person(2L, "Einat", "Bentin");
 		phoneList = new HashSet<Phone>();
-		phoneList.add(new Phone(3L, "1234567", null));
-		phoneList.add(new Phone(4L, "98765432", null));
+		phoneList.add(new Phone(3L, "1234567"));
+		phoneList.add(new Phone(4L, "98765432"));
 		einat.setPhones(phoneList);
 		addresses = new ArrayList<Address>();
 		addresses.add(new Address(3L, "street1", "city1", "Somewhere"));
@@ -92,8 +95,12 @@ public class Person implements Serializable{
 		workplaces = new ArrayList<WorkPlace>();
 		workplaces.add(new WorkPlace(2L, "employed"));
 		einat.setWorkPlaces(workplaces);
-		
 		persons.add(einat);
+		
+		Person roee = new Person(3L, "Roee", "Bentin");
+		roee.parent = einat;
+		persons.add(roee);
+		
 		return persons;
 	}
 	

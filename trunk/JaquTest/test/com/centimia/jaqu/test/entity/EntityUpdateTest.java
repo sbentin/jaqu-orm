@@ -28,10 +28,6 @@ import com.centimia.jaqu.test.JaquTest;
  */
 public class EntityUpdateTest extends JaquTest {
 
-	public static void main(String[] args) {
-		new EntityUpdateTest().run();
-	}
-	
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#getName()
 	 */
@@ -48,7 +44,7 @@ public class EntityUpdateTest extends JaquTest {
 		result.startTest(this);
 		try {
 			setUp();
-			Phone ph = new Phone(3L, "23454323", null);
+			Phone ph = new Phone(3L, "23454323");
 			final Person descriptor = new Person();
 
 			Person me = db.from(descriptor).primaryKey().is(1L).selectFirst();

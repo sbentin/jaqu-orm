@@ -17,21 +17,6 @@ package com.centimia.jaqu.test;
 
 import junit.framework.TestResult;
 
-/*
- * 			drop table testTable1;
-			drop table testTable2;
-			drop table person;
-			drop table phone;
-			drop table address;
-			drop table workplace;
-			drop table workplace_for_person;
-			drop table address_for_person;
-			drop table TABLE_WITH_SEQ;
-			drop table TABLE_WITH_IDENTITY;
-			drop table parent;
-			drop table child;
-			drop sequence MY_SEQ;
- */
 /**
  * 
  * @author Shai Bentin

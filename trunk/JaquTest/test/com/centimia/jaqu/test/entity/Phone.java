@@ -27,17 +27,15 @@ public class Phone {
 	@PrimaryKey
 	private Long id;
 	private String num;
-	private Person owner;
 	
 	public Phone() {
 		
 	}
 	
-	public Phone(Long id, String number, Person owner) {
+	public Phone(Long id, String number) {
 		super();
 		this.id = id;
 		this.num = number;
-		this.owner = owner;
 	}
 
 	/**
@@ -66,19 +64,5 @@ public class Phone {
 	 */
 	public void setNum(String number) {
 		this.num = number;
-	}
-
-	/**
-	 * @return the owner
-	 */
-	public Person getOwner() {
-		return owner;
-	}
-
-	/**
-	 * @param owner the owner to set
-	 */
-	public void setOwner(Person owner) {
-		this.owner = owner;
 	}
 }

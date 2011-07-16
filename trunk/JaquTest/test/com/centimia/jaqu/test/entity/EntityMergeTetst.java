@@ -47,8 +47,8 @@ public class EntityMergeTetst extends JaquTest {
 			// for relationship we support List type and Set type. In the entity you just use List or Set, never use a concrete object like ArrayList or HashSet.
 			HashSet<Phone> phones = new HashSet<Phone>();
 
-			phones.add(new Phone(1L, "26546345", null)); // this is an existing ID different number
-			phones.add(new Phone(5L, "987098234", null)); // new Phone
+			phones.add(new Phone(1L, "26546345")); // this is an existing ID different number
+			phones.add(new Phone(5L, "987098234")); // new Phone
 			
 			// notice all work was done out of session. Calling an update on person will update the person, but since it has a relationship it will merge the relationships. i.e.
 			// one phone will be updated and one will be inserted. however we go about this in a different way. we merge phones
@@ -62,9 +62,9 @@ public class EntityMergeTetst extends JaquTest {
 			Person me = db.from(pDesc).primaryKey().is(1L).selectFirst();
 			assertNotNull(me);
 			
-			// since we merged the phones independently the relationship was erased from object '1L' (we put null), and doesn't exist on '4L'
-			// getting the phones will yield just one phone...
-			assertEquals(1, me.getPhones().size());
+			// getting the phones will yield the same two phones because the relationship is maintained from person only (single sided)
+			// updating the phone only does not affect the relationship. To delete the relationship we have to do it from person.
+			assertEquals(2, me.getPhones().size());
 						
 			// now lets add the relation to the missing phones.
 			me.getPhones().addAll(phones); 
@@ -88,11 +88,5 @@ public class EntityMergeTetst extends JaquTest {
 			db.rollback();
 			result.addError(this, e);
 		}
-	}
-	
-	class PersonDetails {
-		public Long id;
-		public String name;
-		public String number;
 	}
 }
