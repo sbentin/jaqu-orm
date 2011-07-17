@@ -247,8 +247,6 @@ class TableDefinition<T> {
 		 * 'false' is default
 		 */
 		boolean eagerLoad = false;
-		/** The name of the column in the relation table for the table holding this definition */
-//		String thisNameInRelationship;
 		/** The data type of the relationship object */
 		Class<?> dataType;
 		/** type of cascade relation with the related child. relevant to O2M relations only. Currently only CascadeType.DELETE is supported */
@@ -495,24 +493,7 @@ class TableDefinition<T> {
 	}
 
 	void mapFields(Db db) {
-		Field[] classFields;
-		if (this.inheritedType != null) {
-			Field[] superFields = null;
-			Class<? super T> superClazz = clazz.getSuperclass();
-			superFields = addSuperClassFields(superClazz);
-			if (superFields != null) {
-				Field[] childFields = clazz.getDeclaredFields();
-				classFields = new Field[superFields.length + childFields.length];
-				System.arraycopy(superFields, 0, classFields, 0, superFields.length);
-				System.arraycopy(childFields, 0, classFields, superFields.length, childFields.length);
-			}
-			else {
-				classFields = clazz.getDeclaredFields();
-			}
-		}
-		else {
-			classFields = clazz.getDeclaredFields();
-		}
+		Field[] classFields = getAllFields(clazz);
 		for (Field f : classFields) {
 			if (Modifier.isTransient(f.getModifiers()))
 				continue;
@@ -619,6 +600,31 @@ class TableDefinition<T> {
 	}
 
 	/**
+	 * @return
+	 */
+	private <A> Field[] getAllFields(Class<A> clazz) {
+		Field[] classFields;
+		if (this.inheritedType != null) {
+			Field[] superFields = null;
+			Class<? super A> superClazz = clazz.getSuperclass();
+			superFields = addSuperClassFields(superClazz);
+			if (superFields != null) {
+				Field[] childFields = clazz.getDeclaredFields();
+				classFields = new Field[superFields.length + childFields.length];
+				System.arraycopy(superFields, 0, classFields, 0, superFields.length);
+				System.arraycopy(childFields, 0, classFields, superFields.length, childFields.length);
+			}
+			else {
+				classFields = clazz.getDeclaredFields();
+			}
+		}
+		else {
+			classFields = clazz.getDeclaredFields();
+		}
+		return classFields;
+	}
+
+	/**
 	 * @param pkAnnotation
 	 */
 	void setGenerationType(GeneratorType generationType, String sequenceName) {
@@ -633,7 +639,7 @@ class TableDefinition<T> {
 		}
 	}
 
-	private Field[] addSuperClassFields(Class<? super T> superClazz) {
+	private <A> Field[] addSuperClassFields(Class<? super A> superClazz) {
 		if (superClazz == null || superClazz.equals(Object.class))
 			return null;
 		Field[] superSuperFields = addSuperClassFields(superClazz.getSuperclass());
@@ -1082,7 +1088,7 @@ class TableDefinition<T> {
 	}
 
 	private Class<?> extractPrimaryKeyFromClass(Class<?> childType) {
-		Field[] fields = childType.getDeclaredFields();
+		Field[] fields = getAllFields(childType);
 		for (Field field: fields) {
 			if (null != field.getAnnotation(PrimaryKey.class))
 				return field.getType();
