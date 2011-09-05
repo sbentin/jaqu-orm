@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="/MiracleCore/lib/asm-3.2.jar" sourcepath="/MiracleTests/src.zip">
-		<attributes>
-			<attribute name="javadoc_location" value="file:/C:/eclipse/workspaces/MIRACLE/MiracleTests/javadoc/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="C:/eclipse/workspaces/AMIT/EMI_LIB/ThirdParty/ojdbc5.jar"/>
-	<classpathentry kind="lib" path="C:/eclipse/workspaces/AMIT/EMI_LIB/ThirdParty/orai18n.jar"/>
-	<classpathentry kind="lib" path="C:/eclipse/eclipse_Other/plugins/org.apache.ant_1.7.1.v20090120-1145/lib/ant.jar"/>
-	<classpathentry kind="lib" path="/MiracleCore/lib/asm-commons-3.2.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.5.0_19"/>
+	<classpathentry kind="lib" path="lib/ant.jar"/>
+	<classpathentry kind="lib" path="lib/asm-3.2.jar"/>
+	<classpathentry kind="lib" path="lib/asm-commons-3.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
