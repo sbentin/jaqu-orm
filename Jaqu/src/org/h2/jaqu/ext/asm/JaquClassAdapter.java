@@ -134,26 +134,26 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 	/**
 	 * Generates the new method body, copy the old to a new method and connect them.
 	 * 
-	 * the structure of the new method is:
-	 * 
-	 * public [CollectionType] [getterName]() {
-	 * 		if ([fieldName] == null) {
-	 *			try {
-	 *				if (null == db) 
-	 *					throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
-	 *				Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);
-	 *				method.setAccessible(true);
-	 *				children = (List<TestTable>)method.invoke(db, [fieldName], this, TestTable.class);
-	 *				method.setAccessible(false);
-	 *			}
-	 *			catch (Exception e) {
-	 *				if (e instanceof RuntimeException)
-	 *					throw (RuntimeException)e;
-	 *				throw new RuntimeException(e.getMessage(), e);
-	 *			}
-	 *		}
-	 *		return $orig_[getterName]();
-	 * }
+	 * the structure of the new method is:<br>
+	 * <br><b><div style="background:lightgray">
+	 * public [CollectionType] [getterName]() {<br>
+	 * <span style="margin-left: 2em;">if ([fieldName] == null){</span></br>
+	 * <span style="margin-left: 2em;">try {</span></br>
+	 * <span style="margin-left: 3em;">if (null == db)</span></br>
+	 * <span style="margin-left: 4em;">throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");</span></br>
+	 * <span style="margin-left: 3em;">Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);</span></br>
+	 * <span style="margin-left: 3em;">method.setAccessible(true);</span></br>
+	 * <span style="margin-left: 3em;">children = (List<TestTable>)method.invoke(db, [fieldName], this, TestTable.class);</span></br>
+	 * <span style="margin-left: 3em;">method.setAccessible(false);</span></br>
+	 * <span style="margin-left: 2em;">}</span></br>
+	 * <span style="margin-left: 2em;">catch (Exception e) {</span></br>
+	 * <span style="margin-left: 3em;">if (e instanceof RuntimeException)</span></br>
+	 * <span style="margin-left: 4em;">throw (RuntimeException)e;</span></br>
+	 * <span style="margin-left: 3em;">throw new RuntimeException(e.getMessage(), e);</span></br>
+	 * <span style="margin-left: 2em;">}</span></br>
+	 * <span style="margin-left: 1em;">}</span></br>
+	 * <span style="margin-left: 1em;">return $orig_[getterName]();</span></br>
+	 * }</div></b><br/>
 	 * 
 	 * @param access
 	 * @param desc
