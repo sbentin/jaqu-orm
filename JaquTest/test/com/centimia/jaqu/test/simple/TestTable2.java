@@ -24,6 +24,7 @@ import java.util.List;
  *
  */
 public class TestTable2 {
+
 	private Long id;
 	private String description;
 
