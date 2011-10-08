@@ -1065,6 +1065,10 @@ class TableDefinition<T> {
 			FieldDefinition def = fields.get(i);
 			Object obj = def.getValue(x);
 			query.appendSQL(selectList, obj);
+			
+			// since the 'X' type object does not necessarily have field types as the queried objects in the result set we add a column name
+			// that conforms with the 'X' type
+			selectList.appendSQL(" AS " + def.columnName);
 		}
 		return selectList;
 	}
