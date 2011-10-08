@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/JaquOrmFeature_1.1.1.201107172357.jar" id="JaquOrmFeature" version="1.1.1.201107172357">
+   <feature url="features/JaquOrmFeature_1.1.2.201110082350.jar" id="JaquOrmFeature" version="1.1.2.201110082350">
       <category name="jaqu-orm"/>
    </feature>
    <category-def name="jaqu-orm" label="Jaqu Orm"/>
