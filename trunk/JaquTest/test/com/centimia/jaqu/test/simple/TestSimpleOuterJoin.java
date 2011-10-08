@@ -11,7 +11,7 @@
  * 
  *  Date			User				Comment
  * ------			-------				--------
- * 08/02/2010		Shai Bentin				 create
+ * 08/02/2010		Shai Bentin			 create
  */
 package com.centimia.jaqu.test.simple;
 
@@ -67,10 +67,27 @@ public class TestSimpleOuterJoin extends JaquTest {
 					id = t1Desc.getId();
 					name = t1Desc.getName();
 					description = t2Desc.getDescription();
+					value = t1Desc.getValue();
 				}				
 			});
 			for (joinResult join: joins) {
 				assertNotNull(join.description);
+			}
+			
+			// Triple table join test
+			db.insertAll(TestTable3.getSomeData());
+			final TestTable3 t3Desc = new TestTable3();
+			
+			joins = db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).leftOuterJoin(t3Desc).on(t2Desc.getId()).is(t3Desc.getId()).where(t2Desc.getId()).isNotNull().select(new joinResult() {
+				{
+				id = t1Desc.getId();
+				name = t1Desc.getName();
+				description = t2Desc.getDescription();
+				value = t3Desc.getValue();
+				}
+			});
+			for (joinResult join: joins) {
+				assertTrue(join.value.startsWith("valueFromTestTable"));
 			}
 			db.commit();
 			tearDown();
@@ -85,5 +102,6 @@ public class TestSimpleOuterJoin extends JaquTest {
 		public Long id;
 		public String description;
 		public String name;
+		public String value;
 	}
 }

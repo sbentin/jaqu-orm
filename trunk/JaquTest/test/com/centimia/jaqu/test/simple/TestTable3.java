@@ -28,28 +28,28 @@ import java.util.List;
  * @author Shai Bentin
  *
  */
-public class TestTable1 {
-	
+public class TestTable3 {
+
 	private Long id;
 	private String name;
 	private String value;
 	
-	public TestTable1(){
+	public TestTable3(){
 		
 	}
 	
-	public TestTable1(Long id, String name, String value) {
+	public TestTable3(Long id, String name, String value) {
 		super();
 		this.setId(id);
 		this.setName(name);
 		this.setValue(value);
 	}
 	
-	public static List<TestTable1> getSomeData(){
-		ArrayList<TestTable1> data = new ArrayList<TestTable1>();
-		data.add(new TestTable1(1L, "name1", "value1"));
-		data.add(new TestTable1(2L, "name2", "value2"));
-		data.add(new TestTable1(3L, "name3", "value3"));
+	public static List<TestTable3> getSomeData(){
+		ArrayList<TestTable3> data = new ArrayList<TestTable3>();
+		data.add(new TestTable3(1L, "name1", "valueFromTestTable1"));
+		data.add(new TestTable3(2L, "name2", "valueFromTestTable2"));
+		data.add(new TestTable3(3L, "name3", "valueFromTestTable3"));
 		return data;
 	}
 

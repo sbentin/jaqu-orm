@@ -27,6 +27,7 @@ public class DropAll extends JaquTest {
 	private String[] dropStrings = new String[] {
 			"drop table testTable1",
 			"drop table testTable2",
+			"drop table testTable3",
 			"drop table person",
 			"drop table phone",
 			"drop table address",
