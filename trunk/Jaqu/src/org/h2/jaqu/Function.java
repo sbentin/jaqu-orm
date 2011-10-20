@@ -135,6 +135,13 @@ public class Function implements Token {
         return Db.registerToken(o, new Function("MAX", x));
     }
 
+    @SuppressWarnings("unchecked")
+    public static <X extends Number> X avg(X x) {
+        Class<X> clazz = (Class<X>) x.getClass();
+        X o = Utils.newObject(clazz);
+        return Db.registerToken(o, new Function("AVG", x));
+    }
+    
     public static Boolean like(String x, String pattern) {
         Boolean o = Utils.newObject(Boolean.class);
         return Db.registerToken(o, new Function("LIKE", x, pattern) {
