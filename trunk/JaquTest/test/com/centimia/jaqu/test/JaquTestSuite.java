@@ -35,6 +35,7 @@ import com.centimia.jaqu.test.entity.EntityUpdateTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
+import com.centimia.jaqu.test.simple.TestFunctions;
 import com.centimia.jaqu.test.simple.TestSimpleDelete;
 import com.centimia.jaqu.test.simple.TestSimpleInnerJoin;
 import com.centimia.jaqu.test.simple.TestSimpleInsert;
@@ -83,6 +84,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestSimpleInnerJoin());
 		suite.addTest(new TestSimpleOuterJoin());
 		suite.addTest(new TestEnumType());
+		suite.addTest(new TestFunctions());
 		
 		// Test with entity objects.
 		// You can also use them as entities and maintain object relations. If you want to use them as entities you first need to instrument them with the special ant task to 
