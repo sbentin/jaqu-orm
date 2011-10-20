@@ -135,6 +135,10 @@ public class QueryWhere<T> {
 
 	// ## Java 1.5 end ##
 
+	public Query<T> groupBy(Object ... groupBy){
+		return query.groupBy(groupBy);
+	}
+	
 	/**
 	 * Order by one or more columns in ascending order.
 	 * 
