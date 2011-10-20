@@ -25,9 +25,11 @@ import junit.framework.TestResult;
 public class DropAll extends JaquTest {
 
 	private String[] dropStrings = new String[] {
+			"drop table enumuser",
 			"drop table testTable1",
 			"drop table testTable2",
 			"drop table testTable3",
+			"drop table TableForFunctions",
 			"drop table person",
 			"drop table phone",
 			"drop table address",
