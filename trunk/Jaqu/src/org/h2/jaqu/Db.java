@@ -478,12 +478,13 @@ public class Db {
 	}
 	
 	Object checkReEntrant(Class<?> clazz, Object key) {
-		if (key != null)
+		if (key != null){
 			key = key.toString();
-		if (reEntrantList.get() != null) {
-			Map<String, ?> innerMap = reEntrantList.get().get(clazz);
-			if (innerMap != null) {
-				return innerMap.get(key.toString());
+			if (reEntrantList.get() != null) {
+				Map<String, ?> innerMap = reEntrantList.get().get(clazz);
+				if (innerMap != null) {
+					return innerMap.get(key);
+				}
 			}
 		}
 		return null;
