@@ -532,6 +532,9 @@ class TableDefinition<T> {
 				if (pkAnnotation != null) {
 					primaryKeyColumnNames.add(fieldDef);
 					setGenerationType(pkAnnotation.generatorType(), pkAnnotation.seqName());
+					fieldDef.isPrimaryKey = true;
+					if (genType == GeneratorType.IDENTITY)
+						fieldDef.dataType = DIALECT.getIdentityType();					
 				}
 			}
 			else if (Collection.class.isAssignableFrom(classType)) {
@@ -593,10 +596,10 @@ class TableDefinition<T> {
 					}
 				}
 			}
-			// for entities we should have primary keys
-			if (primaryKeyColumnNames != null && !primaryKeyColumnNames.isEmpty())
-				setPrimaryKeys();
 		}
+		// for entities we should have primary keys
+//		if (primaryKeyColumnNames != null && !primaryKeyColumnNames.isEmpty())
+//			setPrimaryKeys();
 	}
 
 	/**
@@ -604,7 +607,8 @@ class TableDefinition<T> {
 	 */
 	private <A> Field[] getAllFields(Class<A> clazz) {
 		Field[] classFields;
-		if (this.inheritedType != null) {
+		Inherited inherited = clazz.getAnnotation(Inherited.class);
+		if (inherited != null) {
 			Field[] superFields = null;
 			Class<? super A> superClazz = clazz.getSuperclass();
 			superFields = addSuperClassFields(superClazz);
