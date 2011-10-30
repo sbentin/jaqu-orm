@@ -68,6 +68,20 @@ public class Db {
     }
 
     /**
+     * Insert objects in a comma delimited array of 0..n
+     * 
+     * @param <T>
+     * @param tArray
+     */
+    public <T> void insert(T ... tArray) {
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t : tArray) {
+            insert(t);
+        }
+    }
+    
+    /**
      * Insert all objects on the list
      * 
      * @param <T>
@@ -96,6 +110,34 @@ public class Db {
     }
 
     /**
+     * merge all the given objects of the same type. They are merged in the order in which they are iterated on within the list
+     * 
+     * @param <T>
+     * @param list
+     */
+    public <T> void merge(List<T> list) {
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t: list){
+    		merge(t);
+    	}
+    }
+    
+    /**
+     *  merge all the given objects of the same type. They are merged in the order in which they are given.
+     *  
+     * @param <T>
+     * @param tArray
+     */
+    public <T> void merge(T ... tArray) {
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t: tArray){
+    		merge(t);
+    	}
+    }
+    
+    /**
      * Delete the immediate given object. If the object has a relationships, the link is always updated according to the cascade type.
      * 
      * @param <T>
@@ -120,6 +162,34 @@ public class Db {
     }
     
     /**
+     * Delete all the given objects of the same type. Deletes in the order the given list is iterated upon.
+     * 
+     * @param <T>
+     * @param list
+     */
+    public <T> void delete(List<T> list) {
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t: list){
+    		delete(t);
+    	}
+    }
+    
+    /**
+     * Delete all the given objects of the same type. Deletes in the order they given.
+     * 
+     * @param <T>
+     * @param list
+     */
+    public <T> void delete(T ... tArray) {
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t: tArray){
+    		delete(t);
+    	}
+    }
+    
+    /**
      * Updates the immediate given object. If the object has a relationship, the link is always updated as needed. In case where the link 
      * is to a non persisted entity the new entity is inserted into the DB.
      * 
@@ -135,6 +205,36 @@ public class Db {
     }
 
     /**
+     * Update all the given objects of the same type. Updates in the order the given list is iterated upon.
+     * 
+     * @param <T>
+     * @param list
+     * @see Db#update(Object))
+     */
+    public <T> void update(List<T> list){
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t: list){
+    		update(t);
+    	}
+    }
+    
+    /**
+     * Update all the given objects of the same type. Updates in the order they are given.
+     * 
+     * @param <T>
+     * @param list
+     * @see Db#update(Object))
+     */
+    public <T> void update(T ... tArray){
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	for (T t: tArray){
+    		update(t);
+    	}
+    }
+    
+    /**
      * Represents the "from clause" of the SQL select
      * @param <T>
      * @param alias
@@ -143,7 +243,7 @@ public class Db {
     public <T extends Object> QueryInterface<T> from(T alias) {
     	if (this.closed)
     		throw new IllegalStateException("Session is closed!!!");
-        Class< ? > clazz = alias.getClass();
+        Class<?> clazz = alias.getClass();
         define(clazz);
         return Query.from(this, alias);
     }
