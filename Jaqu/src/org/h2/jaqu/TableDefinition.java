@@ -1063,10 +1063,12 @@ class TableDefinition<T> {
 	<Y, X> SQLStatement getSelectList(Query<Y> query, X x) {
 		SQLStatement selectList = new SQLStatement(query.getDb());
 		for (int i = 0; i < fields.size(); i++) {
+			FieldDefinition def = fields.get(i);
+			if (def.isSilent)
+				continue;
 			if (i > 0) {
 				selectList.appendSQL(", ");
-			}
-			FieldDefinition def = fields.get(i);
+			}			
 			Object obj = def.getValue(x);
 			query.appendSQL(selectList, obj);
 			
