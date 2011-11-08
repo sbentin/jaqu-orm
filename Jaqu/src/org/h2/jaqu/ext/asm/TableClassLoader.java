@@ -87,7 +87,7 @@ public class TableClassLoader extends ClassLoader {
             String[] iFaces = cr.getInterfaces();
             if (iFaces != null && iFaces.length != 0) {
 	            for (String iFaceName: iFaces) {
-	            	if (iFaceName.equals("org/h2/jaqu/Entity")) {
+	            	if (iFaceName.equals("org/h2/jaqu/Entity") || iFaceName.equals("org/h2/jaqu/MappedSuperclass")) {
 	            		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
 	            		
 	            		JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(cw);

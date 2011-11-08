@@ -13,7 +13,6 @@ import org.h2.jaqu.annotation.Entity;
  *
  * @param <A> the operand type
  */
-//## Java 1.5 begin ##
 class Condition<A> implements Token {
     CompareType compareType;
     A x, y;
@@ -41,4 +40,3 @@ class Condition<A> implements Token {
         }
     }
 }
-//## Java 1.5 end ##

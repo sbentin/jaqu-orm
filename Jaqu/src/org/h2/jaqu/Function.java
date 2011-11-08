@@ -7,8 +7,8 @@
 package org.h2.jaqu;
 
 //## Java 1.5 begin ##
+import org.h2.jaqu.dialect.Functions;
 import org.h2.jaqu.util.Utils;
-//## Java 1.5 end ##
 
 /**
  * This class provides static methods that represents common SQL functions.
@@ -20,7 +20,7 @@ public class Function implements Token {
     private static final Long COUNT_STAR = Long.valueOf(0);
 
     protected Object[] x;
-    private String name;
+    protected String name;
 
     protected Function(String name, Object... x) {
         this.name = name;
@@ -140,6 +140,45 @@ public class Function implements Token {
         Class<X> clazz = (Class<X>) x.getClass();
         X o = Utils.newObject(clazz);
         return Db.registerToken(o, new Function("AVG", x));
+    }
+    
+    /**
+     * creates a function that if 'checkExpression' is null then put 'replacementValue'
+     * 
+     * @param <X>
+     * @param checkExpression
+     * @param replacementValue
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+	public static <X> X ifNull(X checkExpression, final Object replacementValue){
+    	Class<X> clazz = (Class<X>) checkExpression.getClass();
+    	X o = Utils.newObject(clazz);
+    	
+    	return Db.registerToken(o, new Function("IFNULL", checkExpression, replacementValue){
+    		public <T> void appendSQL(SQLStatement stat, Query<T> query){
+    			Dialect d = query.getDb().factory.getDialect();
+    			name = d.getFunction(Functions.IFNULL);
+    			stat.appendSQL(name).appendSQL("(");
+    			// check_expression
+    			query.appendSQL(stat, x[0]);
+    			stat.appendSQL(", ");
+    			
+    			// replacement value
+    			if (null == replacementValue){
+    				if (name.equals("COALESCE"))
+    					stat.appendSQL("''");
+    				else
+    					stat.appendSQL("null");
+    			}
+    			else if (String.class.isAssignableFrom(replacementValue.getClass())){
+    				stat.appendSQL("'" + replacementValue + "'");
+    			}
+    			else
+    				stat.appendSQL(replacementValue.toString());
+    			stat.appendSQL(")");
+    		}
+    	});
     }
     
     public static Boolean like(String x, String pattern) {

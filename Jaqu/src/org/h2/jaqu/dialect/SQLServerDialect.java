@@ -144,4 +144,15 @@ public class SQLServerDialect implements SQLDialect {
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
 		return null;
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.SQLDialect#getFunction(org.h2.jaqu.dialect.Functions)
+	 */
+	public String getFunction(Functions functionName) {
+		switch (functionName){
+			case IFNULL: return "ISNULL";
+		}
+		return "";
+	}
 }

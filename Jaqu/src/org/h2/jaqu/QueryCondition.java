@@ -72,6 +72,11 @@ public class QueryCondition<T, A> {
     public QueryWhere<T> isNull() {
         query.addConditionToken(new Condition<A>(x, null, CompareType.IS_NULL));
         return new QueryWhere<T>(query);
-    }   
+    }
+    
+    public QueryBetween<T, A> between(A y){
+    	// here we don't add a condition we will do it after we have all the data for both left and right of the between
+    	return new QueryBetween<T, A>(query, x, y);
+    }
 }
 //## Java 1.5 end ##

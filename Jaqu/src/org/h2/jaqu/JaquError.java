@@ -18,7 +18,6 @@ package org.h2.jaqu;
 /**
  * 
  * @author shai
- *
  */
 public class JaquError extends RuntimeException {
 

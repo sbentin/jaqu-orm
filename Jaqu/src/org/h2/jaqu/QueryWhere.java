@@ -14,10 +14,8 @@ import java.util.List;
 /**
  * This class represents a query with a condition.
  * 
- * @param <T>
- *            the return type
+ * @param <T> the return type
  */
-// ## Java 1.5 begin ##
 public class QueryWhere<T> {
 
 	Query<T> query;
@@ -308,4 +306,3 @@ public class QueryWhere<T> {
 	}
 
 }
-// ## Java 1.5 end ##

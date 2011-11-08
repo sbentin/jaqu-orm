@@ -17,6 +17,7 @@ enum CompareType {
     SMALLER("<", true),
     SMALLER_EQUAL("<=", true),
     NOT_EQUAL("<>", true),
+    BETWEEN("BETWEEN", true),
     IS_NOT_NULL("IS NOT NULL", false),
     IS_NULL("IS NULL", false),
     LIKE("LIKE", true),

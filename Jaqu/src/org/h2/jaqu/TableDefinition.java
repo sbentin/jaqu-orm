@@ -648,11 +648,12 @@ class TableDefinition<T> {
 			return null;
 		Field[] superSuperFields = addSuperClassFields(superClazz.getSuperclass());
 
-		if (superClazz.getAnnotation(MappedSuperclass.class) == null)
+		boolean shouldMap = (superClazz.getAnnotation(MappedSuperclass.class) != null || superClazz.getAnnotation(Entity.class) != null);
+		if (!shouldMap)
 			return superSuperFields;
 
 		if (superSuperFields == null) {
-			// super class is Object.class or not mapped. However this class is mapped so we can get it fields
+			// super class is Object.class or not mapped. However this class is mapped so we can get its fields
 			return superClazz.getDeclaredFields();
 		}
 		Field[] declaredFields = superClazz.getDeclaredFields();

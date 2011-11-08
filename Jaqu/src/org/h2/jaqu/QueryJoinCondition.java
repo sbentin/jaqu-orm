@@ -14,19 +14,19 @@ package org.h2.jaqu;
 //## Java 1.5 begin ##
 public class QueryJoinCondition<T, A> {
 
-    private QueryInterface<T> query;
+    private Query<T> query;
     private SelectTable<T> join;
     private A x;
 
-    QueryJoinCondition(QueryInterface<T> query, SelectTable<T> join, A x) {
+    QueryJoinCondition(Query<T> query, SelectTable<T> join, A x) {
         this.query = query;
         this.join = join;
         this.x = x;
     }
 
-    public QueryInterface<T> is(A y) {
+    public QueryJoinWhere<T> is(A y) {
         join.addConditionToken(new Condition<A>(x, y, CompareType.EQUAL));
-        return query;
+        return new QueryJoinWhere<T>(query, join);
     }
 }
 //## Java 1.5 end ##
