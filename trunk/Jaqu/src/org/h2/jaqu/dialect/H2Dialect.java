@@ -169,4 +169,15 @@ public class H2Dialect implements SQLDialect{
 	public String getIdentityType() {
 		return "IDENTITY";
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.SQLDialect#getFunction(org.h2.jaqu.dialect.Functions)
+	 */
+	public String getFunction(Functions functionName) {
+		switch(functionName){
+			case IFNULL: return "IFNULL";
+		}
+		return null;
+	}
 }

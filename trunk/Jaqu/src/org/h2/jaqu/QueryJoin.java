@@ -12,10 +12,10 @@ package org.h2.jaqu;
 //## Java 1.5 begin ##
 public class QueryJoin<T> {
 
-    private QueryInterface<T> query;
+    private Query<T> query;
     private SelectTable<T> join;
 
-    QueryJoin(QueryInterface<T> query, SelectTable<T> join) {
+    QueryJoin(Query<T> query, SelectTable<T> join) {
         this.query = query;
         this.join = join;
     }

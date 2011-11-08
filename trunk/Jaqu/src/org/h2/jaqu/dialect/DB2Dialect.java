@@ -140,4 +140,15 @@ public class DB2Dialect implements SQLDialect {
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		return false;
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.SQLDialect#getFunction(org.h2.jaqu.dialect.Functions)
+	 */
+	public String getFunction(Functions functionName) {
+		switch(functionName){
+			case IFNULL: return "COALESCE";
+		}
+		return null;
+	}
 }

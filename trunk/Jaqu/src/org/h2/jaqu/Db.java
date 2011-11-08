@@ -68,6 +68,57 @@ public class Db {
     }
 
     /**
+     * Inserts the object and returns it's primary key, generated or not.
+     * 
+     * @param <T>
+     * @param <X>
+     * @param t
+     * @return X the primary key.
+     * @throws JaquError when no primary keys exists or more then one primary key exists or when the object inserted and primary key could not be retrieved
+     * @throws RuntimeException (could also be a JaquError) when insert failed. 
+     */
+	@SuppressWarnings("unchecked")
+	public <T,X> X insertAndGetPK(T t){
+    	if (this.closed)
+    		throw new IllegalStateException("Session is closed!!!");
+    	checkSession(t);
+        Class<T> clazz = (Class<T>) t.getClass();
+        TableDefinition<T> td = define(clazz);
+        
+        List<FieldDefinition> primaryKeys = td.getPrimaryKeyFields();
+        if (null == primaryKeys || primaryKeys.isEmpty())
+        	throw new JaquError("Object " + t.getClass().getName() + " has no primary keys defined");
+        
+        if (primaryKeys.size() > 1)
+        	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object [" + t.getClass() + "] with more then one primary key defined!!!");
+        td.insert(this, t);
+        primaryKeys.get(0).field.setAccessible(true);
+        X pk = null;
+		try {			
+			pk = (X) primaryKeys.get(0).field.get(t);
+		}
+		catch (Exception e) {
+			// unable to retrieve the key, however the object was inserted to the db so we return anyway but with null;
+			throw new JaquError(e);
+		}
+        return pk; 
+    }
+    
+	/**
+	 * Utility method to get the primary key of an existing entity or table
+	 * Can also be called from the factory class.
+	 * 
+	 * @see org.h2.jaqu.JaquSessionFactory#getPrimaryKey(Object)
+	 * @param <T>
+	 * @param <X>
+	 * @param t
+	 * @return X
+	 */
+	public <T, X> X getPrimaryKey(T t){
+		return factory.getPrimaryKey(t);
+	}
+	
+    /**
      * Insert objects in a comma delimited array of 0..n
      * 
      * @param <T>

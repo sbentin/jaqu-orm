@@ -21,6 +21,7 @@ package org.h2.jaqu;
 
 import java.sql.Connection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
@@ -132,13 +133,21 @@ public final class JaquSessionFactory {
      * @param pk
      * @return Object - the primary key value
      */
-    Object getPrimaryKey(Object pk) {
-    	 TableDefinition<?> def = getTableDefinition(pk.getClass());
+    @SuppressWarnings("unchecked")
+	<T,X> X getPrimaryKey(T t) {
+    	 TableDefinition<?> def = getTableDefinition(t.getClass());
     	 if (def == null)
-    		 throw new JaquError("Missing table definition on Object " + pk.getClass().getSimpleName());
-    	 FieldDefinition pkDef = def.getPrimaryKeyFields().get(0);
+    		 throw new JaquError("Missing table definition on Object " + t.getClass().getSimpleName());
+    	 List<FieldDefinition> primaryKeys = def.getPrimaryKeyFields();
+    	 if (null == primaryKeys || primaryKeys.isEmpty())
+         	throw new JaquError("Object " + t.getClass().getName() + " has no primary keys defined");
+         
+         if (primaryKeys.size() > 1)
+         	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object [" + t.getClass() + "] with more then one primary key defined!!!");
+    	
+         FieldDefinition pkDef = primaryKeys.get(0);
     	 try {
-			return pkDef.field.get(pk);
+			return (X)pkDef.field.get(t);
 		}
 		catch (Exception e) {
 			throw new JaquError(e.getMessage(), e);

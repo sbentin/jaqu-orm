@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.h2.jaqu.dialect.DB2Dialect;
+import org.h2.jaqu.dialect.Functions;
 import org.h2.jaqu.dialect.H2Dialect;
 import org.h2.jaqu.dialect.MySqlDialect;
 import org.h2.jaqu.dialect.OracleDialect;
@@ -72,6 +73,10 @@ public enum Dialect {
 	
 	String getIdentityType() {
 		return dialect.getIdentityType();
+	}
+	
+	public String getFunction(Functions functionName) {
+		return dialect.getFunction(functionName);
 	}
 	
 	/**

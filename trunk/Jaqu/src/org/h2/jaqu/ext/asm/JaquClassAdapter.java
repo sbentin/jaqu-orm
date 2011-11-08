@@ -43,6 +43,7 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 	private String className;
 	private HashSet<String> relationFields = new HashSet<String>();
 	private boolean isEntityAnnotationPresent = false;
+	private boolean isMappedSupperClass = false;
 	
 	public JaquClassAdapter(ClassVisitor cv) {
 		super(cv);
@@ -65,6 +66,9 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 		if (desc != null && desc.indexOf("org/h2/jaqu/annotation/Entity") != -1) {
 			this.isEntityAnnotationPresent = true;
 		}
+		if (desc != null && desc.indexOf("org/h2/jaqu/annotation/MappedSuperclass") != -1){
+			this.isMappedSupperClass = true;
+		}
 		return super.visitAnnotation(desc, visible);
 	}
 	
@@ -76,7 +80,7 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 		// 1. if name is in the list of o2m and return type is collection instrument add call to db.getRelationFromDb or db.getRelationArrayFromDb, only if value of field is null;
-		if (isEntityAnnotationPresent && name.startsWith("get")) {
+		if ((isEntityAnnotationPresent || isMappedSupperClass)&& name.startsWith("get")) {
 			// this is a getter check if it is a relation getter
 			if (relationFields.contains(name.substring(3).toLowerCase())) {
 				// this is a relationship.
@@ -93,7 +97,7 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 			else
 				return super.visitMethod(access, name, desc, signature, exceptions);
 		}
-		else if (isEntityAnnotationPresent)
+		else if (isEntityAnnotationPresent || isMappedSupperClass)
 			return super.visitMethod(access, name, desc, signature, exceptions);
 		
 		else
@@ -106,7 +110,7 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 	 */
 	@Override
 	public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-		if (isEntityAnnotationPresent) {
+		if (isEntityAnnotationPresent || isMappedSupperClass) {
 			// collect the fields that are relation by rule. (Collection type fields....)
 			if (desc.indexOf("java/util/List") != -1 || desc.indexOf("java/util/Set") != -1 || desc.indexOf("java/util/Collection") != -1)
 				relationFields.add(name.toLowerCase());
@@ -129,6 +133,10 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 	
 	public final boolean isEntityAnnotationPresent() {
 		return this.isEntityAnnotationPresent;
+	}
+	
+	public final boolean isMappedSuperClass() {
+		return this.isMappedSupperClass;
 	}
 
 	/**

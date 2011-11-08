@@ -18,6 +18,8 @@ package org.h2.jaqu;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.h2.jaqu.dialect.Functions;
+
 /**
  * An interface implemented by all Dialects
  * @author Shai Bentin
@@ -80,5 +82,13 @@ public interface SQLDialect {
 	 * @return boolean
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db);
+
+	/**
+	 * returns the function that is the right function syntax for this dialect
+	 * 
+	 * @param functionName
+	 * @return String
+	 */
+	public abstract String getFunction(Functions functionName);
 
 }

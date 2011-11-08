@@ -296,7 +296,7 @@ public class Query<T> implements FullQueryInterface<T> {
         try {
             while (rs.next()) {
                 X row = Utils.newObject(clazz);
-                def.readRow(row, rs, null);
+                def.readRow(row, rs, db);
                 result.add(row);
             }
         } catch (SQLException e) {

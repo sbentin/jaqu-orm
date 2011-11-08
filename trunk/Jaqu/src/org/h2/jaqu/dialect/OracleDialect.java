@@ -202,4 +202,14 @@ public class OracleDialect implements SQLDialect {
 		return false;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see org.h2.jaqu.SQLDialect#getFunction(org.h2.jaqu.dialect.Functions)
+	 */
+	public String getFunction(Functions functionName) {
+		switch (functionName){
+			case IFNULL: return "NVL";
+		}
+		return "";
+	}
 }
