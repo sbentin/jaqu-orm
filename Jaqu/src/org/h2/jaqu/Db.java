@@ -430,7 +430,12 @@ public class Db {
 								((AbstractJaquCollection) col).merge();
 							}
 							else {
-								// no merging is required
+								// here we get a whole new relationship container which symbolizes the current relationships
+								// of the Entity. However, there still might be  a case where we have relationships existing in the DB.
+								// Thus, our algorithm should be, clean the current relationships then apply the new ones. Here we think of performance!
+								// If the relationship has cascade type delete, we need to dispose of the objects as well as the relationships, else we just 
+								// dispose of the relationships.
+								deleteParentRelation(fdef, t);
 								if (List.class.isAssignableFrom(col.getClass())) {
 									JaquList l = new JaquList((List) col, this, fdef, factory.getPrimaryKey(t));
 									l.setDb(this);
@@ -791,7 +796,7 @@ public class Db {
 	 */
 	void deleteParentRelation(FieldDefinition fdef, Object parent) {
 		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE) {
-			// in one to many there is a question of cascade delete, i.e delete the child as well. In M2M this is not supported
+			// in one to many there is a question of cascade delete, i.e delete the child as well. In M2M this can not be true
 			try {
 				// using the getter because of lazy loading...
 				fdef.getter.setAccessible(true);
@@ -809,29 +814,14 @@ public class Db {
 					throw new JaquError(e.getMessage(), e);
 			}
 		}
-		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) {
+		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) { // if it's cascade delete these objects where deleted already so we can skip
 			// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists, 
-			// 2. One sided relationship, the field FK is only in the DB...
-			try {
-				Field otherSideRelation = fdef.relationDefinition.dataType.getField(fdef.relationDefinition.relationFieldName);
-				otherSideRelation.setAccessible(true);
-				Collection<?> relations = (Collection<?>) fdef.field.get(parent); // this must be a collection by design
-				for (Object o: relations) {
-					otherSideRelation.set(o, null);
-				}
-				otherSideRelation.setAccessible(false);
-			}
-			catch (NoSuchFieldException e) {
-				// Silent relation, field is only in the DB.
-				TableDefinition<?> tdef = define(fdef.relationDefinition.dataType);
-				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-				StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
-				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-				executeUpdate(builder.toString());
-			}
-			catch (Exception e) {
-				throw new JaquError(e.getMessage(), e);
-			}
+			// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
+			TableDefinition<?> tdef = define(fdef.relationDefinition.dataType);
+			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
+			StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
+			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
+			executeUpdate(builder.toString());
 			return;
 		}
 		// relationTables exist both in O2M and M2M relations. In this case all we need to do is to remove all the entries in the table that include the parent
