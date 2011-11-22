@@ -44,14 +44,22 @@ public class TestInheritance extends JaquTest {
 			setUp();
 			Child c = new Child(null, new java.util.Date(System.currentTimeMillis()), "c1");
 			db.insert(c);
+			
+			GrandChild g = new GrandChild(12, "roee");
+			Long pk = db.insertAndGetPK(g);
+			
+			assertNotNull(pk);
 			db.commit();
 			
 			Child desc = new Child();
-			Child cResult = db.from(desc).where(desc.getName()).is("c1").selectFirst();
-			
-			assertNotNull(cResult.getId());
-			
+			Child cResult = db.from(desc).where(desc.getName()).is("c1").selectFirst();			
+			assertNotNull(cResult.getId());			
 			assertEquals("c1", cResult.getName());
+			
+			GrandChild gDesc = new GrandChild();
+			GrandChild gResult = db.from(gDesc).where(gDesc.getName()).is("roee").selectFirst();			
+			assertNotNull(gResult.getId());			
+			assertEquals(12, gResult.getAge().intValue());
 			
 			tearDown();
 		}

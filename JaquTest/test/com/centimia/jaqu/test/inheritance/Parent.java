@@ -16,10 +16,14 @@
 package com.centimia.jaqu.test.inheritance;
 
 import java.util.Date;
+import java.util.List;
 
 import org.h2.jaqu.GeneratorType;
 import org.h2.jaqu.annotation.MappedSuperclass;
+import org.h2.jaqu.annotation.One2Many;
 import org.h2.jaqu.annotation.PrimaryKey;
+
+import com.centimia.jaqu.test.entity.Phone;
 
 /**
  * 
@@ -31,6 +35,9 @@ public class Parent {
 	private Long id;
 	
 	private Date aDate;
+	
+	@One2Many(relationFieldName="owner")
+	private List<Phone> phones;
 	
 	public Parent () {
 		
@@ -64,4 +71,19 @@ public class Parent {
 		this.aDate = date;
 	}
 
+	/**
+	 * 
+	 * @param phones
+	 */
+	public void setPhones(List<Phone> phones) {
+		this.phones = phones;
+	}
+
+	/**
+	 * 
+	 * @return List<Phone>
+	 */
+	public List<Phone> getPhones() {
+		return phones;
+	}
 }

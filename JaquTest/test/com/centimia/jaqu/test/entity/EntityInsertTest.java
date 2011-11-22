@@ -46,7 +46,7 @@ public class EntityInsertTest extends JaquTest {
 		try {
 			setUp();
 			// create a table for phone. 1. We check that this API works, 2. Phone does not include owner, we use the table 
-			db.createTable(com.centimia.jaqu.test.table.PhoneTable.class);
+			db.createTable(PhoneTable.class);
 			
 			// notice person is outside the DB session to start with.
 			db.insertAll(Person.getSomeData());
