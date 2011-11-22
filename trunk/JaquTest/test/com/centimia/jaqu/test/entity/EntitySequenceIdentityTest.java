@@ -65,10 +65,10 @@ public class EntitySequenceIdentityTest extends JaquTest {
 			setUp();
 			if (sessionFactory.getDialect() != Dialect.MYSQL) {
 				TableWithSequence tws = new TableWithSequence("someName");
-				db.insert(tws);
+				Long pk = db.insertAndGetPK(tws);
 				
 				// first we should see that our object was updated with an ID
-				assertNotNull(tws.getId());
+				assertNotNull(pk);
 				
 				// now let see if it'sn the DB
 				final TableWithSequence desc = new TableWithSequence();
@@ -78,10 +78,10 @@ public class EntitySequenceIdentityTest extends JaquTest {
 			
 			if (sessionFactory.getDialect() != Dialect.ORACLE) {
 				TableWithIdentity twi = new TableWithIdentity("anotherName");
-				db.insert(twi);
+				Long pk = db.insertAndGetPK(twi);
 				
 				// first we should see that our object was updated with an ID
-				assertNotNull(twi.getId());
+				assertNotNull(pk);
 				
 				// now let see if it'sn the DB
 				final TableWithIdentity descI = new TableWithIdentity();

@@ -17,6 +17,8 @@ package com.centimia.jaqu.test.simple;
 
 import java.util.List;
 
+import org.h2.jaqu.Function;
+
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
@@ -83,7 +85,7 @@ public class TestSimpleOuterJoin extends JaquTest {
 				id = t1Desc.getId();
 				name = t1Desc.getName();
 				description = t2Desc.getDescription();
-				value = t3Desc.getValue();
+				value = Function.ifNull(t3Desc.getValue(), null);
 				}
 			});
 			for (joinResult join: joins) {

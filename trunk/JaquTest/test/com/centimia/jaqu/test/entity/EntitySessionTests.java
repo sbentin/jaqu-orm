@@ -120,7 +120,7 @@ public class EntitySessionTests extends TestCase {
 			db.update(me);
 			me = db.from(pDesc).primaryKey().is(1L).selectFirst();
 			assertNotNull(me);
-			assertEquals(4, me.getAddresses().size());
+			assertEquals(2, me.getAddresses().size());
 			db.commit();
 			db.close();
 			
@@ -135,14 +135,14 @@ public class EntitySessionTests extends TestCase {
 			
 			db = sessionFactory.getSession();
 			db.update(me);
-			// now me should have two addresses. This object is actually usable because it is in sync with the DB (Unlike the case before where I described a bug)
-			assertEquals(2, me.getAddresses().size());
+			// now me should have zero addresses. This object is actually usable because it is in sync with the DB (Unlike the case before where I described a bug)
+			assertEquals(0, me.getAddresses().size());
 			
 			// lets check in the db as well, now select by name not primary key...
 			me = db.from(pDesc).where(pDesc.getFirstName()).is("Shai").selectFirst();
 			assertNotNull(me);
 			
-			assertEquals(2, me.getAddresses().size());
+			assertEquals(0, me.getAddresses().size());
 			db.commit();
 			db.close();
 			tearDown();

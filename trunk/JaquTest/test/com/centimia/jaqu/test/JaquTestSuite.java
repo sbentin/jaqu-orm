@@ -41,7 +41,6 @@ import com.centimia.jaqu.test.simple.TestSimpleInnerJoin;
 import com.centimia.jaqu.test.simple.TestSimpleInsert;
 import com.centimia.jaqu.test.simple.TestSimpleObjectUpdate;
 import com.centimia.jaqu.test.simple.TestSimpleOuterJoin;
-import com.centimia.jaqu.test.table.TableTests;
 import com.centimia.jaqu.test.transaction.TransactionTests;
 
 /**
@@ -98,10 +97,6 @@ public class JaquTestSuite {
 		suite.addTest(new EntitySessionTests());
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
-		
-		// Table tests. Tables represent db tables, with some meta data but no object relations. You only need to let the framework know of the primary key. 
-		// For relationships you use joins.
-		suite.addTest(new TableTests());
 		
 		// Inheritance Tests
 		suite.addTest(new TestInheritance());
