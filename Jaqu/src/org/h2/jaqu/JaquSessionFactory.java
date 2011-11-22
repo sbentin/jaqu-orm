@@ -53,6 +53,10 @@ public final class JaquSessionFactory {
     		throw new IllegalStateException("Missing valid datasource!!!");
     	this.dataSource = ds;
     	Map<Class<?>, TableDefinition<?>> map = Utils.newHashMap();
+    	// this map is synchronized on get put operations. The reason is that this map can be updated by more then one thread
+    	// we don't want a situation where two threads update it at the same time with the same definition. Notice however, this
+    	// doesn't prevent a possible situation when two threads update this table with the same class definition. This situation
+    	// is not wanted, but the cost is minimal and it will not hurt the "thread safe" flow of jaqu so we don't deal with it.
     	classMap = Collections.synchronizedMap(map);
     }
     
@@ -193,11 +197,6 @@ public final class JaquSessionFactory {
             def = new TableDefinition<T>(clazz, db.factory.DIALECT);
             def.mapFields(db);
             db.factory.classMap.put(clazz, def);
-            if (Table.class.isAssignableFrom(clazz)) {
-                T t = Utils.newObject(clazz);
-                Table table = (Table) t;
-                Define.define(def, table);
-            }
             def.mapOneToOneFields(db);
             if (db.factory.createTable && allowCreate)
             	def.createTableIfRequired(db);

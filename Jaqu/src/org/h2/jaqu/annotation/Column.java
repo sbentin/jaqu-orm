@@ -37,4 +37,10 @@ public @interface Column {
 	
 	/** Denotes the maximum length of the field. Optional */
 	int length() default -1;
+
+	/** If true then the field will be created as unique in the underlying DB. Has no meaning if the Table is not created by jaqu */
+	boolean unique() default false;
+
+	/** If true then this field will be created with not null. */
+	boolean notNull() default false;
 }

@@ -22,7 +22,7 @@ package org.h2.jaqu.constant;
  */
 public class Constants {
 
-	public static final String BUILD_ID = "1.0.6";
+	public static final String BUILD_ID = "2.0.0";
 	public static final int IO_BUFFER_SIZE = 4 * 1024;
 	public static final String UTF8 = "UTF8";
 

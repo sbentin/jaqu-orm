@@ -14,24 +14,24 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.h2.jaqu.annotation.Column;
 import org.h2.jaqu.annotation.Entity;
+import org.h2.jaqu.annotation.Index;
+import org.h2.jaqu.annotation.Indices;
 import org.h2.jaqu.annotation.Inherited;
 import org.h2.jaqu.annotation.JaquIgnore;
 import org.h2.jaqu.annotation.Many2Many;
 import org.h2.jaqu.annotation.MappedSuperclass;
 import org.h2.jaqu.annotation.One2Many;
 import org.h2.jaqu.annotation.PrimaryKey;
-import org.h2.jaqu.constant.ErrorCode;
-import org.h2.jaqu.jdbc.JdbcSQLException;
 import org.h2.jaqu.util.JdbcUtils;
 import org.h2.jaqu.util.StatementBuilder;
 import org.h2.jaqu.util.StatementLogger;
@@ -49,20 +49,11 @@ class TableDefinition<T> {
 	enum FieldType {
 		NORMAL, FK, M2M, O2M
 	};
-
-	/**
-	 * The meta data of an index.
-	 */
-	static class IndexDefinition {
-		boolean unique;
-		String indexName;
-		List<String> columnNames;
-	}
-
+	
 	/**
 	 * The meta data of a field.
 	 */
-	static class FieldDefinition {
+	static class FieldDefinition implements Comparable<FieldDefinition> {
 		String columnName;
 		Field field;
 		String dataType;
@@ -73,6 +64,8 @@ class TableDefinition<T> {
 		public boolean isSilent = false;
 		private Types type;
 		Method getter;
+		public boolean unique;
+		public boolean notNull;
 
 		Object getValue(Object obj) {
 			try {
@@ -124,10 +117,9 @@ class TableDefinition<T> {
 								if (!result.isEmpty())
 									o = result.get(0);
 								else
-									throw new JdbcSQLException(
-											"\nData Consistency error - Foreign relation does not exist!!\nError column was "
+									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was "
 													+ field.getName() + " with value " + tmp + " in table " + obj.getClass().getName()
-													+ "\nmissing in table " + o.getClass().getName(), null, dataType, ErrorCode.GENERAL_ERROR_1, null, columnName);
+													+ "\nmissing in table " + o.getClass().getName());
 								db.removeReentrant(obj);
 							}
 						}
@@ -230,6 +222,15 @@ class TableDefinition<T> {
 				throw new JaquError(e);
 			}
 		}
+
+		public int compareTo(FieldDefinition o) {
+			if (columnName.equals(o.columnName))
+				return 0;
+			if (fieldType.ordinal() >= o.fieldType.ordinal())
+				return 6;
+			else
+				return -6;
+		}
 	}
 
 	static class RelationDefinition {
@@ -254,13 +255,12 @@ class TableDefinition<T> {
 	}
 
 	final Dialect DIALECT;
-	String tableName;
-	private Class<T> clazz;
-	private ArrayList<FieldDefinition> fields = Utils.newArrayList();
-	private IdentityHashMap<Object, FieldDefinition> fieldMap = Utils.newIdentityHashMap();
+	final String tableName;
+	private final Class<T> clazz;
+	private HashMap<String, FieldDefinition> fieldMap = Utils.newHashMap();
+	private List<FieldDefinition> fields = Utils.newArrayList();
 	private List<FieldDefinition> primaryKeyColumnNames;
 	private List<FieldDefinition> oneToOneRelations;
-	private ArrayList<IndexDefinition> indexes = Utils.newArrayList();
 	boolean isAggregateParent = false;
 	private GeneratorType genType = GeneratorType.NONE;
 	private String sequenceQuery = null;
@@ -271,16 +271,19 @@ class TableDefinition<T> {
 	TableDefinition(Class<T> clazz, Dialect DIALECT) {
 		this.DIALECT = DIALECT;
 		this.clazz = clazz;
-		tableName = clazz.getSimpleName();
+		String nameOfTable = clazz.getSimpleName();
 		// Handle table annotation if entity and Table annotations exist
+	
+		org.h2.jaqu.annotation.Table tableAnnotation = clazz.getAnnotation(org.h2.jaqu.annotation.Table.class);
+		if (tableAnnotation != null) {
+			if (tableAnnotation.name() != null && !"".equals(tableAnnotation.name()))
+				nameOfTable = tableAnnotation.name();
+		}
 		if (clazz.getAnnotation(Entity.class) != null) {
-			org.h2.jaqu.annotation.Table tableAnnotation = clazz.getAnnotation(org.h2.jaqu.annotation.Table.class);
-			if (tableAnnotation != null) {
-				setTableName(tableAnnotation.name());
-			}
 			// we must have primary keys
 			primaryKeyColumnNames = Utils.newArrayList();
 		}
+		this.tableName = nameOfTable;
 		Inherited inherited = clazz.getAnnotation(Inherited.class);
 		if (inherited != null) {
 			this.inheritedType = inherited.inheritedType();
@@ -293,62 +296,6 @@ class TableDefinition<T> {
 		return fields;
 	}
 
-	void setTableName(String tableName) {
-		if (tableName != null && !"".equals(tableName))
-			this.tableName = tableName;
-	}
-
-	void setPrimaryKey(Object[] primaryKeyColumns) {
-		if (primaryKeyColumns != null && primaryKeyColumns.length > 0) {
-			List<FieldDefinition> fields = Utils.newArrayList();
-			if (primaryKeyColumns.length == 1) {
-				// one primary key for this table
-				FieldDefinition fieldDefinition = getDefinitionForColumn(getColumnName(primaryKeyColumns[0]));
-				if (fieldDefinition != null) {
-					fieldDefinition.isPrimaryKey = true;
-					if (genType == GeneratorType.IDENTITY)
-						fieldDefinition.dataType = DIALECT.getIdentityType();
-					fields.add(fieldDefinition);
-				}
-			}
-			else {
-				// multiple primary key fields
-				List<String> columnList = Utils.newArrayList();
-				for (Object column : primaryKeyColumns)
-					columnList.add(getColumnName(column));
-
-				for (FieldDefinition fieldDefinition : this.fields) {
-					if (columnList.contains(fieldDefinition.columnName)) {
-						// set isPrimaryKey flag for all field definitions
-						fieldDefinition.isPrimaryKey = true;
-						fields.add(fieldDefinition);
-					}
-				}
-			}
-			this.primaryKeyColumnNames = fields;
-		}
-	}
-
-	void setPrimaryKeys() {
-		if (primaryKeyColumnNames != null && primaryKeyColumnNames.size() > 0) {
-			if (primaryKeyColumnNames.size() == 1) {
-				// one primary key for this table
-				FieldDefinition fieldDefinition = primaryKeyColumnNames.get(0);
-				if (fieldDefinition != null) {
-					fieldDefinition.isPrimaryKey = true;
-					if (genType == GeneratorType.IDENTITY)
-						fieldDefinition.dataType = DIALECT.getIdentityType();
-				}
-			}
-			else {
-				// multiple primary key fields
-				for (FieldDefinition fieldDefinition : primaryKeyColumnNames) {
-					fieldDefinition.isPrimaryKey = true;
-				}
-			}
-		}
-	}
-
 	void addManyToMany(FieldDefinition fieldDefinition, Many2Many many2Many, Db db) {
 		Class<?> childType = many2Many.childType();
 		if (Object.class.equals(childType)) {
@@ -356,7 +303,8 @@ class TableDefinition<T> {
 				childType = (Class<?>) ((ParameterizedType)fieldDefinition.field.getGenericType()).getActualTypeArguments()[0];
 			}
 			catch (Exception e) {
-				throw new JaquError("Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' annotation parameter on @Many2Many annotation", e);
+				throw new JaquError("Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' " +
+						"annotation parameter on @Many2Many annotation", e);
 			}
 		}
 
@@ -372,7 +320,6 @@ class TableDefinition<T> {
 		RelationDefinition def = new RelationDefinition();
 		def.eagerLoad = false;
 		def.relationTableName = many2Many.joinTableName();
-//		def.thisNameInRelationship = relationFieldName;
 
 		if (fieldDefinition != null) {
 			fieldDefinition.relationDefinition = def;
@@ -421,7 +368,6 @@ class TableDefinition<T> {
 		def.eagerLoad = one2ManyAnnotation.eagerLoad();
 		if (!"".equals(one2ManyAnnotation.joinTableName())) {
 			def.relationTableName = one2ManyAnnotation.joinTableName();
-//			def.thisNameInRelationship = relationFieldName;
 		}
 		if (one2ManyAnnotation.cascadeType() != null)
 			def.cascadeType = one2ManyAnnotation.cascadeType();
@@ -453,51 +399,18 @@ class TableDefinition<T> {
 	}
 
 	FieldDefinition getDefinitionForField(String fieldName) {
-		for (FieldDefinition fieldDefinition : fields) {
-			if (fieldName.equals(fieldDefinition.field.getName())) {
-				return fieldDefinition;
-			}
-		}
-		return null;
+		return fieldMap.get(fieldName);
 	}
 	
-	FieldDefinition getDefinitionForColumn(String columnName) {
-		for (FieldDefinition fieldDefinition : fields) {
-			if (columnName.equals(fieldDefinition.columnName)) {
-				return fieldDefinition;
-			}
-		}
-		return null;
-	}
-
-	<A> String getColumnName(A fieldObject) {
-		FieldDefinition def = fieldMap.get(fieldObject);
-		return def == null ? null : def.columnName;
-	}
-
-	void addIndex(Object[] columns) {
-		IndexDefinition index = new IndexDefinition();
-		index.indexName = tableName + "_" + indexes.size();
-		index.columnNames = mapColumnNames(columns);
-		indexes.add(index);
-	}
-
-	void setMaxLength(Object column, int maxLength) {
-		String columnName = getColumnName(column);
-		for (FieldDefinition f : fields) {
-			if (f.columnName.equals(columnName)) {
-				f.maxLength = maxLength;
-				break;
-			}
-		}
-	}
-
 	void mapFields(Db db) {
 		Field[] classFields = getAllFields(clazz);
 		for (Field f : classFields) {
 			if (Modifier.isTransient(f.getModifiers()))
 				continue;
 
+			if (Modifier.isFinal(f.getModifiers()))
+				continue;
+			
 			if (Modifier.isStatic(f.getModifiers()))
 				continue;
 			
@@ -515,26 +428,44 @@ class TableDefinition<T> {
 				fieldDef.dataType = getDataType(f);
 				fieldDef.type = getTypes(classType);
 				fields.add(fieldDef);
+				fieldMap.put(f.getName(), fieldDef);
 				if (String.class.isAssignableFrom(classType)|| classType.isEnum()) {
 					// strings have a default size
 					fieldDef.maxLength = 256;
 				}
 				// handle column name on annotation
 				Column columnAnnotation = f.getAnnotation(Column.class);
-				if (columnAnnotation != null) {
+				if (null != columnAnnotation) {
 					if (!StringUtils.isNullOrEmpty(columnAnnotation.name()))
 						fieldDef.columnName = columnAnnotation.name();
 					int length = columnAnnotation.length();
 					if (length != -1)
 						fieldDef.maxLength = length;
+					fieldDef.unique = columnAnnotation.unique();
+					fieldDef.notNull = columnAnnotation.notNull();
 				}
 				PrimaryKey pkAnnotation = f.getAnnotation(PrimaryKey.class);
 				if (pkAnnotation != null) {
-					primaryKeyColumnNames.add(fieldDef);
-					setGenerationType(pkAnnotation.generatorType(), pkAnnotation.seqName());
+					if (null == primaryKeyColumnNames)
+						primaryKeyColumnNames = Utils.newArrayList();
 					fieldDef.isPrimaryKey = true;
-					if (genType == GeneratorType.IDENTITY)
-						fieldDef.dataType = DIALECT.getIdentityType();					
+					primaryKeyColumnNames.add(fieldDef);
+					this.genType = pkAnnotation.generatorType();
+					if (this.genType != null){
+						// check if allowed
+						if (this.primaryKeyColumnNames.size() > 1){
+							throw new JaquError("Too many primary keys with an auto increment field. Using an auto increment " +
+									"field requires a single column primary key. For uniqueness consider unique indexs in your table");
+						}
+						if (genType == GeneratorType.IDENTITY)
+							fieldDef.dataType = DIALECT.getIdentityType();
+						else if (this.genType == GeneratorType.SEQUENCE) {
+							if (pkAnnotation.seqName() == null)
+								throw new IllegalArgumentException("GeneratorType.SEQUENCE must supply a sequence name!!!");
+							StatementBuilder builder = new StatementBuilder("SELECT ").append(pkAnnotation.seqName()).append(".nextval from dual");
+							this.sequenceQuery = builder.toString();
+						}
+					}
 				}
 			}
 			else if (Collection.class.isAssignableFrom(classType)) {
@@ -545,34 +476,35 @@ class TableDefinition<T> {
 				fieldDef.columnName = f.getName();
 				fieldDef.dataType = null;
 				fieldDef.type = Types.COLLECTION;
-				fieldDef.isSilent = true;
 				fields.add(fieldDef);
-				this.isAggregateParent = true;
-
-				// find the method...
-				String methodName = Pattern.compile(f.getName().substring(0, 1)).matcher(f.getName()).replaceFirst(
-						f.getName().substring(0, 1).toUpperCase());
-				try {
-					Method m = null;
-					if (this.inheritedType == null)
-						m = clazz.getDeclaredMethod("get" + methodName);
-					else
-						m = clazz.getMethod("get" + methodName);
-					fieldDef.getter = m;
-				}
-				catch (NoSuchMethodException nsme) {
-					throw new JaquError("Relation fields must have a getter in the form of get" + methodName + " in class "
-							+ clazz.getName(), nsme);
-				}
-				One2Many one2ManyAnnotation = f.getAnnotation(One2Many.class);
-				if (one2ManyAnnotation != null) {
-					addOneToMany(fieldDef, one2ManyAnnotation, db);
-					continue;
-				}
-				Many2Many many2ManyAnnotation = f.getAnnotation(Many2Many.class);
-				if (many2ManyAnnotation != null) {
-					addManyToMany(fieldDef, many2ManyAnnotation, db);
-					continue;
+				fieldMap.put(f.getName(), fieldDef);
+				// only entities have relations
+				if (clazz.getAnnotation(Entity.class) != null) {
+					this.isAggregateParent = true;
+					fieldDef.isSilent = true;
+					// find the method...
+					String methodName = Pattern.compile(f.getName().substring(0, 1)).matcher(f.getName()).replaceFirst(f.getName().substring(0, 1).toUpperCase());
+					try {
+						Method m = null;
+						if (this.inheritedType == null)
+							m = clazz.getDeclaredMethod("get" + methodName);
+						else
+							m = clazz.getMethod("get" + methodName);
+						fieldDef.getter = m;
+					}
+					catch (NoSuchMethodException nsme) {
+						throw new JaquError("Relation fields must have a getter in the form of get" + methodName + " in class " + clazz.getName(), nsme);
+					}
+					One2Many one2ManyAnnotation = f.getAnnotation(One2Many.class);
+					if (one2ManyAnnotation != null) {
+						addOneToMany(fieldDef, one2ManyAnnotation, db);					
+						continue;
+					}
+					Many2Many many2ManyAnnotation = f.getAnnotation(Many2Many.class);
+					if (many2ManyAnnotation != null) {
+						addManyToMany(fieldDef, many2ManyAnnotation, db);
+						continue;
+					}
 				}
 			}
 			else {
@@ -589,17 +521,38 @@ class TableDefinition<T> {
 						this.oneToOneRelations = Utils.newArrayList();
 					this.oneToOneRelations.add(fieldDef);
 					fields.add(fieldDef);
+					fieldMap.put(f.getName(), fieldDef);
 					Column columnAnnotation = f.getAnnotation(Column.class);
 					if (columnAnnotation != null) {
 						if (!StringUtils.isNullOrEmpty(columnAnnotation.name()))
 							fieldDef.columnName = columnAnnotation.name();
 					}
 				}
+				else {
+					// this will be stored as a blob...
+					f.setAccessible(true);
+					FieldDefinition fieldDef = new FieldDefinition();
+					fieldDef.field = f;
+					fieldDef.columnName = f.getName();
+					fieldDef.dataType = DIALECT.getDataType(Blob.class);
+					fieldDef.type = Types.BLOB;
+					fields.add(fieldDef);
+					fieldMap.put(f.getName(), fieldDef);
+					
+					// handle column name on annotation
+					Column columnAnnotation = f.getAnnotation(Column.class);
+					if (null != columnAnnotation) {
+						if (!StringUtils.isNullOrEmpty(columnAnnotation.name()))
+							fieldDef.columnName = columnAnnotation.name();
+						fieldDef.unique = columnAnnotation.unique();
+						fieldDef.notNull = columnAnnotation.notNull();
+					}
+				}
 			}
 		}
-		// for entities we should have primary keys
-//		if (primaryKeyColumnNames != null && !primaryKeyColumnNames.isEmpty())
-//			setPrimaryKeys();
+		// make sure the list of fields is sorted according to field type. we want the list to return the normal simple fields first then the
+		// FK fields and then O2M and M2M. This way we make sure we have the primary key of the object before we try checking for reentrant.
+		Collections.sort(fields);
 	}
 
 	/**
@@ -626,21 +579,6 @@ class TableDefinition<T> {
 			classFields = clazz.getDeclaredFields();
 		}
 		return classFields;
-	}
-
-	/**
-	 * @param pkAnnotation
-	 */
-	void setGenerationType(GeneratorType generationType, String sequenceName) {
-		if (generationType != null) {
-			this.genType = generationType;
-			if (this.genType == GeneratorType.SEQUENCE) {
-				if (sequenceName == null)
-					throw new IllegalArgumentException("GeneratorType.SEQUENCE must supply a sequence name!!!");
-				StatementBuilder builder = new StatementBuilder("SELECT ").append(sequenceName).append(".nextval from dual");
-				this.sequenceQuery = builder.toString();
-			}
-		}
 	}
 
 	private <A> Field[] addSuperClassFields(Class<? super A> superClazz) {
@@ -753,10 +691,11 @@ class TableDefinition<T> {
 			if (db.factory.isShowSQL())
 				StatementLogger.insert(stat.getSQL());
 			
-			stat.executeUpdate();
-			if (genType == GeneratorType.IDENTITY)
-				callIdentity(obj, db);
-
+			if (genType == GeneratorType.IDENTITY){
+				updateWithId(obj, stat);
+			}
+			else
+				stat.executeUpdate();
 			update(db, obj);
 		}
 	}
@@ -905,27 +844,43 @@ class TableDefinition<T> {
 
 	/*
 	 * The last identity called using this connection would be the one that inserted the parameter 'obj'. we use it to set the value
-	 * TODO this should move to dialect and work for all DB's supporting Identity Type
 	 */
-	private void callIdentity(Object obj, Db db) {
-		ResultSet rs = null;
-		try {
-			if (primaryKeyColumnNames.get(0).field.get(obj) == null) {
-				rs = db.executeQuery("SELECT last_insert_id() AS id;");
-				if (rs.next()) {
-					primaryKeyColumnNames.get(0).field.set(obj, rs.getLong(1));
-				}
+	private void updateWithId(Object obj, SQLStatement stat) {
+		Long generatedId = stat.executeUpdateWithId();
+		if (null != generatedId) {
+			try {
+				primaryKeyColumnNames.get(0).field.set(obj, generatedId);
+			}
+			catch (Exception e) {
+				if (e instanceof RuntimeException)
+					throw (RuntimeException) e;
+				throw new JaquError(e.getMessage(), e);
 			}
 		}
-		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException) e;
-			throw new JaquError(e.getMessage(), e);
-		}
-		finally {
-			JdbcUtils.closeSilently(rs);
+		else {
+			throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
 		}
 	}
+//	private void callIdentity(Object obj, Db db) {
+//		ResultSet rs = null;
+//		try {
+//			if (primaryKeyColumnNames.get(0).field.get(obj) == null) {
+//				String identityQuery = db.factory.DIALECT.getIdentityQuery();
+//				rs = db.executeQuery("SELECT last_insert_id() AS id;"); //identityQuery
+//				if (rs.next()) {
+//					primaryKeyColumnNames.get(0).field.set(obj, rs.getLong(1));
+//				}
+//			}
+//		}
+//		catch (Exception e) {
+//			if (e instanceof RuntimeException)
+//				throw (RuntimeException) e;
+//			throw new JaquError(e.getMessage(), e);
+//		}
+//		finally {
+//			JdbcUtils.closeSilently(rs);
+//		}
+//	}
 
 	void delete(Db db, Object obj) {
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
@@ -988,11 +943,28 @@ class TableDefinition<T> {
 		if (db.factory.isShowSQL())
 			StatementLogger.create(stat.getSQL());
 		stat.executeUpdate();
-		// TODO create indexes
-		return AlterTableDiscriminatorIfRequired(db);
+		createIndices(db);
+		AlterTableDiscriminatorIfRequired(db);
+		return this;
 	}
 
-	private TableDefinition<T> AlterTableDiscriminatorIfRequired(Db db) {
+	private void createIndices(Db db) {
+		// Handle index/ constraint definition
+		Indices indices = this.clazz.getAnnotation(Indices.class);
+		if (null != indices){
+			for (Index index: indices.value()){
+				String query = DIALECT.getIndexStatement(index.name(), this.tableName, index.unique(), index.columns());
+				SQLStatement stat = new SQLStatement(db);
+				StatementBuilder buff = new StatementBuilder(query);
+				stat.setSQL(buff.toString());
+				if (db.factory.isShowSQL())
+					StatementLogger.alter(stat.getSQL());
+				stat.executeUpdate();
+			}
+		}
+	}
+
+	private void AlterTableDiscriminatorIfRequired(Db db) {
 		if (inheritedType == InheritedType.DISCRIMINATOR) {
 			if (!DIALECT.checkDiscriminatorExists(tableName, discriminatorColumn, db)) {
 				SQLStatement stat = new SQLStatement(db);
@@ -1002,19 +974,6 @@ class TableDefinition<T> {
 					StatementLogger.alter(stat.getSQL());
 				stat.executeUpdate();
 			}
-		}
-		return this;
-	}
-
-	void mapObject(Object obj) {
-		fieldMap.clear();
-		initObject(obj, fieldMap);
-	}
-
-	void initObject(Object obj, Map<Object, FieldDefinition> map) {
-		for (FieldDefinition def : fields) {
-			def.initWithNewObject(obj);
-			map.put(def.getValue(obj), def);
 		}
 	}
 
@@ -1034,8 +993,7 @@ class TableDefinition<T> {
 	}
 
 	void readRow(Object item, ResultSet rs, Db db) {
-		for (int i = 0; i < fields.size(); i++) {
-			FieldDefinition def = fields.get(i);
+		for (FieldDefinition def: fields) {
 			if (!def.isSilent) {
 				Object o = def.read(rs, DIALECT);
 				def.setValue(item, o, db);
@@ -1043,28 +1001,28 @@ class TableDefinition<T> {
 			else
 				// probably a relation is loaded
 				def.setValue(item, null, db);
-
 		}
 	}
 
 	SQLStatement getSelectList(Db db, String as) {
 		SQLStatement selectList = new SQLStatement(db);
-		for (int i = 0; i < fields.size(); i++) {
-			FieldDefinition def = fields.get(i);
+		int i = 0;
+		for (FieldDefinition def: fields) {
 			if (!def.isSilent) {
 				if (i > 0) {
 					selectList.appendSQL(", ");
 				}
 				selectList.appendSQL(as + "." + def.columnName);
 			}
+			i++;
 		}
 		return selectList;
 	}
 
 	<Y, X> SQLStatement getSelectList(Query<Y> query, X x) {
 		SQLStatement selectList = new SQLStatement(query.getDb());
-		for (int i = 0; i < fields.size(); i++) {
-			FieldDefinition def = fields.get(i);
+		int i = 0;
+		for (FieldDefinition def: fields) {
 			if (def.isSilent)
 				continue;
 			if (i > 0) {
@@ -1076,6 +1034,7 @@ class TableDefinition<T> {
 			// since the 'X' type object does not necessarily have field types as the queried objects in the result set we add a column name
 			// that conforms with the 'X' type
 			selectList.appendSQL(" AS " + def.columnName);
+			i++;
 		}
 		return selectList;
 	}
@@ -1092,7 +1051,7 @@ class TableDefinition<T> {
 	/**
 	 * Returns a list of primary key definitions
 	 * 
-	 * @return
+	 * @return List<FieldDefinition>
 	 */
 	List<FieldDefinition> getPrimaryKeyFields() {
 		return primaryKeyColumnNames;
@@ -1107,14 +1066,6 @@ class TableDefinition<T> {
 		return null;
 	}
 	
-	private List<String> mapColumnNames(Object[] columns) {
-		List<String> columnNames = Utils.newArrayList();
-		for (Object column : columns) {
-			columnNames.add(getColumnName(column));
-		}
-		return columnNames;
-	}
-
 	/*
 	 * Create the join table if does not exist TODO need to support inheritance here as well
 	 * 
