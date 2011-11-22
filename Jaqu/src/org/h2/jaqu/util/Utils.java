@@ -19,12 +19,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.h2.jaqu.annotation.Entity;
-import org.h2.jaqu.constant.ErrorCode;
-import org.h2.jaqu.constant.SysProperties;
-import org.h2.jaqu.jdbc.JdbcSQLException;
 
 /**
  * Generic utility methods.
@@ -33,28 +32,6 @@ public class Utils {
 	private static final AtomicLong COUNTER = new AtomicLong(0);
 
 	private static final boolean MAKE_ACCESSIBLE = true;
-	private static final boolean ALLOW_ALL_CLASSES;
-    private static final HashSet<String> ALLOWED_CLASS_NAMES = Utils.newHashSet();
-    private static final String[] ALLOWED_CLASS_NAME_PREFIXES;
-
-	static {
-        String s = SysProperties.ALLOWED_CLASSES;
-        ArrayList<String> prefixes = Utils.newArrayList();
-        boolean allowAll = false;
-        for (String p : StringUtils.arraySplit(s, ',', true)) {
-            if (p.equals("*")) {
-                allowAll = true;
-            } else if (p.endsWith("*")) {
-                prefixes.add(p.substring(0, p.length() - 1));
-            } else {
-                ALLOWED_CLASS_NAMES.add(p);
-            }
-        }
-        ALLOW_ALL_CLASSES = allowAll;
-        ALLOWED_CLASS_NAME_PREFIXES = new String[prefixes.size()];
-        prefixes.toArray(ALLOWED_CLASS_NAME_PREFIXES);
-    }
-
 
 	public static <T> ArrayList<T> newArrayList() {
 		return new ArrayList<T>();
@@ -68,6 +45,10 @@ public class Utils {
 		return new HashMap<A, B>();
 	}
 
+	public static <A, B> SortedMap<A, B> newSortedHashMap() {
+		return new TreeMap<A, B>();
+	}
+	
 	public static <A, B> Map<A, B> newSynchronizedHashMap() {
 		HashMap<A, B> map = newHashMap();
 		return Collections.synchronizedMap(map);
@@ -226,45 +207,5 @@ public class Utils {
 			}
 		}
 		throw new RuntimeException("Can not convert the value " + o + " from " + currentType + " to " + targetType);
-	}
-
-	/**
-	 * Load a class, but check if it is allowed to load this class first. To perform access rights checking, the system property
-	 * h2.allowedClasses needs to be set to a list of class file name prefixes.
-	 * 
-	 * @param className the name of the class
-	 * @return the class object
-	 * @throws JdbcSQLException 
-	 */
-	public static Class<?> loadUserClass(String className) throws JdbcSQLException {
-		if (!ALLOW_ALL_CLASSES && !ALLOWED_CLASS_NAMES.contains(className)) {
-			boolean allowed = false;
-			for (String s : ALLOWED_CLASS_NAME_PREFIXES) {
-				if (className.startsWith(s)) {
-					allowed = true;
-				}
-			}
-			if (!allowed) {
-				throw JdbcUtils.getJdbcSQLException(ErrorCode.ACCESS_DENIED_TO_CLASS_1, null, className);
-			}
-		}
-		try {
-			return Class.forName(className);
-		}
-		catch (ClassNotFoundException e) {
-			try {
-				return Class.forName(className, true, Thread.currentThread().getContextClassLoader());
-			}
-			catch (Exception e2) {
-				throw JdbcUtils.getJdbcSQLException(ErrorCode.CLASS_NOT_FOUND_1, e, className);
-			}
-		}
-		catch (NoClassDefFoundError e) {
-			throw JdbcUtils.getJdbcSQLException(ErrorCode.CLASS_NOT_FOUND_1, e, className);
-		}
-		catch (Error e) {
-			// UnsupportedClassVersionError
-			throw JdbcUtils.getJdbcSQLException(ErrorCode.GENERAL_ERROR_1, e, className);
-		}
 	}
 }
