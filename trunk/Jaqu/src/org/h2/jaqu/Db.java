@@ -411,6 +411,15 @@ public class Db {
     	this.addSession(t);
     	// get the relations, through a reflection get (not to do anything by lazy loading)
     	TableDefinition<?> tdef = define(t.getClass());
+    	FieldDefinition pkDef = tdef.getPrimaryKeyFields().get(0);
+    	Object pk;
+		try {
+			pkDef.field.setAccessible(true);
+			pk = pkDef.field.get(t);
+		}
+		catch (Exception e) {
+			throw new JaquError("PK Not accessible!!!", e);
+		}
     	for (FieldDefinition fdef: tdef.getFields()) {
     		try {
 				switch (fdef.fieldType) {
@@ -435,7 +444,12 @@ public class Db {
 								// Thus, our algorithm should be, clean the current relationships then apply the new ones. Here we think of performance!
 								// If the relationship has cascade type delete, we need to dispose of the objects as well as the relationships, else we just 
 								// dispose of the relationships.
-								deleteParentRelation(fdef, t);
+								if (null != pk) {
+									// we may get objects that have a primary key to be inserted with which means they don't exist in the DB
+									Object parent = this.from(t.getClass().newInstance()).primaryKey().is(pk).selectFirst();
+									if (null != parent)
+										deleteParentRelation(fdef, parent);
+								}
 								if (List.class.isAssignableFrom(col.getClass())) {
 									JaquList l = new JaquList((List) col, this, fdef, factory.getPrimaryKey(t));
 									l.setDb(this);
@@ -529,7 +543,7 @@ public class Db {
 	 */
     PreparedStatement prepare(String sql) {
         try {
-            return conn.prepareStatement(sql);
+            return conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
         } 
         catch (SQLException e) {
             throw new JaquError(e);

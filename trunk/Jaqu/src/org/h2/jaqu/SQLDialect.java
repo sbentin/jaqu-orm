@@ -91,4 +91,13 @@ public interface SQLDialect {
 	 */
 	public abstract String getFunction(Functions functionName);
 
+	/**
+	 * Creates and returns the proper Alter statement that will create the index given in this dialect.
+	 * 
+	 * @param name
+	 * @param unique
+	 * @param columns
+	 * @return String
+	 */
+	public abstract String createIndexStatement(String name, String tableName, boolean unique, String[] columns);
 }

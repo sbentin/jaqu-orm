@@ -25,7 +25,6 @@ import java.sql.SQLException;
 
 import org.h2.jaqu.Db;
 import org.h2.jaqu.SQLDialect;
-import org.h2.jaqu.Table;
 import org.h2.jaqu.Types;
 import org.h2.jaqu.annotation.Entity;
 
@@ -125,7 +124,7 @@ public class PostgresDialect implements SQLDialect {
 				// byte array is mapped to BINARY type
 				return "BINARY";
 			}
-			else if (Table.class.isAssignableFrom(componentClass) || componentClass.getAnnotation(Entity.class) != null) {
+			else if (componentClass.getAnnotation(Entity.class) != null) {
 				throw new IllegalArgumentException(
 						"Array of type 'org.h2.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			}
@@ -161,6 +160,25 @@ public class PostgresDialect implements SQLDialect {
 	 * @see org.h2.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, org.h2.jaqu.Db)
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
+		String query = "select 1 from information_schema.columns where table_name = '" + tableName + "and column_name = '" + discriminatorName + "'";
+		ResultSet rs = null;
+		try {
+			rs = db.executeQuery(query);
+			if (rs.next())
+				return true;
+		}
+		catch (SQLException e) {
+			return false;
+		}
+		finally {
+			if (rs != null)
+				try {
+					rs.close();
+				}
+				catch (SQLException e) {
+					// nothing to do here
+				}
+		}
 		return false;
 	}
 
@@ -173,5 +191,24 @@ public class PostgresDialect implements SQLDialect {
 			case IFNULL: return "COALESCE";
 		}
 		return null;
+	}
+
+	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
+		String query;
+		if (name.length() == 0){
+			name = columns[0] + "_" + (Math.random() * 10000) + 1;
+		}
+		if (unique)
+			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + "(";
+		else
+			query = "CREATE INDEX " + name + " ON " + tableName + "(";
+		for (int i = 0; i < columns.length; i++){
+			if (i > 0){
+				query += ",";
+			}
+			query += columns[i];
+		}
+		query += ")";
+		return query;
 	}
 }

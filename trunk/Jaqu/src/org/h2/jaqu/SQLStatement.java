@@ -6,18 +6,15 @@
  */
 package org.h2.jaqu;
 
-//## Java 1.5 begin ##
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-//## Java 1.5 end ##
 
 /**
  * This class represents a parameterized SQL statement.
  */
-//## Java 1.5 begin ##
 public class SQLStatement {
     private Db db;
     private StringBuilder buff = new StringBuilder();
@@ -62,14 +59,37 @@ public class SQLStatement {
 
 	int executeUpdate() {
         try {
-            return prepare().executeUpdate();
+        	return prepare().executeUpdate();
         } 
         catch (SQLException e) {
             throw new JaquError(e);
         }
     }
+	
+	Long executeUpdateWithId() {
+		try {
+			PreparedStatement ps = prepare();
+			int size = ps.executeUpdate();
+			if (size > 0)
+				return getGeneratedKeys(ps.getGeneratedKeys(), size);
+			return null;
+		}
+		catch (SQLException e) {
+            throw new JaquError(e);
+        }
+	}
 
-    private void setValue(PreparedStatement prep, int parameterIndex, Object x) {
+    private Long getGeneratedKeys(ResultSet generatedKeys, int size) {
+		try {
+			if (generatedKeys.next()){
+				return generatedKeys.getLong(1);
+			}
+		}
+		catch (SQLException e) {}
+		return null;
+	}
+
+	private void setValue(PreparedStatement prep, int parameterIndex, Object x) {
         try {
         	if (x instanceof java.util.Date)
         		x = new Timestamp(((java.util.Date) x).getTime());
@@ -92,4 +112,3 @@ public class SQLStatement {
     }
 
 }
-//## Java 1.5 end ##
