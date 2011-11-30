@@ -46,25 +46,31 @@ public @interface One2Many {
 	 */
 	Class<?> childType() default java.lang.Object.class;
 	/** 
-	 * the name of the DB table maintaining the relationship. Default no relation table 
+	 * the name of the DB table maintaining the relationship. (when it is maintained in a relation table and not by Foreign Key)<br> 
+	 * Default no relation table 
 	 */
 	String joinTableName() default "";
 	/**
-	 * <b>Relevant only when using a relation table</b><br>
-	 * The name of the column representing the other side of the relation. If not present JaQu will use the table name of the other entity.
+	 * <b>Relevant only when using a relation table, since when using a Foreign Key the relation is maintained in the<br>child table and jaQu knows this from the child type</b><br>
+	 * The name of the column representing the other side of the relation. If not present JaQu will use the simple java class name of the child entity.
 	 */
 	String relationColumnName() default "";
 	/**
-	 * The name of the field in the target object holding the other side of the relationship. If null 'this' tableName will be used!<p><b>Note:</b> In a single sided relationship,
-	 * without a relationship table, a column FK must exist in the child table, even if it does not exist in the object</p>
+	 * The name of the field in the many side object holding the other side of the relationship.<br>
+	 * If null 'this' tableName will be used!<p>
+	 * <b>Note:</b> <ol><li>When using a relation table this is the name of the column representing the parent object in the relation table.</li>
+	 * <li>In a single sided relationship, When not using a relationship table, a column FK must exist in the child table,<br>even if it does not exist in the object</li>
+	 * </ol></p> 
 	 */
 	String relationFieldName() default "";
 	/**
-	 * Only When using a relationTable to maintain the relationship, the other side of the relation primary key field could be named here. If not named JaQu will attempt to find it, or fail
+	 * When using a relationTable to maintain the relationship, the other side of the relation primary key field java type could be named here. 
+	 * If not named JaQu will attempt to find it, or fail to set up the relation table.
 	 */
 	Class<?> childPkType() default Object.class;
 	/**
-	 * Set to true if data should be loaded on object load. Default false
+	 * Set to true if data should be loaded on object load. Be careful when using eager load so you don't pool to much of the DB on each call.
+	 * Default false
 	 */
 	boolean eagerLoad() default false;
 	/**
