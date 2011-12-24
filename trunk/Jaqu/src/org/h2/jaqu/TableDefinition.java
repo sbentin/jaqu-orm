@@ -861,26 +861,6 @@ class TableDefinition<T> {
 			throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
 		}
 	}
-//	private void callIdentity(Object obj, Db db) {
-//		ResultSet rs = null;
-//		try {
-//			if (primaryKeyColumnNames.get(0).field.get(obj) == null) {
-//				String identityQuery = db.factory.DIALECT.getIdentityQuery();
-//				rs = db.executeQuery("SELECT last_insert_id() AS id;"); //identityQuery
-//				if (rs.next()) {
-//					primaryKeyColumnNames.get(0).field.set(obj, rs.getLong(1));
-//				}
-//			}
-//		}
-//		catch (Exception e) {
-//			if (e instanceof RuntimeException)
-//				throw (RuntimeException) e;
-//			throw new JaquError(e.getMessage(), e);
-//		}
-//		finally {
-//			JdbcUtils.closeSilently(rs);
-//		}
-//	}
 
 	void delete(Db db, Object obj) {
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
