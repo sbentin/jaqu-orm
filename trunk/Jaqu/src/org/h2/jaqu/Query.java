@@ -61,7 +61,7 @@ public class Query<T> implements FullQueryInterface<T> {
             return value;
         } 
         catch (SQLException e) {
-            throw new JaquError(e);
+            throw new JaquError(e.getMessage(), e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -122,7 +122,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         } 
         catch (SQLException e) {
-            throw new JaquError(e);
+            throw new JaquError(e.getMessage(), e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -194,7 +194,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         } 
         catch (Exception e) {
-            throw new JaquError(e);
+            throw new JaquError(e.getMessage(), e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -229,7 +229,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	            }
 	        } 
 	        catch (SQLException e) {
-	            throw new JaquError(e);
+	            throw new JaquError(e.getMessage(), e);
 	        } 
 	        finally {
 	            JdbcUtils.closeSilently(rs);
@@ -300,7 +300,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 result.add(row);
             }
         } catch (SQLException e) {
-            throw new JaquError(e);
+            throw new JaquError(e.getMessage(), e);
         } finally {
             JdbcUtils.closeSilently(rs);
         }
@@ -320,12 +320,12 @@ public class Query<T> implements FullQueryInterface<T> {
                     result.add(value);
                 } 
                 catch (Exception e) {
-                    throw new JaquError(e);
+                    throw new JaquError(e.getMessage(), e);
                 }
             }
         } 
         catch (SQLException e) {
-            throw new JaquError(e);
+            throw new JaquError(e.getMessage(), e);
         } 
         finally {
             JdbcUtils.closeSilently(rs);
