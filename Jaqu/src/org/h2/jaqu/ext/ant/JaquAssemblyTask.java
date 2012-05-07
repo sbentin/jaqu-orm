@@ -21,28 +21,24 @@
 package org.h2.jaqu.ext.ant;
 
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
-import org.h2.jaqu.ext.asm.JaquClassAdapter;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import org.h2.jaqu.ext.common.BuildStats;
+import org.h2.jaqu.ext.common.CommonAssembly;
 
 /**
  * This task is used in an Ant build script to support the post compilation of Jaqu Entities.
  * <p>
  * Example Use:
  * <p>
- * &lttaskdef classpathref="projectPath" name="JaquAssembly" classname="org.h2.jaqu.ext.ant.JaquAssemblyTask" /&gt<br>
+ * <pre>
+ * &lt;taskdef classpathref="projectPath" name="JaquAssembly" classname="org.h2.jaqu.ext.ant.JaquAssemblyTask"/&gt;
  * 
- * &lttarget name="JaquAssembly" depends="main"&gt<br>
- * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&ltJaquAssembly classOutputDirectory="${outputDir}" /&gt<br>
- * &lt/target&gt<br>
+ * &lt;target name="JaquAssembly" depends="main"&gt;
+ * 	&lt;!-- the outputDir is the directory where the original .class files before post compile reside --&gt;
+ * 	&lt;JaquAssembly classOutputDirectory="${outputDir}"/&gt;
+ * &lt;/target&gt;
  * <br>
  * <b>Note: </b> Easier solution exists with the Jaqu Plugin for eclipse
  * @author Shai Bentin
@@ -59,66 +55,17 @@ public class JaquAssemblyTask extends Task {
 	public void execute() throws BuildException {
 		File outputDir = new File(classOutputDirectory);
 		if (!outputDir.exists())
-			throw new BuildException(String.format("Ouput dir %s does not exist!!!", classOutputDirectory));
+			throw new BuildException(String.format("Output dir %s does not exist!!!", classOutputDirectory));
 		
-		ArrayList<File> files = new ArrayList<File>();
-		getAllFiles(outputDir, files);
-		
-		StringBuilder errors = new StringBuilder();
-		for (File classFile: files) {
-			try {
-				assembleFile(classFile);
-			}
-			catch (Exception e) {
-				errors.append(String.format("%s --> %s\n", classFile, e.getMessage()));
-			}
+		StringBuilder report = new StringBuilder();
+		BuildStats stats = CommonAssembly.assenbleFiles(outputDir, report);
+		if (stats.getFailure() > 0) {
+			report.insert(0, "BUILD FAILED - converted " + stats.getSuccess() + " files, failed to convert " + stats.getFailure() + " files\n");
+			throw new BuildException(report.toString());
 		}
-		if (errors.length() > 0)
-			throw new BuildException(errors.toString());
+		System.out.println("BUILD SUCCESS - converted " + stats.getSuccess() + " files");
 	}
 
-	private void assembleFile(File classFile) throws Exception {
-		FileInputStream fis = new FileInputStream(classFile);
-        byte[] b = null;       
-       
-    	ClassReader cr = new ClassReader(fis);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
-            		
-        JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(cw);
-        cr.accept(jaquClassAdapter, 0);
-            		
-        b = cw.toByteArray();
-        fis.close();
-        if (b != null) {
-        	classFile.delete();
-        	classFile.createNewFile();
-            FileOutputStream fos = new FileOutputStream(classFile);
-    		fos.write(b);
-    		fos.flush();
-    		fos.close();
-        }
- 
-	}
-
-	private void getAllFiles(File outputDir, List<File> files){
-		File[] fileList = outputDir.listFiles(new FileFilter() {
-			
-			public boolean accept(File pathname) {
-				if (pathname.getName().endsWith(".class") || pathname.isDirectory())
-					return true;
-				return false;
-			}
-		});
-		
-		for (File file: fileList) {
-			if (file.isDirectory()) {
-				getAllFiles(file, files);
-			}
-			else
-				files.add(file);
-		}
-	}
-	
 	/* (non-Javadoc)
 	 * @see org.apache.tools.ant.Task#getTaskName()
 	 */
