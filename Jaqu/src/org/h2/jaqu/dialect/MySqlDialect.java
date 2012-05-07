@@ -106,8 +106,7 @@ public class MySqlDialect implements SQLDialect {
 			// not recommended for real use. Arrays and relational DB don't go well together and don't make much sense!
 			Class<?> componentClass = fieldClass.getComponentType();
 			if (componentClass.getAnnotation(Entity.class) != null)
-				throw new IllegalArgumentException(
-						"Array of type 'org.h2.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
+				throw new IllegalArgumentException("Array of type 'org.h2.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			return "BLOB";
 		}
 		else if (fieldClass.isEnum()) {

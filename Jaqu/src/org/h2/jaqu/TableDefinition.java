@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import org.h2.jaqu.annotation.Column;
 import org.h2.jaqu.annotation.Entity;
+import org.h2.jaqu.annotation.Event;
 import org.h2.jaqu.annotation.Index;
 import org.h2.jaqu.annotation.Indices;
 import org.h2.jaqu.annotation.Inherited;
@@ -74,13 +75,13 @@ class TableDefinition<T> {
 				return field.get(obj);
 			}
 			catch (Exception e) {
-				throw new JaquError(e);
+				throw new JaquError(e.getMessage(), e);
 			}
 		}
 
-		@SuppressWarnings("unchecked")
 		void initWithNewObject(Object obj) {
 			if (type == Types.ENUM) {
+				@SuppressWarnings("rawtypes")
 				Class enumClass = field.getType();
 				setValue(obj, enumClass.getEnumConstants()[0].toString(), null);
 			}
@@ -90,7 +91,7 @@ class TableDefinition<T> {
 			}
 		}
 
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		void setValue(final Object obj, Object o, final Db db) {
 			try {
 				Object tmp = o;
@@ -219,7 +220,7 @@ class TableDefinition<T> {
 				return DIALECT.getValueByType(type, rs, this.columnName);
 			}
 			catch (SQLException e) {
-				throw new JaquError(e);
+				throw new JaquError(e.getMessage(), e);
 			}
 		}
 
@@ -267,6 +268,8 @@ class TableDefinition<T> {
 	InheritedType inheritedType = null;
 	char discriminatorValue;
 	String discriminatorColumn;
+	private Interceptor	interceptor;
+	private Event[]	interceptorEvents;
 
 	TableDefinition(Class<T> clazz, Dialect DIALECT) {
 		this.DIALECT = DIALECT;
@@ -289,6 +292,17 @@ class TableDefinition<T> {
 			this.inheritedType = inherited.inheritedType();
 			this.discriminatorValue = inherited.DiscriminatorValue();
 			this.discriminatorColumn = inherited.DiscriminatorColumn();
+		}
+		
+		org.h2.jaqu.annotation.Interceptor interceptorAnnot = clazz.getAnnotation(org.h2.jaqu.annotation.Interceptor.class);
+		if (null != interceptorAnnot) {
+			this.interceptorEvents = interceptorAnnot.event();
+			try {
+				interceptor = interceptorAnnot.Class().newInstance();
+			}
+			catch (Exception e) {
+				throw new JaquError("Expected an Interceptor class for Table/ Entity " + nameOfTable + ". Unable to invoke!!");
+			}
 		}
 	}
 
@@ -731,7 +745,7 @@ class TableDefinition<T> {
 				this.insert(db, obj);
 		}
 		catch (SQLException e) {
-			throw new JaquError(e);
+			throw new JaquError(e.getMessage(), e);
 		}
 		finally {
             JdbcUtils.closeSilently(rs);
@@ -957,7 +971,7 @@ class TableDefinition<T> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void initSelectObject(SelectTable<T> table, Object obj, Map<Object, SelectColumn<T>> map) {
 		for (FieldDefinition def : fields) {
 			def.initWithNewObject(obj);
@@ -1087,5 +1101,27 @@ class TableDefinition<T> {
 				throw (RuntimeException) e;
 			throw new JaquError(e.getMessage(), e);
 		}
+	}
+
+	/**
+	 * Return the interceptor instance for this table.
+	 * @return Interceptor
+	 */
+	Interceptor getInterceptor() {
+		return interceptor;
+	}
+
+	/**
+	 * returns true if the interceptor handles the given event.
+	 * 
+	 * @param update
+	 * @return boolean
+	 */
+	boolean hasInterceptEvent(Event event) {
+		for (Event interceptorEvent: interceptorEvents) {
+			if (Event.ALL == interceptorEvent || interceptorEvent == event)
+				return true;
+		}
+		return false;
 	}
 }

@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.h2.jaqu.TableDefinition.FieldDefinition;
 import org.h2.jaqu.annotation.Entity;
+import org.h2.jaqu.annotation.Event;
 import org.h2.jaqu.util.JdbcUtils;
 import org.h2.jaqu.util.StatementBuilder;
 import org.h2.jaqu.util.StatementLogger;
@@ -64,7 +65,10 @@ public class Db {
     		throw new IllegalStateException("Session is closed!!!");
     	checkSession(t);
         Class<?> clazz = t.getClass();
-        define(clazz).insert(this, t);
+        TableDefinition<?> definition = define(clazz);
+        if (null != definition.getInterceptor())
+        	definition.getInterceptor().onInsert(t);
+        definition.insert(this, t);
     }
 
     /**
@@ -78,7 +82,7 @@ public class Db {
      * @throws RuntimeException (could also be a JaquError) when insert failed. 
      */
 	@SuppressWarnings("unchecked")
-	public <T,X> X insertAndGetPK(T t){
+	public <T,X> X insertAndGetPK(T t) {
     	if (this.closed)
     		throw new IllegalStateException("Session is closed!!!");
     	checkSession(t);
@@ -91,6 +95,9 @@ public class Db {
         
         if (primaryKeys.size() > 1)
         	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object [" + t.getClass() + "] with more then one primary key defined!!!");
+        // test for interceptor.
+        if (null != td.getInterceptor())
+        	td.getInterceptor().onInsert(t);
         td.insert(this, t);
         primaryKeys.get(0).field.setAccessible(true);
         X pk = null;
@@ -98,10 +105,12 @@ public class Db {
 			pk = (X) primaryKeys.get(0).field.get(t);
 		}
 		catch (Exception e) {
+			if (e instanceof JaquError)
+				throw (JaquError)e;
 			// unable to retrieve the key, however the object was inserted to the db so we return anyway but with null;
-			throw new JaquError(e);
+			throw new JaquError(e.getMessage(), e);
 		}
-        return pk; 
+        return pk;
     }
     
 	/**
@@ -157,7 +166,10 @@ public class Db {
     		throw new IllegalStateException("Session is closed!!!");
     	checkSession(t);
         Class< ? > clazz = t.getClass();
-        define(clazz).merge(this, t);
+        TableDefinition<?> definition = define(clazz);
+        if (null != definition.getInterceptor())
+        	definition.getInterceptor().onMerge(t);
+        definition.merge(this, t);
     }
 
     /**
@@ -208,6 +220,8 @@ public class Db {
     			}
     		}
     	}
+        if (null != tdef.getInterceptor())
+        	tdef.getInterceptor().onDelete(t);
     	// after dealing with the children we delete the object
     	tdef.delete(this, t);
     }
@@ -252,7 +266,10 @@ public class Db {
     		throw new IllegalStateException("Session is closed!!!");
     	checkSession(t);
         Class< ? > clazz = t.getClass();
-        define(clazz).update(this, t);
+        TableDefinition<?> definition = define(clazz);
+        if (null != definition.getInterceptor())
+        	definition.getInterceptor().onUpdate(t);
+        definition.update(this, t);
     }
 
     /**
@@ -346,8 +363,8 @@ public class Db {
             conn.close();
             this.closed  = true;
         } 
-        catch (Exception e) {
-            throw new JaquError(e);
+        catch (SQLException e) {
+            throw new JaquError("Unable to close session's underlying connection because --> " + e.getMessage(), e);
         }
     }
 
@@ -404,7 +421,7 @@ public class Db {
      * 
      * @param t
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
 	void attach(Object t) {
     	if (this.closed)
     		throw new IllegalStateException("Session is closed!!!");
@@ -546,7 +563,7 @@ public class Db {
             return conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
         } 
         catch (SQLException e) {
-            throw new JaquError(e);
+            throw new JaquError(e.getMessage(), e);
         }
     }
 
@@ -796,7 +813,7 @@ public class Db {
 			}
 		}
 		catch (SQLException se) {
-			throw new JaquError(se);
+			throw new JaquError(se.getMessage(), se);
 		}
 		finally {
 			JdbcUtils.closeSilently(rs);
@@ -809,36 +826,49 @@ public class Db {
 	 * 
 	 */
 	void deleteParentRelation(FieldDefinition fdef, Object parent) {
+		// using the getter because of lazy loading...
+		Collection<?> relations = null;
+		try {
+			fdef.getter.setAccessible(true);
+			relations =  (Collection<?>) fdef.getter.invoke(parent); // this must be a collection by design
+			fdef.getter.setAccessible(false);
+		}
+		catch (Exception e) {
+			if (e instanceof RuntimeException)
+				throw (RuntimeException)e;
+			else
+				throw new JaquError(e.getMessage(), e);
+		}
+		TableDefinition<?> tdef = define(fdef.relationDefinition.dataType);
 		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE) {
 			// in one to many there is a question of cascade delete, i.e delete the child as well. In M2M this can not be true
-			try {
-				// using the getter because of lazy loading...
-				fdef.getter.setAccessible(true);
-				Collection<?> relations = (Collection<?>) fdef.getter.invoke(parent); // this must be a collection by design
+			if (relations != null) {
+				for (Object o: relations)
+					delete(o);
+			}
+		}
+		// this means we are not in cascade delete, so we just break the link
+		else {
+			// the following code runs only if we have not deleted our objects and we have an update interceptor.
+			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE)) {
 				if (relations != null) {
 					for (Object o: relations)
-						delete(o);
+						tdef.getInterceptor().onUpdate(o);
 				}
-				fdef.getter.setAccessible(false);
 			}
-			catch (Exception e) {
-				if (e instanceof RuntimeException)
-					throw (RuntimeException)e;
-				else
-					throw new JaquError(e.getMessage(), e);
+			if (fdef.relationDefinition.relationTableName == null) { // if it's cascade delete these objects where deleted already so we can skip
+				// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists, 
+				// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
+				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
+				StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
+				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
+				executeUpdate(builder.toString());
+				return;
 			}
 		}
-		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) { // if it's cascade delete these objects where deleted already so we can skip
-			// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists, 
-			// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
-			TableDefinition<?> tdef = define(fdef.relationDefinition.dataType);
-			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-			StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
-			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-			executeUpdate(builder.toString());
-			return;
-		}
+		
 		// relationTables exist both in O2M and M2M relations. In this case all we need to do is to remove all the entries in the table that include the parent
+		// this code runs also for cascade deletes because the normal delete removes the object, the following also removes the reference from the relationtable.
 		if (fdef.relationDefinition.relationTableName != null) {
 			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
 			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
