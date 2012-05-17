@@ -19,6 +19,8 @@ Created		   May 6, 2012			shai
 */
 package org.h2.jaqu.ext.gradle;
 
+import groovy.lang.Closure;
+
 import java.io.File;
 
 import org.gradle.api.Task;
@@ -26,8 +28,6 @@ import org.gradle.api.logging.LogLevel;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.h2.jaqu.ext.common.BuildStats;
 import org.h2.jaqu.ext.common.CommonAssembly;
-
-import groovy.lang.Closure;
 
 /**
  * 
@@ -54,23 +54,20 @@ public class PostCompileClosure extends Closure<String>{
 			outputDir = new File(location.outputDir);
 		}
 		if (!outputDir.exists()) {
-			System.out.println(String.format("Post Compile Failed - Output dir %s does not exist!!!", outputDir.getAbsolutePath()));
+			postCompileTask.getLogger().error(String.format("Post Compile Failed - Output dir %s does not exist!!!", outputDir.getAbsolutePath()));
 			return "Failed";
 		}
 		StringBuilder report = new StringBuilder();
-		BuildStats stats = CommonAssembly.assenbleFiles(outputDir, report);
+		BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
 		boolean failed = stats.getFailure() > 0;
-		if (postCompileTask.getLogger().isEnabled(LogLevel.INFO)) {
-			if (failed)
-				System.out.println("BUILD FAILED - converted " + stats.getSuccess() + " files, failed to convert " + stats.getFailure() + " files");
-			else
-				System.out.println("BUILD SUCCESSFUL - converted " + stats.getSuccess() + " files!");
-		}
 		if (failed) {
-			System.out.println("POST COMPILE SUCCESSFUL!!!");
-			if (postCompileTask.getLogger().isEnabled(LogLevel.DEBUG)) {
-				System.out.println(report.toString());
-			}
+			postCompileTask.getLogger().lifecycle("POST COMPILE FAILED - converted " + stats.getSuccess() + " files, , ignored " + stats.getIgnored() + "files, failed to convert " + stats.getFailure() + " files");
+		}
+		else {
+			postCompileTask.getLogger().lifecycle("POST COMPILE SUCCESSFUL - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored());
+		}
+		if (postCompileTask.getLogger().isEnabled(LogLevel.DEBUG)) {
+			postCompileTask.getLogger().debug(report.toString());
 		}
 		return "success";
 	}

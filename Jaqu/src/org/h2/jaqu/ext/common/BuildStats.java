@@ -27,24 +27,32 @@ public class BuildStats {
 
 	int success;
 	int failure;
+	int ignored;
 	
-	public BuildStats(int success, int failure) {
+	public BuildStats(int success, int failure, int ignored) {
 		this.success = success;
 		this.failure = failure;
+		this.ignored = ignored;
 	}
 
 	/**
-	 * @return the success
+	 * @return the number of files we tried to enhance and succeeded
 	 */
 	public int getSuccess() {
 		return this.success;
 	}
 
 	/**
-	 * @return the failure
+	 * @return the number of files which we try to enhance and failed
 	 */
 	public int getFailure() {
 		return this.failure;
 	}
 	
+	/**
+	 * @return the number of files which were not touched at all
+	 */
+	public int getIgnored() {
+		return this.failure;
+	}
 }
