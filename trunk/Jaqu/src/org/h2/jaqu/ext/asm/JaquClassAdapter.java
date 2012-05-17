@@ -24,7 +24,6 @@ import java.util.HashSet;
 
 import org.h2.jaqu.annotation.Entity;
 import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassAdapter;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
@@ -38,15 +37,15 @@ import org.objectweb.asm.Type;
  * @author Shai Bentin
  *
  */
-public class JaquClassAdapter extends ClassAdapter implements Opcodes {
+public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 
 	private String className;
 	private HashSet<String> relationFields = new HashSet<String>();
 	private boolean isEntityAnnotationPresent = false;
 	private boolean isMappedSupperClass = false;
 	
-	public JaquClassAdapter(ClassVisitor cv) {
-		super(cv);
+	public JaquClassAdapter(int api, ClassVisitor classVisitor) {
+		super(api, classVisitor);
 	}
 	
 	/* (non-Javadoc)
@@ -80,7 +79,7 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 		// 1. if name is in the list of o2m and return type is collection instrument add call to db.getRelationFromDb or db.getRelationArrayFromDb, only if value of field is null;
-		if ((isEntityAnnotationPresent || isMappedSupperClass)&& name.startsWith("get")) {
+		if ((isEntityAnnotationPresent || isMappedSupperClass) && name.startsWith("get")) {
 			// this is a getter check if it is a relation getter
 			if (relationFields.contains(name.substring(3).toLowerCase())) {
 				// this is a relationship.
@@ -303,5 +302,13 @@ public class JaquClassAdapter extends ClassAdapter implements Opcodes {
 		mv.visitLocalVariable("e", "Ljava/lang/Exception;", null, l10, l4, 1);
 		mv.visitMaxs(7, 2);
 		mv.visitEnd();
+	}
+
+	/**
+	 * Returns true when the adapter has dealt with a JaQu annotated class and altered it.
+	 * @return boolean
+	 */
+	public boolean isJaquAnnotated() {
+		return isEntityAnnotationPresent || isMappedSupperClass;
 	}
 }

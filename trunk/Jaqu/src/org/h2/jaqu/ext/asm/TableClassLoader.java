@@ -24,6 +24,7 @@ import java.io.InputStream;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
 /**
  * An attempt to produce a Class Loader to load Entity classes. Problem is that there is a problem with the java classloader caching that
@@ -90,7 +91,7 @@ public class TableClassLoader extends ClassLoader {
 	            	if (iFaceName.equals("org/h2/jaqu/Entity") || iFaceName.equals("org/h2/jaqu/MappedSuperclass")) {
 	            		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
 	            		
-	            		JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(cw);
+	            		JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM4, cw);
 	            		cr.accept(jaquClassAdapter, 0);
 	            		
 	            		b = cw.toByteArray();

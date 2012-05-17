@@ -22,6 +22,7 @@ package org.h2.jaqu.ext.gradle;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.plugins.JavaPlugin;
 
 /**
  * @author shai
@@ -30,7 +31,6 @@ import org.gradle.api.Task;
 public class JaquPlugin implements Plugin<Project> {
 
 	public void apply(Project prj) {
-		
 		try {
 			prj.getPlugins().getPlugin("java");
 		}
@@ -40,6 +40,8 @@ public class JaquPlugin implements Plugin<Project> {
 		}
 
 		Task postCompile = prj.task("jaquPostCompile");
+		
+		postCompile.dependsOn(JavaPlugin.CLASSES_TASK_NAME);
 		postCompile.getExtensions().create("location", LocationExtension.class);
 		postCompile.doFirst(new PostCompileClosure(postCompile));
 	}
