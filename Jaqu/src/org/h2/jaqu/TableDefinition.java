@@ -28,6 +28,7 @@ import org.h2.jaqu.annotation.Event;
 import org.h2.jaqu.annotation.Index;
 import org.h2.jaqu.annotation.Indices;
 import org.h2.jaqu.annotation.Inherited;
+import org.h2.jaqu.annotation.Interceptor;
 import org.h2.jaqu.annotation.JaquIgnore;
 import org.h2.jaqu.annotation.Many2Many;
 import org.h2.jaqu.annotation.MappedSuperclass;
@@ -81,8 +82,7 @@ class TableDefinition<T> {
 
 		void initWithNewObject(Object obj) {
 			if (type == Types.ENUM) {
-				@SuppressWarnings("rawtypes")
-				Class enumClass = field.getType();
+				Class<?> enumClass = field.getType();
 				setValue(obj, enumClass.getEnumConstants()[0].toString(), null);
 			}
 			else {
@@ -91,7 +91,7 @@ class TableDefinition<T> {
 			}
 		}
 
-		@SuppressWarnings({ "unchecked", "rawtypes" })
+		@SuppressWarnings({ "unchecked" })
 		void setValue(final Object obj, Object o, final Db db) {
 			try {
 				Object tmp = o;
@@ -268,7 +268,7 @@ class TableDefinition<T> {
 	InheritedType inheritedType = null;
 	char discriminatorValue;
 	String discriminatorColumn;
-	private Interceptor	interceptor;
+	private CRUDInterceptor	interceptor;
 	private Event[]	interceptorEvents;
 
 	TableDefinition(Class<T> clazz, Dialect DIALECT) {
@@ -294,7 +294,7 @@ class TableDefinition<T> {
 			this.discriminatorColumn = inherited.DiscriminatorColumn();
 		}
 		
-		org.h2.jaqu.annotation.Interceptor interceptorAnnot = clazz.getAnnotation(org.h2.jaqu.annotation.Interceptor.class);
+		org.h2.jaqu.annotation.Interceptor interceptorAnnot = getInterceptorAnnotation(clazz);
 		if (null != interceptorAnnot) {
 			this.interceptorEvents = interceptorAnnot.event();
 			try {
@@ -304,6 +304,18 @@ class TableDefinition<T> {
 				throw new JaquError("Expected an Interceptor class for Table/ Entity " + nameOfTable + ". Unable to invoke!!");
 			}
 		}
+	}
+
+	/*
+	 * get the most "forward" "Interceptor Annotation" in the hierarchy tree.
+	 */
+	private Interceptor getInterceptorAnnotation(Class<?> clazz) {
+		if (null == clazz || clazz.equals(Object.class))
+			return null;
+		Interceptor interceptorAnnot = getInterceptorAnnotation(clazz.getSuperclass());
+		
+		Interceptor interceptor = clazz.getAnnotation(Interceptor.class);
+		return null == interceptor ? interceptorAnnot : interceptor;
 	}
 
 	List<FieldDefinition> getFields() {
@@ -971,7 +983,7 @@ class TableDefinition<T> {
 		}
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "unchecked" })
 	void initSelectObject(SelectTable<T> table, Object obj, Map<Object, SelectColumn<T>> map) {
 		for (FieldDefinition def : fields) {
 			def.initWithNewObject(obj);
@@ -1107,7 +1119,7 @@ class TableDefinition<T> {
 	 * Return the interceptor instance for this table.
 	 * @return Interceptor
 	 */
-	Interceptor getInterceptor() {
+	CRUDInterceptor getInterceptor() {
 		return interceptor;
 	}
 
