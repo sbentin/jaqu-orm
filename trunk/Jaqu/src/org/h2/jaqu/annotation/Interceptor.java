@@ -24,6 +24,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.h2.jaqu.CRUDInterceptor;
+
 
 
 /**
@@ -34,7 +36,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Interceptor {
 
-	Class<? extends org.h2.jaqu.Interceptor> Class();
+	Class<? extends CRUDInterceptor> Class();
 	
 	Event[] event() default Event.ALL;	
 }
