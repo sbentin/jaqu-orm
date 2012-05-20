@@ -23,7 +23,7 @@ package org.h2.jaqu;
  * @author shai
  *
  */
-public interface Interceptor {
+public interface CRUDInterceptor {
 
 	public abstract void onInsert(Object t);
 	

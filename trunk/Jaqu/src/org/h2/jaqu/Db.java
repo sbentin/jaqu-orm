@@ -421,7 +421,7 @@ public class Db {
      * 
      * @param t
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "unchecked" })
 	void attach(Object t) {
     	if (this.closed)
     		throw new IllegalStateException("Session is closed!!!");
