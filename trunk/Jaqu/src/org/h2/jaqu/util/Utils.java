@@ -71,6 +71,9 @@ public class Utils {
 		else if (clazz == String.class) {
 			return (T) ("" + COUNTER.incrementAndGet());
 		}
+		else if (clazz == Character.class) {
+			return (T) ("" + COUNTER.incrementAndGet());
+		}
 		else if (clazz == Long.class) {
 			return (T) new Long(COUNTER.incrementAndGet());
 		}
