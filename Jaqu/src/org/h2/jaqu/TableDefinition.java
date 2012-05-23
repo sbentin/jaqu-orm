@@ -80,14 +80,17 @@ class TableDefinition<T> {
 			}
 		}
 
-		void initWithNewObject(Object obj) {
+		Object initWithNewObject(Object obj) {
 			if (type == Types.ENUM) {
 				Class<?> enumClass = field.getType();
-				setValue(obj, enumClass.getEnumConstants()[0].toString(), null);
+				String enumValue = enumClass.getEnumConstants()[0].toString();
+				setValue(obj, enumValue, null);
+				return enumValue;
 			}
 			else {
 				Object o = Utils.newObject(field.getType());
 				setValue(obj, o, null);
+				return o;
 			}
 		}
 
@@ -446,7 +449,7 @@ class TableDefinition<T> {
 			Class<?> classType = f.getType();
 			if (java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
-					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum()) {
+					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {
 				f.setAccessible(true);
 				FieldDefinition fieldDef = new FieldDefinition();
 				fieldDef.field = f;
@@ -986,14 +989,14 @@ class TableDefinition<T> {
 	@SuppressWarnings({ "unchecked" })
 	void initSelectObject(SelectTable<T> table, Object obj, Map<Object, SelectColumn<T>> map) {
 		for (FieldDefinition def : fields) {
-			def.initWithNewObject(obj);
+			Object o = def.initWithNewObject(obj);
 			SelectColumn<T> column = new SelectColumn<T>(table, def);
 			if (def.type == Types.ENUM) {
 				Class type = def.field.getType();
-				map.put(Enum.valueOf(type, (String)def.getValue(obj)), column);
+				map.put(Enum.valueOf(type, (String)o), column);
 			}
 			else {
-				map.put(def.getValue(obj), column);
+				map.put(o, column);
 			}
 		}
 	}
