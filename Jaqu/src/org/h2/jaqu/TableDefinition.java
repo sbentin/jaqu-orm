@@ -43,8 +43,7 @@ import org.h2.jaqu.util.Utils;
 /**
  * A table definition contains the index definitions of a table, the field definitions, the table name, and other meta data.
  * 
- * @param <T>
- *            the table type
+ * @param <T> the table type
  */
 class TableDefinition<T> {
 
