@@ -311,8 +311,6 @@ public class Db {
     public <T extends Object> QueryInterface<T> from(T alias) {
     	if (this.closed)
     		throw new IllegalStateException("Session is closed!!!");
-        Class<?> clazz = alias.getClass();
-        define(clazz);
         return Query.from(this, alias);
     }
 
