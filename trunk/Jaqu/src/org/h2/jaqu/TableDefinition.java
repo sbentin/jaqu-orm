@@ -70,12 +70,16 @@ class TableDefinition<T> {
 
 		Object getValue(Object obj) {
 			try {
-				if (type == Types.ENUM)
-					return field.get(obj).toString();
+				if (type == Types.ENUM){
+					Object enumObj = field.get(obj);
+					if (null != enumObj)
+						return enumObj.toString();
+					return null;
+				}
 				return field.get(obj);
 			}
 			catch (Exception e) {
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError("In fieldDefinition.getValue -> " + e.getMessage(), e);
 			}
 		}
 
@@ -99,7 +103,8 @@ class TableDefinition<T> {
 				Object tmp = o;
 				switch (fieldType) {
 					case NORMAL:
-						if (type == Types.ENUM) {
+						// if 'o' equals null then setting the 'enum' will cause a nullPointerException
+						if (type == Types.ENUM && null != o) {
 							Class enumClass = field.getType();
 							field.set(obj, Enum.valueOf(enumClass, (String)o));
 						}
