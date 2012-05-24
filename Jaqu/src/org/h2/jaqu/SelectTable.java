@@ -6,19 +6,16 @@
  */
 package org.h2.jaqu;
 
-//## Java 1.5 begin ##
 import java.util.ArrayList;
 
 import org.h2.jaqu.util.ClassUtils;
 import org.h2.jaqu.util.Utils;
-//## Java 1.5 end ##
 
 /**
  * This class represents a table in a query.
  *
  * @param <T> the table class
  */
-//## Java 1.5 begin ##
 class SelectTable <T> {
 
     private static int asCounter;
@@ -29,6 +26,7 @@ class SelectTable <T> {
     private TableDefinition<T> aliasDef;
     private boolean outerJoin;
     private ArrayList<Token> joinConditions = Utils.newArrayList();
+    /** Holds the descriptor object */
     private T alias;
 
     @SuppressWarnings("unchecked")
@@ -37,6 +35,7 @@ class SelectTable <T> {
         this.query = query;
         this.outerJoin = outerJoin;
         aliasDef = (TableDefinition<T>) query.getDb().factory.getTableDefinition(alias.getClass());
+        /** written this way to solve generics syntax problems */
         clazz = ClassUtils.getClass(alias);
         as = "T" + asCounter++;
     }
@@ -96,6 +95,4 @@ class SelectTable <T> {
     void setCurrent(T current) {
         this.current = current;
     }
-
 }
-//## Java 1.5 end ##
