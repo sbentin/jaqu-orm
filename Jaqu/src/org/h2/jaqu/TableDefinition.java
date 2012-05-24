@@ -753,10 +753,10 @@ class TableDefinition<T> {
 		try {
 			if (rs.next()) {
 				// such a row exists do an update
-				this.update(db, obj);
+				db.update(obj);
 			}
 			else
-				this.insert(db, obj);
+				db.insert(obj);
 		}
 		catch (SQLException e) {
 			throw new JaquError(e.getMessage(), e);

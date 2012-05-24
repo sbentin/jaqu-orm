@@ -19,17 +19,39 @@ Created		   Apr 23, 2012			shai
 */
 package org.h2.jaqu;
 
-/**
- * @author shai
- *
- */
-public interface CRUDInterceptor {
+import org.h2.jaqu.annotation.Entity;
+import org.h2.jaqu.annotation.Interceptor;
 
-	public abstract void onInsert(Object t);
+/**
+ * Implementations of this interface are used for intercepting CRUD operations on Entities {@link Entity}. It can also be used with POJOs.<br>
+ * In order to use this interceptor you must mark your bean with the @interceptor {@link Interceptor} annotation.
+ * 
+ * @author shai
+ * @since 2.0.0
+ */
+public interface CRUDInterceptor<K> {
+
+	/**
+	 * executed on entities before the entity is inserted
+	 * @param t
+	 */
+	public abstract void onInsert(K t);
 	
-	public abstract void onMerge(Object t);
+	/**
+	 * executes on entities before the entity is merged
+	 * @param t
+	 */
+	public abstract void onMerge(K t);
 	
-	public abstract void onUpdate(Object t);
+	/**
+	 * executes on entities before the entity is updated
+	 * @param t
+	 */
+	public abstract void onUpdate(K t);
 	
-	public abstract void onDelete(Object t);
+	/**
+	 * executes on entities before the entity is deleted
+	 * @param t
+	 */
+	public abstract void onDelete(K t);
 }
