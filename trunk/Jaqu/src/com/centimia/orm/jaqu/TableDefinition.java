@@ -167,8 +167,8 @@ class TableDefinition<T> {
 								Object descriptor = Utils.newObject(relationDefinition.dataType);
 								List<?> resultList = db.from(descriptor).where(new StringFilter() {
 									
-									public String getConditionString(SelectTable<?> st) {
-										FieldDefinition fdef = st.getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
+									public String getConditionString(ISelectTable<?> st) {
+										FieldDefinition fdef = ((SelectTable)st).getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
 										if (null != fdef)
 											// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
 											// different we use the columnName property.

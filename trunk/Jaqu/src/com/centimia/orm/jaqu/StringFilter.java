@@ -21,12 +21,25 @@
 package com.centimia.orm.jaqu;
 
 /**
- * To allow a SQL filter String inside a condition to amplify a condition based on runtime variables.
+ * Allows String based SQL clause inside a condition. It can be a stand alone where or just a condition to 
+ * be concatenated with other conditions.<br>
+ * <b>Note:</b> Currently is not supported by join queries.
+ * <p><pre>
+ * use: 
+ * select.from(persistable).where(new StringFilter(){...}).select();
+ * select.from(persistable).where(new StringFilter(){...}).and(persistable.getSomeField()).is(someValue).select()
+ * </pre>
  * 
- * @author Shai Bentin
+ * @author shai
  */
-interface StringFilter {
-
-	String getConditionString(SelectTable<?> selectTable);
+public interface StringFilter {
+	
+	/**
+	 * Returns the condition string that should be injected into the SQL.
+	 * 
+	 * @param selectTable
+	 * @return String
+	 */
+	String getConditionString(ISelectTable<?> selectTable);
 	
 }

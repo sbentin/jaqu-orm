@@ -695,7 +695,7 @@ public class Db {
 				 * (non-Javadoc)
 				 * @see com.centimia.orm.jaqu.StringFilter#getConditionString(com.centimia.orm.jaqu.SelectTable)
 				 */
-				public String getConditionString(SelectTable<?> st) {
+				public String getConditionString(ISelectTable<?> st) {
 					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + myPrimaryKey.toString();
 				}
 			}).select();
