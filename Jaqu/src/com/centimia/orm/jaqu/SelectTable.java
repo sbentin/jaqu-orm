@@ -22,7 +22,7 @@ import com.centimia.orm.jaqu.util.Utils;
  *
  * @param <T> the table class
  */
-class SelectTable <T> {
+class SelectTable<T> implements ISelectTable<T> {
 
     private static int asCounter;
     private Query<T> query;
@@ -86,7 +86,10 @@ class SelectTable <T> {
         return query;
     }
 
-    String getAs() {
+    /* (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.ISelectTable#getAs()
+	 */
+    public String getAs() {
         return as;
     }
 
