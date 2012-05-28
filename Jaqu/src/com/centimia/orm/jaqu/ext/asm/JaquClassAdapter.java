@@ -63,10 +63,10 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 */
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-		if (desc != null && desc.indexOf("org/h2/jaqu/annotation/Entity") != -1) {
+		if (desc != null && desc.indexOf("com/centimia/orm/jaqu/annotation/Entity") != -1) {
 			this.isEntityAnnotationPresent = true;
 		}
-		if (desc != null && desc.indexOf("org/h2/jaqu/annotation/MappedSuperclass") != -1){
+		if (desc != null && desc.indexOf("com/centimia/orm/jaqu/annotation/MappedSuperclass") != -1){
 			this.isMappedSupperClass = true;
 		}
 		return super.visitAnnotation(desc, visible);
@@ -124,7 +124,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	@Override
 	public void visitEnd() {
 		if (isEntityAnnotationPresent) {
-			FieldVisitor fv = cv.visitField(ACC_PUBLIC+ACC_TRANSIENT, "db", "Lorg/h2/jaqu/Db;", null, null);
+			FieldVisitor fv = cv.visitField(ACC_PUBLIC+ACC_TRANSIENT, "db", "Lcom/centimia/orm/jaqu/Db;", null, null);
 			fv.visitEnd();
 		}
 
@@ -189,7 +189,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitLabel(l0);
 		mv.visitLineNumber(63, l0);
 		mv.visitVarInsn(ALOAD, 0);
-		mv.visitFieldInsn(GETFIELD, className, "db", "Lorg/h2/jaqu/Db;");
+		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
 		Label l5 = new Label();
 		mv.visitJumpInsn(IFNONNULL, l5);
 		Label l6 = new Label();
@@ -204,7 +204,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitLineNumber(65, l5);
 		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ALOAD, 0);
-		mv.visitFieldInsn(GETFIELD, className, "db", "Lorg/h2/jaqu/Db;");
+		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;");
 		mv.visitLdcInsn("getRelationFromDb");
 		mv.visitInsn(ICONST_3);
@@ -235,7 +235,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitVarInsn(ALOAD, 0);
-		mv.visitFieldInsn(GETFIELD, className, "db", "Lorg/h2/jaqu/Db;");
+		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
 		mv.visitInsn(ICONST_3);
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
 		mv.visitInsn(DUP);
