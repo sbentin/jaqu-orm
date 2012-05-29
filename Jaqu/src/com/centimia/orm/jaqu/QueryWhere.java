@@ -14,6 +14,8 @@ package com.centimia.orm.jaqu;
 
 import java.util.List;
 
+import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
+
 /**
  * This class represents a query with a condition.
  * 
@@ -49,6 +51,42 @@ public class QueryWhere<T> {
 		return new QueryCondition<T, A>(query, x);
 	}
 
+	/**
+	 * Use this method specifically to perform an 'AND' operator in the query on enum types
+	 * @param alias
+	 * @param fieldName
+	 * @param comapreType
+	 * @param values
+	 * @return QueryWhere<T>
+	 */
+	@SuppressWarnings("unchecked")
+	public QueryWhere<T> andEnum(T alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+		query.addConditionToken(ConditionAndOr.AND);
+		TableDefinition<T> tDef =  (TableDefinition<T>) query.getDb().define(alias.getClass());
+    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
+    	EnumToken t = new EnumToken(fDef, comapreType, values);
+    	query.addConditionToken(t);
+    	return this;
+	}
+
+	/**
+	 * Use this method specifically to perform an 'OR' operator in the query on enum types
+	 * @param alias
+	 * @param fieldName
+	 * @param comapreType
+	 * @param values
+	 * @return QueryWhere<T>
+	 */
+	@SuppressWarnings("unchecked")
+	public QueryWhere<T> orEnum(T alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+		query.addConditionToken(ConditionAndOr.OR);
+		TableDefinition<T> tDef =  (TableDefinition<T>) query.getDb().define(alias.getClass());
+    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
+    	EnumToken t = new EnumToken(fDef, comapreType, values);
+    	query.addConditionToken(t);
+    	return this;
+	}
+	
 	/**
 	 * Performs the select of the query. Returns the results or an empty list. Does not return null.
 	 * This select returns a List of a given object that mapping is given to from the result set to the field in that object 
