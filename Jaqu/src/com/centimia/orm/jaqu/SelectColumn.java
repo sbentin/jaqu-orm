@@ -40,7 +40,7 @@ class SelectColumn<T> {
         return fieldDef;
     }
 
-    ISelectTable getSelectTable() {
+    SelectTable<T> getSelectTable() {
         return selectTable;
     }
 
