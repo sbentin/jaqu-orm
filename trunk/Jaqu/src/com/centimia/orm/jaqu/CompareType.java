@@ -15,7 +15,7 @@ package com.centimia.orm.jaqu;
 /**
  * An enumeration of compare operations.
  */
-enum CompareType {
+public enum CompareType {
     EQUAL("=", true),
     BIGGER(">", true),
     BIGGER_EQUAL(">=", true),
