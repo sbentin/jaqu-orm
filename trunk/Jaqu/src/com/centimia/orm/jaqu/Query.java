@@ -357,6 +357,24 @@ public class Query<T> implements FullQueryInterface<T> {
         return new QueryCondition<T, A>(this, x);
     }
     
+    /**
+     * Use this "where" when evaluating enum types.
+     * 
+     * @param alias
+     * @param fieldName
+     * @param comapreType
+     * @param values
+     * @return QueryWhere<T>
+     */
+    @SuppressWarnings("unchecked")
+	public QueryWhere<T> whereEnum(T alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+    	TableDefinition<T> tDef =  (TableDefinition<T>) db.define(alias.getClass());
+    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
+    	EnumToken t = new EnumToken(fDef, comapreType, values);
+    	conditions.add(t);
+    	return new QueryWhere<T>(this);
+    }
+    
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#set(A, A)
 	 */
