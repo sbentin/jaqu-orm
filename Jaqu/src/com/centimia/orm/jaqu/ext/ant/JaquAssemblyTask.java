@@ -64,7 +64,7 @@ public class JaquAssemblyTask extends Task {
 			report.insert(0, "BUILD FAILED - converted " + stats.getSuccess() + " files, failed to convert " + stats.getFailure() + " files\n");
 			throw new BuildException(report.toString());
 		}
-		System.out.println("BUILD SUCCESS - converted " + stats.getSuccess() + " files");
+		getOwningTarget().getProject().log("BUILD SUCCESS - converted " + stats.getSuccess() + " files");
 	}
 
 	/* (non-Javadoc)
