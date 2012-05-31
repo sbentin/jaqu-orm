@@ -15,6 +15,9 @@ package com.centimia.orm.jaqu.util;
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Utility class to optionally log generated statements to an output stream.<br>
  * Default output stream is System.out.<br>
@@ -25,6 +28,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class StatementLogger {
 
+	private static Logger logger = LoggerFactory.getLogger("JqQuLog");
+	
     private static final AtomicLong SELECT_COUNT = new AtomicLong();
     private static final AtomicLong CREATE_COUNT = new AtomicLong();
     private static final AtomicLong INSERT_COUNT = new AtomicLong();
@@ -69,7 +74,7 @@ public class StatementLogger {
     }
 
     private static void log(String statement) {
-    	System.out.println(statement);
+    	logger.info(statement);
     }
 
     public static void printStats() {
@@ -87,7 +92,7 @@ public class StatementLogger {
     private static void printStat(String name, AtomicLong value) {
         if (value.get() > 0) {
             DecimalFormat df = new DecimalFormat("###,###,###,###");
-            System.out.println(name + "=" + df.format(CREATE_COUNT.get()));
+            logger.info(name + "=" + df.format(CREATE_COUNT.get()));
         }
     }
 }
