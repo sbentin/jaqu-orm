@@ -18,10 +18,12 @@ class EnumToken implements Token {
 	private final CompareType	comapreType;
 	private final Enum<?>[]	values;
 	private final FieldDefinition	fDef;
+	private final String as;
 	
-	public EnumToken(FieldDefinition fDef, CompareType comapreType, Enum<?> ... values) {
+	public EnumToken(FieldDefinition fDef, CompareType comapreType, String as, Enum<?> ... values) {
 		this.fDef = fDef;
 		this.comapreType = comapreType;
+		this.as = as;
 		this.values = values;		
 	}
 	
@@ -29,14 +31,14 @@ class EnumToken implements Token {
 		switch (comapreType) {
 			case IN:
 			case NOT_IN: {
-				stat.appendSQL(fDef.columnName + comapreType.getString());
+				stat.appendSQL(as + "." + fDef.columnName + comapreType.getString());
 				stat.appendSQL(" (");
 				int i = 0;
 				for (Enum<?> value : values) {
 					if (i != 0) {
 						stat.appendSQL(",");
 					}
-					stat.appendSQL(value.name());
+					stat.appendSQL("'" + value.name() + "'");
 					i++;
 				}
 				stat.appendSQL(")");
@@ -50,11 +52,11 @@ class EnumToken implements Token {
 			}
 			case IS_NULL:
 			case IS_NOT_NULL: {
-				stat.appendSQL(fDef.columnName + comapreType.getString());
+				stat.appendSQL(as + "." + fDef.columnName + comapreType.getString());
 				break;
 			}
 			default: {
-				stat.appendSQL(fDef.columnName + comapreType.getString() + values[0]);
+				stat.appendSQL(as + "." + fDef.columnName + comapreType.getString() + "'" + values[0].name() + "'");
 				break;
 			}
 		}
