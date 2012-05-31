@@ -14,6 +14,8 @@ package com.centimia.orm.jaqu;
 
 import java.util.List;
 
+import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
+
 /**
  * 
  * @author shai
@@ -52,6 +54,48 @@ public class QueryJoinWhere<T> {
 		return new QueryJoinCondition<T, A>(query, join, x);
 	}
 
+	/**
+	 * Use this method specifically to perform an 'AND' operator in the query on enum types
+	 * @param fieldName - the name of the field in the queried object holding the enum type
+	 * @param comapreType
+	 * @param values - one or more enum values to check against.
+	 * @return QueryJoinWhere<T>
+	 */
+	@SuppressWarnings("unchecked")
+	public QueryJoinWhere<T> andEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+		join.addConditionToken(ConditionAndOr.AND);
+		TableDefinition tDef =  query.getDb().define(alias.getClass());
+    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
+    	EnumToken t = null;
+    	if (alias == join.getAlias())
+    		t = new EnumToken(fDef, comapreType, join.getAs(), values);
+    	else
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
+    	join.addConditionToken(t);
+    	return this;
+	}
+
+	/**
+	 * Use this method specifically to perform an 'OR' operator in the query on enum types
+	 * @param fieldName - the name of the field in the queried object holding the enum type
+	 * @param comapreType
+	 * @param values - one or more enum values to check against.
+	 * @return QueryJoinWhere<T>
+	 */
+	@SuppressWarnings("unchecked")
+	public QueryJoinWhere<T> orEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+		join.addConditionToken(ConditionAndOr.OR);
+		TableDefinition tDef =  query.getDb().define(alias.getClass());
+    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
+    	EnumToken t = null;
+    	if (alias == join.getAlias())
+    		t = new EnumToken(fDef, comapreType, join.getAs(), values);
+    	else
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
+    	join.addConditionToken(t);
+    	return this;
+	}
+	
     /**
      * Opens a where clause after join.
      * 
@@ -63,6 +107,28 @@ public class QueryJoinWhere<T> {
         return new QueryCondition<T, A>(query, x);
     }
     
+    /**
+     * create a where clause based on an enum.
+     * 
+     * @param alias - the object to query (one of the objects in the join)
+     * @param fieldName - the name of the field holding the enum to query
+     * @param comapreType
+     * @param values - one or more enum values.
+     * @return QueryJoinWhere<T>
+     */
+	@SuppressWarnings("unchecked")
+	public QueryJoinWhere<T> whereEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+		TableDefinition tDef =  query.getDb().define(alias.getClass());
+    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
+    	EnumToken t = null;
+    	if (alias == join.getAlias())
+    		t = new EnumToken(fDef, comapreType, join.getAs(), values);
+    	else
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
+    	query.addConditionToken(t);
+    	return this;
+    }
+	
     /**
 	 * inner Join another table. (returns only rows that match)
 	 *

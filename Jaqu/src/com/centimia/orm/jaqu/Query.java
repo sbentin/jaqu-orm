@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 
+import com.centimia.orm.jaqu.ISelectTable.JOIN_TYPE;
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementLogger;
@@ -48,7 +49,7 @@ public class Query<T> implements FullQueryInterface<T> {
     static <T> Query<T> from(Db db, T alias) {
         Query<T> query = new Query<T>(db);
         TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
-        query.from = new SelectTable<T>(query, alias, false);
+        query.from = new SelectTable<T>(query, alias, JOIN_TYPE.NONE);
         def.initSelectObject(query.from, alias, query.aliasMap);
         return query;
     }
@@ -357,20 +358,14 @@ public class Query<T> implements FullQueryInterface<T> {
         return new QueryCondition<T, A>(this, x);
     }
     
-    /**
-     * Use this "where" when evaluating enum types.
-     * 
-     * @param alias
-     * @param fieldName
-     * @param comapreType
-     * @param values
-     * @return QueryWhere<T>
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#whereEnum(java.lang.String, com.centimia.orm.jaqu.CompareType, java.lang.Enum<?>[])
      */
-    @SuppressWarnings("unchecked")
-	public QueryWhere<T> whereEnum(T alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
-    	TableDefinition<T> tDef =  (TableDefinition<T>) db.define(alias.getClass());
+	public QueryWhere<T> whereEnum(String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+    	TableDefinition<T> tDef =  this.from.getAliasDefinition();
     	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
-    	EnumToken t = new EnumToken(fDef, comapreType, values);
+    	EnumToken t = new EnumToken(fDef, comapreType, from.getAs(), values);
     	conditions.add(t);
     	return new QueryWhere<T>(this);
     }
@@ -666,7 +661,7 @@ public class Query<T> implements FullQueryInterface<T> {
     @SuppressWarnings("unchecked")
     public <U> QueryJoin innerJoin(U alias) {
         TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
-        SelectTable<T> join = new SelectTable(this, alias, false);
+        SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.INNER_JOIN);
         def.initSelectObject(join, alias, aliasMap);
         joins.add(join);
         return new QueryJoin(this, join);
@@ -678,7 +673,7 @@ public class Query<T> implements FullQueryInterface<T> {
     @SuppressWarnings("unchecked")
     public <U> QueryJoin leftOuterJoin(U alias) {
         TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
-        SelectTable<T> join = new SelectTable(this, alias, true);
+        SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.LEFT_OUTER_JOIN);
         def.initSelectObject(join, alias, aliasMap);
         joins.add(join);
         return new QueryJoin(this, join);
@@ -702,5 +697,9 @@ public class Query<T> implements FullQueryInterface<T> {
     
     SelectTable<T> getSelectTable(){
     	return from;
+    }
+    
+    List<SelectTable<?>> getJoins(){
+    	return joins;
     }
 }

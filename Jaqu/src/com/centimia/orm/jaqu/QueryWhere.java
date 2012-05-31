@@ -53,36 +53,49 @@ public class QueryWhere<T> {
 
 	/**
 	 * Use this method specifically to perform an 'AND' operator in the query on enum types
-	 * @param alias
-	 * @param fieldName
+	 * 
+	 * @param alias - the table descriptor of which the enum field belongs to
+	 * @param fieldName - the name of the field in the queried object holding the enum type
 	 * @param comapreType
-	 * @param values
+	 * @param values - one or more enum values to check against.
 	 * @return QueryWhere<T>
 	 */
 	@SuppressWarnings("unchecked")
-	public QueryWhere<T> andEnum(T alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+	public QueryWhere<T> andEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
 		query.addConditionToken(ConditionAndOr.AND);
-		TableDefinition<T> tDef =  (TableDefinition<T>) query.getDb().define(alias.getClass());
+		TableDefinition tDef =  query.getDb().define(alias.getClass());
     	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
-    	EnumToken t = new EnumToken(fDef, comapreType, values);
+    	EnumToken t = null;
+    	if (alias == query.getSelectTable().getAlias())
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
+    	else {
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getJoins().get(alias), values);
+    	}
     	query.addConditionToken(t);
     	return this;
 	}
 
 	/**
 	 * Use this method specifically to perform an 'OR' operator in the query on enum types
-	 * @param alias
-	 * @param fieldName
+	 * 
+	 * @param alias - the table descriptor of which the enum field belongs to
+	 * @param fieldName - the name of the field in the queried object holding the enum type
 	 * @param comapreType
-	 * @param values
+	 * @param values - one or more enum values to check against.
 	 * @return QueryWhere<T>
 	 */
 	@SuppressWarnings("unchecked")
-	public QueryWhere<T> orEnum(T alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
+	public QueryWhere<T> orEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
 		query.addConditionToken(ConditionAndOr.OR);
-		TableDefinition<T> tDef =  (TableDefinition<T>) query.getDb().define(alias.getClass());
+		TableDefinition tDef =  query.getDb().define(alias.getClass());
     	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
-    	EnumToken t = new EnumToken(fDef, comapreType, values);
+    	EnumToken t = null;
+    	if (alias == query.getSelectTable().getAlias())
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
+    	else {
+    		
+    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getJoins().get(alias), values);
+    	}
     	query.addConditionToken(t);
     	return this;
 	}

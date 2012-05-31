@@ -13,6 +13,8 @@
 package com.centimia.orm.jaqu;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 import com.centimia.orm.jaqu.util.ClassUtils;
 import com.centimia.orm.jaqu.util.Utils;
@@ -30,18 +32,18 @@ class SelectTable<T> implements ISelectTable<T> {
     private T current;
     private String as;
     private TableDefinition<T> aliasDef;
-    private boolean outerJoin;
+    private JOIN_TYPE joinType;
     private ArrayList<Token> joinConditions = Utils.newArrayList();
     /** Holds the descriptor object */
     private T alias;
 
     @SuppressWarnings("unchecked")
-    SelectTable(Query<T> query, T alias, boolean outerJoin) {
+    SelectTable(Query<T> query, T alias, JOIN_TYPE outerJoin) {
         this.alias = alias;
         this.query = query;
-        this.outerJoin = outerJoin;
+        this.joinType = outerJoin;
         aliasDef = (TableDefinition<T>) query.getDb().factory.getTableDefinition(alias.getClass());
-        /** written this way to solve generics syntax problems */
+        /** written this way to solve generic syntax problems */
         clazz = ClassUtils.getClass(alias);
         as = "T" + asCounter++;
     }
@@ -63,11 +65,7 @@ class SelectTable<T> implements ISelectTable<T> {
     }
 
     void appendSQLAsJoin(SQLStatement stat, Query<T> q) {
-        if (outerJoin) {
-            stat.appendSQL(" LEFT OUTER JOIN ");
-        } else {
-            stat.appendSQL(" INNER JOIN ");
-        }
+        stat.appendSQL(" " + joinType.type +" ");
         appendSQL(stat);
         if (!joinConditions.isEmpty()) {
             stat.appendSQL(" ON ");
@@ -78,19 +76,8 @@ class SelectTable<T> implements ISelectTable<T> {
         }
     }
 
-    boolean getOuterJoin() {
-        return outerJoin;
-    }
-
     Query<T> getQuery() {
         return query;
-    }
-
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ISelectTable#getAs()
-	 */
-    public String getAs() {
-        return as;
     }
 
     void addConditionToken(Token condition) {
@@ -103,5 +90,34 @@ class SelectTable<T> implements ISelectTable<T> {
 
     void setCurrent(T current) {
         this.current = current;
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.ISelectTable#getJoins()
+     */
+    public Map<Object, String> getJoins(){
+    	IdentityHashMap<Object, String> asList = new IdentityHashMap<Object, String>();
+    	if (query.isJoin()){
+    		for (SelectTable<?> jointTable: query.getJoins()){
+    			asList.put(jointTable.getAlias(), jointTable.getAs());
+    		}
+    	}
+    	return asList;
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.ISelectTable#getJoinType()
+     */
+    public JOIN_TYPE getJoinType() {
+        return joinType;
+    }
+    
+    /* (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.ISelectTable#getAs()
+	 */
+    public String getAs() {
+        return as;
     }
 }
