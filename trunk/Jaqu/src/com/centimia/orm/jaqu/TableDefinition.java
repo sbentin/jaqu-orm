@@ -42,7 +42,6 @@ import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
-import com.centimia.orm.jaqu.util.StatementLogger;
 import com.centimia.orm.jaqu.util.StringUtils;
 import com.centimia.orm.jaqu.util.Utils;
 
@@ -85,7 +84,7 @@ class TableDefinition<T> {
 				return field.get(obj);
 			}
 			catch (Exception e) {
-				throw new JaquError("In fieldDefinition.getValue -> " + e.getMessage(), e);
+				throw new JaquError(e, "In fieldDefinition.getValue -> %s", e.getMessage());
 			}
 		}
 
@@ -131,9 +130,9 @@ class TableDefinition<T> {
 								if (!result.isEmpty())
 									o = result.get(0);
 								else
-									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was "
-													+ field.getName() + " with value " + tmp + " in table " + obj.getClass().getName()
-													+ "\nmissing in table " + o.getClass().getName());
+									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
+													+ " with value %s in table %s" 
+													+ "\nmissing in table %s", field.getName(), tmp, obj.getClass().getName(), o.getClass().getName());
 								db.removeReentrant(obj);
 							}
 						}
@@ -217,14 +216,12 @@ class TableDefinition<T> {
 						break;
 					}
 					default:
-						throw new IllegalStateException("Field " + columnName
-								+ " was marked as relation but has no relation MetaData in define method");
+						throw new JaquError("IllegalState - Field %s " 
+								+ "was marked as relation but has no relation MetaData in define method", columnName);
 				}
 			}
 			catch (Exception e) {
-				if (e instanceof RuntimeException)
-					throw (RuntimeException) e;
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}
 		}
 
@@ -233,7 +230,7 @@ class TableDefinition<T> {
 				return DIALECT.getValueByType(type, rs, this.columnName);
 			}
 			catch (SQLException e) {
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}
 		}
 
@@ -315,7 +312,7 @@ class TableDefinition<T> {
 				interceptor = interceptorAnnot.Class().newInstance();
 			}
 			catch (Exception e) {
-				throw new JaquError("Expected an Interceptor class for Table/ Entity " + nameOfTable + ". Unable to invoke!!");
+				throw new JaquError("Expected an Interceptor class for Table/ Entity %s. Unable to invoke!!", nameOfTable);
 			}
 		}
 	}
@@ -343,8 +340,8 @@ class TableDefinition<T> {
 				childType = (Class<?>) ((ParameterizedType)fieldDefinition.field.getGenericType()).getActualTypeArguments()[0];
 			}
 			catch (Exception e) {
-				throw new JaquError("Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' " +
-						"annotation parameter on @Many2Many annotation", e);
+				throw new JaquError(e, "Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' " +
+						"annotation parameter on @Many2Many annotation");
 			}
 		}
 
@@ -366,8 +363,8 @@ class TableDefinition<T> {
 			fieldDefinition.fieldType = FieldType.M2M;
 			def.dataType = childType;
 			if (def.dataType == null || def.dataType.getAnnotation(Entity.class) == null)
-				throw new IllegalStateException("field " + fieldDefinition.columnName
-						+ " was marked as a relationship, but does not point to a TABLE Type");
+				throw new JaquError("IllegalState - field %s "
+						+ "was marked as a relationship, but does not point to a TABLE Type", fieldDefinition.columnName);
 			def.relationColumnName = relationColumnName;
 			def.relationFieldName = relationFieldName;
 		}
@@ -378,7 +375,7 @@ class TableDefinition<T> {
 				childPkType = extractPrimaryKeyFromClass(childType);
 			}
 			catch (Exception e) {
-				throw new JaquError("You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation", e);
+				throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
 			}
 		}
 		createRelationTable(childType, many2Many.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
@@ -391,7 +388,7 @@ class TableDefinition<T> {
 				childType = (Class<?>) ((ParameterizedType)fieldDefinition.field.getGenericType()).getActualTypeArguments()[0];
 			}
 			catch (Exception e) {
-				throw new JaquError("Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' annotation parameter on @One2Many annotation", e);
+				throw new JaquError(e, "Tried to figure out the type of the child relation but couldn't. Try setting the 'childType' annotation parameter on @One2Many annotation");
 			}
 		}
 		
@@ -417,7 +414,7 @@ class TableDefinition<T> {
 			fieldDefinition.fieldType = FieldType.O2M;
 			def.dataType = childType;
 			if (def.dataType.getAnnotation(Entity.class) == null)
-				throw new IllegalStateException("field " + fieldDefinition.columnName + " was marked as a relationship, but does not point to an Entity Type");
+				throw new JaquError("IllegalState - field %s was marked as a relationship, but does not point to an Entity Type", fieldDefinition.columnName);
 			def.relationColumnName = relationColumnName;
 			def.relationFieldName = relationFieldName;
 		}
@@ -431,7 +428,7 @@ class TableDefinition<T> {
 					childPkType = extractPrimaryKeyFromClass(childType);
 				}
 				catch (Exception e) {
-					throw new JaquError("You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation", e);
+					throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
 				}
 			}
 			createRelationTable(childType, one2ManyAnnotation.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
@@ -501,7 +498,7 @@ class TableDefinition<T> {
 							fieldDef.dataType = DIALECT.getIdentityType();
 						else if (this.genType == GeneratorType.SEQUENCE) {
 							if (pkAnnotation.seqName() == null)
-								throw new IllegalArgumentException("GeneratorType.SEQUENCE must supply a sequence name!!!");
+								throw new JaquError("IllegalArgument - GeneratorType.SEQUENCE must supply a sequence name!!!");
 							StatementBuilder builder = new StatementBuilder("SELECT ").append(pkAnnotation.seqName()).append(".nextval from dual");
 							this.sequenceQuery = builder.toString();
 						}
@@ -533,7 +530,7 @@ class TableDefinition<T> {
 						fieldDef.getter = m;
 					}
 					catch (NoSuchMethodException nsme) {
-						throw new JaquError("Relation fields must have a getter in the form of get" + methodName + " in class " + clazz.getName(), nsme);
+						throw new JaquError(nsme, "Relation fields must have a getter in the form of get %s in class %s", methodName, clazz.getName());
 					}
 					One2Many one2ManyAnnotation = f.getAnnotation(One2Many.class);
 					if (one2ManyAnnotation != null) {
@@ -653,7 +650,7 @@ class TableDefinition<T> {
 			else if (java.sql.Date.class.equals(classType))
 				return Types.SQL_DATE;
 			else
-				throw e;
+				throw new JaquError(e, e.getMessage());
 		}
 	}
 
@@ -665,10 +662,9 @@ class TableDefinition<T> {
 			TableDefinition<?> def = JaquSessionFactory.define(classType, db);
 			if (def.primaryKeyColumnNames == null || def.primaryKeyColumnNames.isEmpty())
 				// no primary keys defined we can't make a DB relation although we expected such a relation to exist.
-				throw new IllegalStateException("No primary key columns defined for table " + classType + " - no relationship possible");
+				throw new JaquError("IllegalState - No primary key columns defined for table %s - no relationship possible", classType);
 			else if (def.primaryKeyColumnNames.size() > 1)
-				throw new UnsupportedOperationException("Entity relationship is not supported for complex primary keys. Found in "
-						+ classType);
+				throw new JaquError("UnsupportedOperation - Entity relationship is not supported for complex primary keys. Found in %s", classType);
 			else {
 				// Single primary key is here we find out the type and move on....
 				Field primaryKeyDataType = null;
@@ -744,7 +740,7 @@ class TableDefinition<T> {
 		if (db.checkReEntrant(obj))
 			return;
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
-			throw new IllegalStateException("No primary key columns defined for table " + obj.getClass() + " - no merge possible");
+			throw new JaquError("IllegalState - No primary key columns defined for table %s - no merge possible", obj.getClass());
 		}
 		
 		// check if object exists in the DB
@@ -771,7 +767,7 @@ class TableDefinition<T> {
 				db.insert(obj);
 		}
 		catch (SQLException e) {
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
 		finally {
             JdbcUtils.closeSilently(rs);
@@ -792,12 +788,10 @@ class TableDefinition<T> {
 				field.field.set(obj, value); // add the new id to the object
 			}
 			catch (SQLException e) {
-				throw new JaquError("Unable to generate key.", e);
+				throw new JaquError(e, "Unable to generate key.");
 			}
 			catch (Exception e) {
-				if (e instanceof RuntimeException)
-					throw (RuntimeException) e;
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}
 			finally {
 				JdbcUtils.closeSilently(rs);
@@ -841,7 +835,7 @@ class TableDefinition<T> {
 		if (db.checkReEntrant(obj))
 			return;
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
-			throw new IllegalStateException("No primary key columns defined for table " + obj.getClass() + " - no update possible");
+			throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", obj.getClass());
 		}
 		SQLStatement stat = new SQLStatement(db);
 		Object alias = Utils.newObject(obj.getClass());
@@ -892,9 +886,7 @@ class TableDefinition<T> {
 				primaryKeyColumnNames.get(0).field.set(obj, generatedId);
 			}
 			catch (Exception e) {
-				if (e instanceof RuntimeException)
-					throw (RuntimeException) e;
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}
 		}
 		else {
@@ -904,7 +896,7 @@ class TableDefinition<T> {
 
 	void delete(Db db, Object obj) {
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
-			throw new IllegalStateException("No primary key columns defined for table " + obj.getClass() + " - no update possible");
+			throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", obj.getClass());
 		}
 		SQLStatement stat = new SQLStatement(db);
 		Object alias = Utils.newObject(obj.getClass());
@@ -1123,9 +1115,7 @@ class TableDefinition<T> {
 			db.executeUpdate(builder.toString());
 		}
 		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException) e;
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
 	}
 

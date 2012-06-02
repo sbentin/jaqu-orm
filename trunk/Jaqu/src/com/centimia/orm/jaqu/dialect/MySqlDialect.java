@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
@@ -106,7 +107,7 @@ public class MySqlDialect implements SQLDialect {
 			// not recommended for real use. Arrays and relational DB don't go well together and don't make much sense!
 			Class<?> componentClass = fieldClass.getComponentType();
 			if (componentClass.getAnnotation(Entity.class) != null)
-				throw new IllegalArgumentException("Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
+				throw new JaquError("IllegalArgument - Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			return "BLOB";
 		}
 		else if (fieldClass.isEnum()) {

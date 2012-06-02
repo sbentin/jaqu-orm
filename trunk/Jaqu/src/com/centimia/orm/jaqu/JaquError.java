@@ -39,21 +39,21 @@ public class JaquError extends RuntimeException {
 	 * @param message
 	 * @param cause
 	 */
-	JaquError(String message, Throwable cause) {
-		super(message, cause);
+	public JaquError(Throwable cause, String message, Object ... args) {
+		super(String.format(message, args), cause);
 	}
 
 	/**
 	 * @param message
 	 */
-	JaquError(String message) {
-		super(message);
+	public JaquError(String message, Object ... args) {
+		super(String.format(message, args));
 	}
 
 	/**
 	 * @param cause
 	 */
-	JaquError(Throwable cause) {
+	public JaquError(Throwable cause) {
 		super(cause);
 	}
 }

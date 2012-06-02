@@ -46,7 +46,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			db.get().addSession(element);
 		}
 		else {
-			throw new IllegalStateException("This list is backed up by the DB. Can't insert into list position outside the Db Session");
+			throw new JaquError("IllegalState - This list is backed up by the DB. Can't insert into list position outside the Db Session");
 		}		
 	}
 
@@ -58,28 +58,28 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return ((List<E>)originalList).addAll(index, c);
 		}
 		else
-			throw new IllegalStateException("This list is backed up by the DB. Can't insert into list position outside the Db Session");
+			throw new JaquError("IllegalState - This list is backed up by the DB. Can't insert into list position outside the Db Session");
 	}
 
 	public E get(int index) {
 		if (!dbClosed())
 			return ((List<E>)originalList).get(index);
 		else
-			throw new IllegalStateException("This list is backed up by the DB. Can't do get by position outside the Db Session");
+			throw new JaquError("IllegalState - This list is backed up by the DB. Can't do get by position outside the Db Session");
 	}
 
 	public int indexOf(Object o) {
 		if (!dbClosed())
 			return ((List<E>)originalList).indexOf(o);
 		else
-			throw new IllegalStateException("This list is backed up by the DB. Can't get position of object outside the Db Session");
+			throw new JaquError("IllegalState - This list is backed up by the DB. Can't get position of object outside the Db Session");
 	}
 
 	public int lastIndexOf(Object o) {
 		if (!dbClosed())
 			return ((List<E>)originalList).lastIndexOf(o);
 		else
-			throw new IllegalStateException("This list is backed up by the DB. Can't get position of object outside the Db Session");
+			throw new JaquError("IllegalState - This list is backed up by the DB. Can't get position of object outside the Db Session");
 	}
 
 	public ListIterator<E> listIterator() {
@@ -99,7 +99,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return element;
 		}
 		else
-			throw new IllegalStateException("This list is backed up by the DB. Can't remove by position of object outside the Db Session");
+			throw new JaquError("IllegalState - This list is backed up by the DB. Can't remove by position of object outside the Db Session");
 	}
 
 	public E set(int index, E element) {
@@ -107,11 +107,11 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			db.get().addSession(element);
 			((List<E>)originalList).set(index, element);
 		}
-		throw new IllegalStateException("This list is backed up by the DB. Can't replace by position of object outside the Db Session");
+		throw new JaquError("IllegalState - This list is backed up by the DB. Can't replace by position of object outside the Db Session");
 	}
 
 	public List<E> subList(int fromIndex, int toIndex) {
-		throw new IllegalStateException("This list is backed up by the DB. This operation is not supported at this time");
+		throw new JaquError("IllegalState - This list is backed up by the DB. This operation is not supported at this time");
 	}
 	
 	public Iterator<E> iterator() {

@@ -22,7 +22,6 @@ import java.util.List;
 import com.centimia.orm.jaqu.ISelectTable.JOIN_TYPE;
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.JdbcUtils;
-import com.centimia.orm.jaqu.util.StatementLogger;
 import com.centimia.orm.jaqu.util.Utils;
 
 /**
@@ -67,7 +66,7 @@ public class Query<T> implements FullQueryInterface<T> {
             return value;
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -128,7 +127,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -141,7 +140,7 @@ public class Query<T> implements FullQueryInterface<T> {
     * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
     * 
     * @param tableClass - the object descriptor of the type needed on return
-    * @throws IllegalStateException - when not in join query
+    * @throws JaquError - when not in join query
     */
     @SuppressWarnings("unchecked")
 	public <U> List<U> selectRightHandJoin(U tableClass){
@@ -154,7 +153,7 @@ public class Query<T> implements FullQueryInterface<T> {
      * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
      * 
      * @param tableClass - the object descriptor of the type needed on return
-     * @throws IllegalStateException - when not in join query
+     * @throws JaquError - when not in join query
      */
     @SuppressWarnings("unchecked")
 	public <U> List<U> selectDistinctRightHandJoin(U tableClass){
@@ -167,7 +166,7 @@ public class Query<T> implements FullQueryInterface<T> {
      * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
      * 
      * @param tableClass - the object descriptor of the type needed on return
-     * @throws IllegalStateException - when not in join query
+     * @throws JaquError - when not in join query
      */
     @SuppressWarnings("unchecked")
 	public <U> U selectFirstRightHandJoin(U tableClass){
@@ -180,7 +179,7 @@ public class Query<T> implements FullQueryInterface<T> {
     	if (tableClass.isAnonymousClass())
     		throw new JaquError("To get a subset of the fields or a a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
     	if (this.joins == null || this.joins.isEmpty())
-    		throw new IllegalStateException("Entity based on " + tableClass.getName() + " must be part of a join query!!");
+    		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getName());
     	
     	String as = null;
     	for (SelectTable<?> selectTable: joins) {
@@ -200,7 +199,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         } 
         catch (Exception e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -235,7 +234,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	            }
 	        } 
 	        catch (SQLException e) {
-	            throw new JaquError(e.getMessage(), e);
+	            throw new JaquError(e, e.getMessage());
 	        } 
 	        finally {
 	            JdbcUtils.closeSilently(rs);
@@ -264,7 +263,7 @@ public class Query<T> implements FullQueryInterface<T> {
         appendUpdate(stat);
         appendWhere(stat);
         if (stat.getSQL().indexOf("SET") == -1)
-        	throw new IllegalArgumentException("To perform update use the set directive after from...!!!");
+        	throw new JaquError("IllegalState - To perform update use the set directive after from...!!!");
         if (db.factory.isShowSQL())
         	StatementLogger.update(stat.getSQL());
         return stat.executeUpdate();
@@ -306,7 +305,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 result.add(row);
             }
         } catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         } finally {
             JdbcUtils.closeSilently(rs);
         }
@@ -326,12 +325,12 @@ public class Query<T> implements FullQueryInterface<T> {
                     result.add(value);
                 } 
                 catch (Exception e) {
-                    throw new JaquError(e.getMessage(), e);
+                    throw new JaquError(e, e.getMessage());
                 }
             }
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -376,7 +375,7 @@ public class Query<T> implements FullQueryInterface<T> {
     public <A> QuerySet<T, A> set(A x, A v) {
     	if (Collection.class.isAssignableFrom(x.getClass())) {
     		// this is a relation updating is not supported like this
-    		throw new IllegalStateException("To update relations use db.update(Object)");
+    		throw new JaquError("IllegalState - To update relations use db.update(Object)");
     	}
     	return new QuerySet<T, A>(this, x, v);
     }
@@ -390,10 +389,10 @@ public class Query<T> implements FullQueryInterface<T> {
     	// def will not be null here
     	List<TableDefinition.FieldDefinition> primaryKeys = def.getPrimaryKeyFields();
     	if (primaryKeys == null || primaryKeys.size() == 0) {
-            throw new IllegalStateException("No primary key columns defined for table " + def.tableName + " - no update possible");
+            throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", def.tableName);
         }
     	if (primaryKeys.size() > 1)
-    		throw new UnsupportedOperationException("Entity relationship is not supported for complex primary keys. Found in " + def.tableName);
+    		throw new JaquError("UnsupportedOperation - Entity relationship is not supported for complex primary keys. Found in %s", def.tableName);
     	for (TableDefinition.FieldDefinition field: primaryKeys) {
     		return new QueryCondition<T, Object>(this, field.getValue(from.getAlias()));
     	}
