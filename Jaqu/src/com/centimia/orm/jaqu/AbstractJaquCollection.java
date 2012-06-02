@@ -159,7 +159,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E> {
 			}
 			return result;
 		}
-		throw new IllegalStateException("This list is backed up by the DB. Can't retain objects outside the Db Session");
+		throw new JaquError("IllegalState - This list is backed up by the DB. Can't retain objects outside the Db Session");
 	}
 
 	public int size() {
@@ -237,9 +237,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E> {
 				col.internalDeleteMapping.add((E) current);
 				delagete.remove();
 			}
-			//throw new IllegalStateException("This list is backed up by the DB. Can't iter remove outside the Db Session");
 		}
-		
 	}
 	
 	void setDb(Db db) {

@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
@@ -91,8 +92,7 @@ public class H2Dialect implements SQLDialect{
 				return "BINARY";
 			}
 			else if (componentClass.getAnnotation(Entity.class) != null) {
-				throw new IllegalArgumentException(
-						"Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
+				throw new JaquError("IllegalArgument - Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			}
 			else {
 				// any other array will just be an array of objects in the DB.

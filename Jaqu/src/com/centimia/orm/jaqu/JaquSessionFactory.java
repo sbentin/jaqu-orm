@@ -50,8 +50,8 @@ public final class JaquSessionFactory {
 	private final Map<Class<?>, TableDefinition<?>> classMap; 
     
     public JaquSessionFactory(DataSource ds) {
-    	if (ds == null)
-    		throw new IllegalStateException("Missing valid datasource!!!");
+    	if (null == ds)
+    		throw new JaquError("IllegalState - Missing valid datasource!!!");
     	this.dataSource = ds;
     	Map<Class<?>, TableDefinition<?>> map = Utils.newHashMap();
     	// this map is synchronized on get put operations. The reason is that this map can be updated by more then one thread
@@ -142,20 +142,20 @@ public final class JaquSessionFactory {
 	<T,X> X getPrimaryKey(T t) {
     	 TableDefinition<?> def = getTableDefinition(t.getClass());
     	 if (def == null)
-    		 throw new JaquError("Missing table definition on Object " + t.getClass().getSimpleName());
+    		 throw new JaquError("Missing table definition on Object {%s}", t.getClass().getSimpleName());
     	 List<FieldDefinition> primaryKeys = def.getPrimaryKeyFields();
     	 if (null == primaryKeys || primaryKeys.isEmpty())
-         	throw new JaquError("Object " + t.getClass().getName() + " has no primary keys defined");
+         	throw new JaquError("Object {%s} has no primary keys defined", t.getClass().getName());
          
          if (primaryKeys.size() > 1)
-         	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object [" + t.getClass() + "] with more then one primary key defined!!!");
+         	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object {%s} with more then one primary key defined!!!", t.getClass().getName());
     	
          FieldDefinition pkDef = primaryKeys.get(0);
     	 try {
 			return (X)pkDef.field.get(t);
 		}
 		catch (Exception e) {
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
     }
     

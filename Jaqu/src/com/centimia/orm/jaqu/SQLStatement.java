@@ -59,7 +59,7 @@ public class SQLStatement {
             return prepare().executeQuery();
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
     }
 
@@ -68,7 +68,7 @@ public class SQLStatement {
         	return prepare().executeUpdate();
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
     }
 	
@@ -81,7 +81,7 @@ public class SQLStatement {
 			return null;
 		}
 		catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
 	}
 
@@ -104,7 +104,7 @@ public class SQLStatement {
             prep.setObject(parameterIndex, x);
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
     }
 

@@ -1,11 +1,20 @@
-/* Copyright (c) 2010-2016 Centimia Ltd. All rights reserved. Unpublished -- rights reserved
+/* Copyright (c) 2010-2016 Centimia Ltd. 
+ * All rights reserved. Unpublished -- rights reserved
  * 
- * Use of a copyright notice is precautionary only, and does not imply publication or disclosure.
+ * Use of a copyright notice is precautionary only, 
+ * and does not imply publication or disclosure.
  * 
- * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS OF CENTIMIA. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED WITHOUT THE
- * PRIOR EXPRESS WRITTEN PERMISSION OF CENTIMIA Ltd. */
+ * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION 
+ * AND TRADE SECRETS OF CENTIMIA. USE, DISCLOSURE, 
+ * OR REPRODUCTION IS PROHIBITED WITHOUT THE
+ * PRIOR EXPRESS WRITTEN PERMISSION OF CENTIMIA Ltd. 
+ */
 
-/*ISSUE DATE AUTHOR ------- ------ -------- Created May 29, 2012 shai */
+/*
+ * ISSUE    DATE   AUTHOR
+ * ------- ------ -------- 
+ * Created May 29, 2012 shai 
+ */
 package com.centimia.orm.jaqu;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
@@ -48,7 +57,7 @@ class EnumToken implements Token {
 			case LIKE:
 			case SMALLER:
 			case SMALLER_EQUAL: {
-				throw new JaquError(comapreType.name() + " Is not supported for enum type");
+				throw new JaquError("{%s} Is not supported for enum type", comapreType.name());
 			}
 			case IS_NULL:
 			case IS_NOT_NULL: {

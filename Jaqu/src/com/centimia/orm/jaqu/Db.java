@@ -30,7 +30,6 @@ import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
-import com.centimia.orm.jaqu.util.StatementLogger;
 import com.centimia.orm.jaqu.util.Utils;
 import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
 
@@ -69,7 +68,7 @@ public class Db {
     @SuppressWarnings("unchecked")
 	public <T> void insert(T t) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	checkSession(t);
         Class<?> clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
@@ -91,18 +90,18 @@ public class Db {
 	@SuppressWarnings("unchecked")
 	public <T,X> X insertAndGetPK(T t) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	checkSession(t);
         Class<T> clazz = (Class<T>) t.getClass();
         TableDefinition<T> td = define(clazz);
         
         List<FieldDefinition> primaryKeys = td.getPrimaryKeyFields();
         if (null == primaryKeys || primaryKeys.isEmpty())
-        	throw new JaquError("Object " + t.getClass().getName() + " has no primary keys defined");
+        	throw new JaquError("Object {%s} has no primary keys defined", t.getClass().getName());
         
         if (primaryKeys.size() > 1)
-        	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object [" + t.getClass() + "] with more then one primary key defined!!!");
-        // test for interceptor.
+        	throw new JaquError("NOT SUPPORTED! - Can not return a key for an Object {%s} with more then one primary key defined!!!", t.getClass().getName());
+        // test for intercepter.
         if (null != td.getInterceptor())
         	td.getInterceptor().onInsert(t);
         td.insert(this, t);
@@ -115,7 +114,7 @@ public class Db {
 			if (e instanceof JaquError)
 				throw (JaquError)e;
 			// unable to retrieve the key, however the object was inserted to the db so we return anyway but with null;
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
         return pk;
     }
@@ -142,7 +141,7 @@ public class Db {
      */
     public <T> void insert(T ... tArray) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t : tArray) {
             insert(t);
         }
@@ -156,7 +155,7 @@ public class Db {
      */
     public <T> void insertAll(List<T> list) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
         for (T t : list) {
             insert(t);
         }
@@ -171,7 +170,7 @@ public class Db {
     @SuppressWarnings("unchecked")
 	public <T> void merge(T t) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	checkSession(t);
         Class< ? > clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
@@ -188,7 +187,7 @@ public class Db {
      */
     public <T> void merge(List<T> list) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: list){
     		merge(t);
     	}
@@ -202,7 +201,7 @@ public class Db {
      */
     public <T> void merge(T ... tArray) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: tArray){
     		merge(t);
     	}
@@ -217,7 +216,7 @@ public class Db {
     @SuppressWarnings("unchecked")
 	public <T> void delete(T t) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	checkSession(t);
     	Class<?> clazz = t.getClass();
     	TableDefinition<?> tdef = define(clazz);
@@ -243,7 +242,7 @@ public class Db {
      */
     public <T> void delete(List<T> list) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: list){
     		delete(t);
     	}
@@ -257,7 +256,7 @@ public class Db {
      */
     public <T> void delete(T ... tArray) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: tArray){
     		delete(t);
     	}
@@ -273,7 +272,7 @@ public class Db {
     @SuppressWarnings("unchecked")
 	public <T> void update(T t) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	checkSession(t);
         Class< ? > clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
@@ -291,7 +290,7 @@ public class Db {
      */
     public <T> void update(List<T> list){
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: list){
     		update(t);
     	}
@@ -306,7 +305,7 @@ public class Db {
      */
     public <T> void update(T ... tArray){
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: tArray){
     		update(t);
     	}
@@ -320,7 +319,7 @@ public class Db {
      */
     public <T extends Object> QueryInterface<T> from(T alias) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
         return Query.from(this, alias);
     }
 
@@ -331,7 +330,7 @@ public class Db {
      */
     public <T> void createTable(Class<T> clazz) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
         define(clazz);
     }
 
@@ -340,7 +339,7 @@ public class Db {
      */
     public void rollback() {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
 			this.conn.rollback();
 		}
@@ -354,7 +353,7 @@ public class Db {
      */
 	public void commit() {
 		if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
 			this.conn.commit();
 		}
@@ -372,7 +371,7 @@ public class Db {
             this.closed  = true;
         } 
         catch (SQLException e) {
-            throw new JaquError("Unable to close session's underlying connection because --> " + e.getMessage(), e);
+            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
         }
     }
 
@@ -384,14 +383,14 @@ public class Db {
      */
     public ResultSet executeQuery(String sql) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
         try {
         	if (factory.isShowSQL())
 				StatementLogger.select(sql);
             return conn.createStatement().executeQuery(sql);
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
     }
     
@@ -403,7 +402,7 @@ public class Db {
      */
     public int executeUpdate(String sql) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
         try {
             Statement stat = conn.createStatement();
             if (factory.isShowSQL())
@@ -413,7 +412,7 @@ public class Db {
             return updateCount;
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
     }
 	
@@ -432,7 +431,7 @@ public class Db {
     @SuppressWarnings({ "unchecked" })
 	void attach(Object t) {
     	if (this.closed)
-    		throw new IllegalStateException("Session is closed!!!");
+    		throw new JaquError("IllegalState - Session is closed!!!");
     	this.addSession(t);
     	// get the relations, through a reflection get (not to do anything by lazy loading)
     	TableDefinition<?> tdef = define(t.getClass());
@@ -443,7 +442,7 @@ public class Db {
 			pk = pkDef.field.get(t);
 		}
 		catch (Exception e) {
-			throw new JaquError("PK Not accessible!!!", e);
+			throw new JaquError(e, "PK Not accessible!!!");
 		}
     	for (FieldDefinition fdef: tdef.getFields()) {
     		try {
@@ -494,9 +493,7 @@ public class Db {
 				}
 			}
 			catch (Exception e) {
-				if (e instanceof RuntimeException)
-					throw (RuntimeException)e;
-				else throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}
     	}
     }
@@ -520,9 +517,7 @@ public class Db {
 			}
 		}
 		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException)e;
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
     }
     
@@ -542,7 +537,7 @@ public class Db {
 		
 		
 		if (!Collection.class.isAssignableFrom(definition.field.getType()))
-			throw new JaquError(fieldName + " relation is not a collection type!!!");
+			throw new JaquError("%s relation is not a collection type!!!", fieldName);
 		try {
 			List<T> result = (List<T>) getRelationFromDb(definition, factory.getPrimaryKey(myObject), type);
 			if (definition.field.getType().isAssignableFrom(result.getClass()))
@@ -555,9 +550,7 @@ public class Db {
 			}
 		}
 		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException) e;
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
 	}
 	
@@ -571,7 +564,7 @@ public class Db {
             return conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         }
     }
 
@@ -658,7 +651,7 @@ public class Db {
             }
         } 
         catch (SQLException e) {
-            throw new JaquError(e.getMessage(), e);
+            throw new JaquError(e, e.getMessage());
         } 
         finally {
             JdbcUtils.closeSilently(rs);
@@ -716,9 +709,7 @@ public class Db {
 			}
 		}
 		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException)e;
-			throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
 	}
 
@@ -756,7 +747,7 @@ public class Db {
 			targetField.setAccessible(false);
 		}
 		catch (Exception e1) {
-			throw new IllegalStateException("The object for table " + table.getClass() + " does not hold a list of " + obj.getClass() + "!! Data is not consistent");
+			throw new JaquError("IllegalState - The object for table %s does not hold a list of %s!! Data is not consistent", table.getClass(), obj.getClass());
 		}
 		
 		// field has a relation table. In relation table we do a merge (i.e insert only if missing update if exists)
@@ -788,7 +779,7 @@ public class Db {
 				executeUpdate(updateQuery.toString());
 			}
 			catch (Exception e) {
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}			
 			return;
 		}
@@ -821,7 +812,7 @@ public class Db {
 			}
 		}
 		catch (SQLException se) {
-			throw new JaquError(se.getMessage(), se);
+			throw new JaquError(se, se.getMessage());
 		}
 		finally {
 			JdbcUtils.closeSilently(rs);
@@ -843,10 +834,7 @@ public class Db {
 			fdef.getter.setAccessible(false);
 		}
 		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException)e;
-			else
-				throw new JaquError(e.getMessage(), e);
+			throw new JaquError(e, e.getMessage());
 		}
 		TableDefinition<?> tdef = define(fdef.relationDefinition.dataType);
 		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE) {
@@ -903,7 +891,7 @@ public class Db {
 				otherSideRelation.setAccessible(false);
 			}
 			catch (Exception e) {
-				throw new JaquError(e.getMessage(), e);
+				throw new JaquError(e, e.getMessage());
 			}
 		}
 		// relationTables exist both in O2M and M2M relations. In this case all we need to remove a specific entry in the relation table.

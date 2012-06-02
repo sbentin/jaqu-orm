@@ -10,13 +10,14 @@
  * (http://h2database.com/html/license.html).
  * Initial Developer: H2 Group, Centimia Inc.
  */
-package com.centimia.orm.jaqu.util;
+package com.centimia.orm.jaqu;
 
 import java.text.DecimalFormat;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.centimia.orm.jaqu.util.Logger;
+import com.centimia.orm.jaqu.util.SimpleLogger;
+import com.centimia.orm.jaqu.util.slf4jLogger;
 
 /**
  * Utility class to optionally log generated statements to an output stream.<br>
@@ -28,7 +29,17 @@ import org.slf4j.LoggerFactory;
  */
 public class StatementLogger {
 
-	private static Logger logger = LoggerFactory.getLogger("JqQuLog");
+	private static Logger logger;
+	static {
+		try {
+			StatementLogger.class.getClassLoader().loadClass("org.slf4j.Logger");
+			logger = new slf4jLogger();
+		}
+		catch (Throwable t){
+			logger = new SimpleLogger();
+		}
+	}
+	
 	
     private static final AtomicLong SELECT_COUNT = new AtomicLong();
     private static final AtomicLong CREATE_COUNT = new AtomicLong();
@@ -37,62 +48,74 @@ public class StatementLogger {
     private static final AtomicLong MERGE_COUNT = new AtomicLong();
     private static final AtomicLong DELETE_COUNT = new AtomicLong();
     private static final AtomicLong ALTER_COUNT = new AtomicLong();
-
-    public static void create(String statement) {
+    private static boolean isGathering = false;
+    
+    static void create(String statement) {
         CREATE_COUNT.incrementAndGet();
         log(statement);
     }
 
-    public static void insert(String statement) {
+    static void insert(String statement) {
         INSERT_COUNT.incrementAndGet();
         log(statement);
     }
 
-    public static void update(String statement) {
+    static void update(String statement) {
         UPDATE_COUNT.incrementAndGet();
         log(statement);
     }
 
-    public static void merge(String statement) {
+    static void merge(String statement) {
         MERGE_COUNT.incrementAndGet();
         log(statement);
     }
 
-    public static void delete(String statement) {
+    static void delete(String statement) {
         DELETE_COUNT.incrementAndGet();
         log(statement);
     }
 
-    public static void select(String statement) {
+    static void select(String statement) {
         SELECT_COUNT.incrementAndGet();
         log(statement);
     }
     
-    public static void alter(String statement) {
+    static void alter(String statement) {
         ALTER_COUNT.incrementAndGet();
         log(statement);
     }
 
-    private static void log(String statement) {
+    static void log(String statement) {
+    	isGathering = true;
     	logger.info(statement);
     }
 
+    /**
+     * print CRUD usage statistics: how many selects, inserts, deletes and such were performed.
+     */
     public static void printStats() {
-    	System.out.println("JaQu Runtime Statistics");
-    	System.out.println("=======================");
-        printStat("CREATE", CREATE_COUNT);
-        printStat("INSERT", INSERT_COUNT);
-        printStat("UPDATE", UPDATE_COUNT);
-        printStat("MERGE", MERGE_COUNT);
-        printStat("DELETE", DELETE_COUNT);
-        printStat("SELECT", SELECT_COUNT);
-        printStat("ALTER", SELECT_COUNT);
+    	if (isGathering){
+	    	StringBuilder stats = new StringBuilder("\n JaQu Runtime Statistics \n");    	
+	    	stats.append("=========================\n");
+	    	stats.append(printStat("CREATE", CREATE_COUNT));
+	    	stats.append(printStat("INSERT", INSERT_COUNT));
+	    	stats.append(printStat("UPDATE", UPDATE_COUNT));
+	    	stats.append(printStat("MERGE", MERGE_COUNT));
+	    	stats.append(printStat("DELETE", DELETE_COUNT));
+	    	stats.append(printStat("SELECT", SELECT_COUNT));
+	    	stats.append(printStat("ALTER", ALTER_COUNT));
+	    	
+	    	logger.info(stats.toString());
+    	}
+    	else
+    		logger.info("Statistics were not gathered. To gather statistics please turn on showSQL on JaquFactory!!");
     }
 
-    private static void printStat(String name, AtomicLong value) {
+    private static String printStat(String name, AtomicLong value) {
         if (value.get() > 0) {
             DecimalFormat df = new DecimalFormat("###,###,###,###");
-            logger.info(name + "=" + df.format(CREATE_COUNT.get()));
+            return("    " + name + "=" + df.format(value.get())+ "    \n");
         }
+        return "";
     }
 }
