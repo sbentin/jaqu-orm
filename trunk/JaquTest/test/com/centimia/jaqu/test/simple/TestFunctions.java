@@ -5,7 +5,7 @@ package com.centimia.jaqu.test.simple;
 
 import java.util.List;
 
-import org.h2.jaqu.Function;
+import com.centimia.orm.jaqu.Function;
 
 import junit.framework.TestResult;
 

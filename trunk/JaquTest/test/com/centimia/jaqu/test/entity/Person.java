@@ -21,11 +21,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.h2.jaqu.CascadeType;
-import org.h2.jaqu.annotation.Entity;
-import org.h2.jaqu.annotation.Many2Many;
-import org.h2.jaqu.annotation.One2Many;
-import org.h2.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.CascadeType;
+import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.Many2Many;
+import com.centimia.orm.jaqu.annotation.One2Many;
+import com.centimia.orm.jaqu.annotation.PrimaryKey;
 
 /**
  * 

@@ -22,9 +22,9 @@ package com.centimia.jaqu.test.entity;
 
 import java.util.List;
 
-import org.h2.jaqu.annotation.Entity;
-import org.h2.jaqu.annotation.Many2Many;
-import org.h2.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.Many2Many;
+import com.centimia.orm.jaqu.annotation.PrimaryKey;
 
 /**
  * 

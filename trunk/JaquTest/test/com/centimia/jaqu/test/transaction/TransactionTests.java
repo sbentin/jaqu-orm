@@ -21,8 +21,8 @@ import javax.transaction.SystemException;
 
 import junit.framework.TestResult;
 
-import org.h2.jaqu.Db;
-import org.h2.jaqu.JaquSessionFactory;
+import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.JaquSessionFactory;
 
 import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
@@ -59,7 +59,7 @@ public class TransactionTests extends JaquTest {
 //		PoolingDataSource pool = new PoolingDataSource();
 //		pool.setAllowLocalTransactions(true);
 		
-//		pool.setClassName("org.h2.jdbcx.JdbcDataSource");
+//		pool.setClassName("com.centimia.orm.jdbcx.JdbcDataSource");
 //		pool.getDriverProperties().setProperty("URL", "jdbc:h2:tcp://localhost/~/test;SCHEMA=MIRACLE;LOCK_TIMEOUT=30000");
 //		pool.getDriverProperties().setProperty("user", "sa");
 //		pool.getDriverProperties().setProperty("password", "ei01nt");
@@ -73,7 +73,7 @@ public class TransactionTests extends JaquTest {
 //		pool.init();
 
 		com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
-		pool.setURL("jdbc:mysql://12.0.0.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+		pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
 		pool.setUser("JAQU");
 		pool.setPassword("JAQU");
 

@@ -18,6 +18,7 @@ package com.centimia.jaqu.test.simple;
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.CompareType;
 
 /**
  * 
@@ -44,7 +45,7 @@ public class TestEnumType extends JaquTest {
 			db.commit();
 			
 			EnumUser d = new EnumUser();
-			EnumUser otherUser = db.from(d).where(d.getSeason()).is(SEASON.SPRING).selectFirst();
+			EnumUser otherUser = db.from(d).whereEnum("season", CompareType.EQUAL, SEASON.SPRING).selectFirst();
 			assertEquals(SEASON.SPRING, otherUser.getSeason());
 			
 			db.close();

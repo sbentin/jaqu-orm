@@ -33,23 +33,26 @@ public class TestTable1 {
 	private Long id;
 	private String name;
 	private String value;
+	private Boolean bool;
+	private SEASON season = SEASON.SPRING;
 	
 	public TestTable1(){
 		
 	}
 	
-	public TestTable1(Long id, String name, String value) {
+	public TestTable1(Long id, String name, String value, boolean bool) {
 		super();
 		this.setId(id);
 		this.setName(name);
 		this.setValue(value);
+		this.setBool(bool);
 	}
 	
 	public static List<TestTable1> getSomeData(){
 		ArrayList<TestTable1> data = new ArrayList<TestTable1>();
-		data.add(new TestTable1(1L, "name1", "value1"));
-		data.add(new TestTable1(2L, "name2", "value2"));
-		data.add(new TestTable1(3L, "name3", "value3"));
+		data.add(new TestTable1(1L, "name1", "value1", true));
+		data.add(new TestTable1(2L, "name2", "value2", true));
+		data.add(new TestTable1(3L, "name3", "value3", false));
 		return data;
 	}
 
@@ -93,5 +96,33 @@ public class TestTable1 {
 	 */
 	public String getValue() {
 		return value;
+	}
+
+	/**
+	 * @param bool the bool to set
+	 */
+	public void setBool(Boolean bool) {
+		this.bool = bool;
+	}
+
+	/**
+	 * @return the bool
+	 */
+	public Boolean getBool() {
+		return bool;
+	}
+
+	/**
+	 * @param season the season to set
+	 */
+	public void setSeason(SEASON season) {
+		this.season = season;
+	}
+
+	/**
+	 * @return the season
+	 */
+	public SEASON getSeason() {
+		return season;
 	}
 }
