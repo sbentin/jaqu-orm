@@ -27,7 +27,8 @@ public class TestTable2 {
 
 	private Long id;
 	private String description;
-
+	private SEASON season = SEASON.SPRING;
+	
 	public TestTable2() {
 		
 	}
@@ -71,6 +72,20 @@ public class TestTable2 {
 	 */
 	public void setDescription(String desc) {
 		this.description = desc;
+	}
+
+	/**
+	 * @param season the season to set
+	 */
+	public void setSeason(SEASON season) {
+		this.season = season;
+	}
+
+	/**
+	 * @return the season
+	 */
+	public SEASON getSeason() {
+		return season;
 	}
 
 }

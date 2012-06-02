@@ -11,7 +11,7 @@
 			</arguments>
 		</buildCommand>
 		<buildCommand>
-			<name>com.centimia.jaqu.plugin.builder.jaquBuilder</name>
+			<name>com.centimia.orm.jaqu.plugin.builder.jaquBuilder</name>
 			<arguments>
 			</arguments>
 		</buildCommand>
@@ -19,5 +19,6 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 		<nature>com.centimia.jaqu.plugin.nature.jaquNature</nature>
+		<nature>com.centimia.orm.jaqu.plugin.nature.jaquNature</nature>
 	</natures>
 </projectDescription>

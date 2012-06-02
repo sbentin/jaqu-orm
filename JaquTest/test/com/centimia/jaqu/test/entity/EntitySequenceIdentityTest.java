@@ -17,7 +17,7 @@ package com.centimia.jaqu.test.entity;
 
 import junit.framework.TestResult;
 
-import org.h2.jaqu.Dialect;
+import com.centimia.orm.jaqu.Dialect;
 
 import com.centimia.jaqu.test.JaquTest;
 

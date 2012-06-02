@@ -18,10 +18,10 @@ package com.centimia.jaqu.test.inheritance;
 import java.util.Date;
 import java.util.List;
 
-import org.h2.jaqu.GeneratorType;
-import org.h2.jaqu.annotation.MappedSuperclass;
-import org.h2.jaqu.annotation.One2Many;
-import org.h2.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.GeneratorType;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
+import com.centimia.orm.jaqu.annotation.One2Many;
+import com.centimia.orm.jaqu.annotation.PrimaryKey;
 
 import com.centimia.jaqu.test.entity.Phone;
 

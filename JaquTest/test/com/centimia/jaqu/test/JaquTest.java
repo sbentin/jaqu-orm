@@ -19,8 +19,8 @@ import java.sql.Connection;
 
 import junit.framework.TestCase;
 
-import org.h2.jaqu.Db;
-import org.h2.jaqu.JaquSessionFactory;
+import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.JaquSessionFactory;
 
 
 /**
@@ -54,7 +54,7 @@ public abstract class JaquTest extends TestCase {
 //			pool.setPassword("JAQU");
 
 			com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
-			pool.setURL("jdbc:mysql://12.0.0.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+			pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
 			pool.setUser("JAQU");
 			pool.setPassword("JAQU");
 

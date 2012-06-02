@@ -17,8 +17,8 @@ package com.centimia.jaqu.test.inheritance;
 
 import java.util.Date;
 
-import org.h2.jaqu.annotation.Entity;
-import org.h2.jaqu.annotation.Inherited;
+import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.Inherited;
 
 import com.centimia.jaqu.test.entity.TableWithIdentity;
 

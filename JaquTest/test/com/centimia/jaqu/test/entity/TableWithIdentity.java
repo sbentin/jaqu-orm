@@ -17,12 +17,12 @@ package com.centimia.jaqu.test.entity;
 
 import java.util.List;
 
-import org.h2.jaqu.CascadeType;
-import org.h2.jaqu.GeneratorType;
-import org.h2.jaqu.annotation.Entity;
-import org.h2.jaqu.annotation.One2Many;
-import org.h2.jaqu.annotation.PrimaryKey;
-import org.h2.jaqu.annotation.Table;
+import com.centimia.orm.jaqu.CascadeType;
+import com.centimia.orm.jaqu.GeneratorType;
+import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.One2Many;
+import com.centimia.orm.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.annotation.Table;
 
 import com.centimia.jaqu.test.inheritance.Child;
 

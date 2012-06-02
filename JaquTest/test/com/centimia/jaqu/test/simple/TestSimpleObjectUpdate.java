@@ -43,6 +43,9 @@ public class TestSimpleObjectUpdate extends JaquTest {
 			int t1 = db.from(descriptor).set(descriptor.getName(), "updatedName").and(descriptor.getValue(), "updatedValue").where(descriptor.getId()).is(1L).update();
 			assertEquals(1, t1); // one row updated
 			
+			t1 = (int)db.from(descriptor).where(descriptor.getBool()).is(true).selectCount();
+			assertEquals(2, t1); // two rows selected
+			
 			// load the object from the DB so we can see the reflected change from the db			
 			TestTable1 t2 = db.from(descriptor).where(descriptor.getId()).is(1L).selectFirst();
 			assertEquals("updatedName", t2.getName());

@@ -8,7 +8,7 @@
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 1.0
  * (http://h2database.com/html/license.html).
- * Initial Developer: Centimia Inc.
+ * Initial Developer: H2 Group, Centimia Inc.
  */
 
 /*
@@ -42,6 +42,7 @@ import com.centimia.jaqu.test.simple.TestSimpleInsert;
 import com.centimia.jaqu.test.simple.TestSimpleObjectUpdate;
 import com.centimia.jaqu.test.simple.TestSimpleOuterJoin;
 import com.centimia.jaqu.test.transaction.TransactionTests;
+import com.centimia.orm.jaqu.StatementLogger;
 
 /**
  * 
@@ -57,6 +58,7 @@ public class JaquTestSuite {
 		junit.framework.TestSuite suite = suite();
 		TestResult result = new TestResult();
 		suite.run(result);
+		StatementLogger.printStats();
 		System.out.println("\n\nNumber of tests run: " + result.runCount());
 		System.out.println("Number of tests successeded: " + (result.runCount() - result.failureCount() - result.errorCount()));
 		if (!result.wasSuccessful()) {
@@ -102,7 +104,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestInheritance());
 		
 		// Transactional Behavior Testing
-		suite.addTest(new TransactionTests());
+//		suite.addTest(new TransactionTests());
 		
 		return suite;
 	}

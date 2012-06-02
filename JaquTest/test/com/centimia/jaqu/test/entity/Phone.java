@@ -15,8 +15,8 @@
  */
 package com.centimia.jaqu.test.entity;
 
-import org.h2.jaqu.annotation.Entity;
-import org.h2.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.PrimaryKey;
 
 /**
  * 
