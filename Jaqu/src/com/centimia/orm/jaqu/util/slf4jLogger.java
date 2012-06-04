@@ -18,7 +18,7 @@ package com.centimia.orm.jaqu.util;
  */
 public class slf4jLogger implements Logger {
 	
-	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("con.centimia.orm.jaqu.log");
+	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("com.centimia.orm.jaqu.log");
 
 	public void debug(String statement) {
 		logger.debug(statement);		
