@@ -368,17 +368,21 @@ class TableDefinition<T> {
 			def.relationColumnName = relationColumnName;
 			def.relationFieldName = relationFieldName;
 		}
-		// Try to get the primary key of the relationship
-		Class<?> childPkType = many2Many.childPkType();
-		if (Object.class.equals(childPkType)) {
-			try {
-				childPkType = extractPrimaryKeyFromClass(childType);
+		if (db.factory.createTable) {
+			// Try to get the primary key of the relationship
+			Class<?> childPkType = many2Many.childPkType();
+			if (Object.class.equals(childPkType)) {
+				try {
+					childPkType = extractPrimaryKeyFromClass(childType);
+				}
+				catch (Exception e) {
+					throw new JaquError(
+							e,
+							"You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
+				}
 			}
-			catch (Exception e) {
-				throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
-			}
+			createRelationTable(childType, many2Many.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 		}
-		createRelationTable(childType, many2Many.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 	}
 
 	void addOneToMany(FieldDefinition fieldDefinition, One2Many one2ManyAnnotation, Db db) {
@@ -419,19 +423,21 @@ class TableDefinition<T> {
 			def.relationFieldName = relationFieldName;
 		}
 		
-		// add relation table creation
-		if (one2ManyAnnotation.joinTableName() != null && !"".equals(one2ManyAnnotation.joinTableName())) {
-			// Try to get the primary key of the relationship
-			Class<?> childPkType = one2ManyAnnotation.childPkType();
-			if (Object.class.equals(childPkType)) {
-				try {
-					childPkType = extractPrimaryKeyFromClass(childType);
+		if (db.factory.createTable){
+			// add relation table creation
+			if (one2ManyAnnotation.joinTableName() != null && !"".equals(one2ManyAnnotation.joinTableName())) {
+				// Try to get the primary key of the relationship
+				Class<?> childPkType = one2ManyAnnotation.childPkType();
+				if (Object.class.equals(childPkType)) {
+					try {
+						childPkType = extractPrimaryKeyFromClass(childType);
+					}
+					catch (Exception e) {
+						throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
+					}
 				}
-				catch (Exception e) {
-					throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
-				}
+				createRelationTable(childType, one2ManyAnnotation.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 			}
-			createRelationTable(childType, one2ManyAnnotation.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 		}
 	}
 

@@ -21,7 +21,6 @@
 package com.centimia.orm.jaqu;
 
 import java.sql.Connection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -38,29 +37,65 @@ import com.centimia.orm.jaqu.util.Utils;
  */
 public final class JaquSessionFactory {
 
-	/** If set to false, Jaqu will not attempt to create the table from the object and assume it exists */
-	protected boolean createTable = true;
-
-	protected Dialect DIALECT = Dialect.H2;
-	
-	private DataSource dataSource;
-	private boolean autoCommit = true;
-	private boolean showSQL = false;
-	private int transactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
+	private final ThreadLocal<Db> currentSession = new ThreadLocal<Db>();
 	private final Map<Class<?>, TableDefinition<?>> classMap; 
+	
+	// configuration fields
+	
+	/** Holds the underlying database connection factory/Datasource */
+	private DataSource dataSource;
+	
+	/** 
+	 * This variable decides whether the connection will autoCommit or not. 
+	 * When wrapping JaQu work in a transaction autoCommit=true usually has no effect
+	 * however setting it to false is recommended. Default is 'true'.
+	 */
+	private boolean autoCommit = true;
+	
+	/** When true JaQu will output to log the sql statements it produces */
+	private boolean showSQL = false;
+	
+	/**
+	 * Determines the isolation level for a single connection.<p>
+	 * <b>Available Isolations:</b><ol>
+	 * <li>TRANSACTION_READ_COMMITTED</li>
+	 * <li>TRANSACTION_NONE</li>
+	 * <li>TRANSACTION_READ_UNCOMMITTED</li>
+	 * <li>TRANSACTION_REPEATABLE_READ</li>
+	 * <li>TRANSACTION_SERIALIZABLE</li>
+	 * </ol>
+	 * 
+	 * @see Connection#TRANSACTION_NONE
+	 * @see Connection#TRANSACTION_READ_COMMITTED
+	 * @see Connection#TRANSACTION_READ_UNCOMMITTED
+	 * @see Connection#TRANSACTION_REPEATABLE_READ
+	 * @see Connection#TRANSACTION_SERIALIZABLE
+	 * 
+	 * default is TRANSACTION_READ_COMMITTED
+	 */
+	private int transactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
     
+	/** If set to false, JaQu will not attempt to create the table from the object and assume it exists */
+	boolean createTable = true;
+
+	/** The underlying relational DB dialect. Default dialect is set to H2 */
+	Dialect DIALECT = Dialect.H2;
+
     public JaquSessionFactory(DataSource ds) {
     	if (null == ds)
     		throw new JaquError("IllegalState - Missing valid datasource!!!");
     	this.dataSource = ds;
-    	Map<Class<?>, TableDefinition<?>> map = Utils.newHashMap();
-    	// this map is synchronized on get put operations. The reason is that this map can be updated by more then one thread
-    	// we don't want a situation where two threads update it at the same time with the same definition. Notice however, this
-    	// doesn't prevent a possible situation when two threads update this table with the same class definition. This situation
-    	// is not wanted, but the cost is minimal and it will not hurt the "thread safe" flow of jaqu so we don't deal with it.
-    	classMap = Collections.synchronizedMap(map);
+    	// This map is synchronized on put operations. The reason is that this map can be updated by more then one thread and
+    	// I don't want a situation where two threads update it at the same time with the same definition.
+    	classMap = Utils.newHashMap();
     }
     
+    /**
+     * 
+     * @param ds
+     * @param autoCommit
+     * @param transactionIsolation
+     */
     public JaquSessionFactory(DataSource ds, boolean autoCommit, int transactionIsolation) {
     	this(ds);
     	this.autoCommit = autoCommit;
@@ -69,15 +104,36 @@ public final class JaquSessionFactory {
     }
     
     /**
-     * Returns a Jaqu session backed up by an underlying DB connection
+     * Returns a JaQu session backed up by an underlying DB connection.<br>
+     * When making multiple calls to get session on the same thread this methods attempts to return the same Db session provided
+     * it is still active.
+     * 
      * @return Db
      */
     public Db getSession()  {
-		try {
+    	try {
+	    	/* since it is not in the dataSource.getConnection contract 
+	    	 * to make sure we always get the open connection on the thread we take care of this here
+	    	 */
+			if (null != currentSession.get()){
+				Db db = currentSession.get();
+				if (db.closed()){
+					currentSession.remove();
+					Connection conn = dataSource.getConnection();
+					conn.setAutoCommit(this.autoCommit);
+					conn.setTransactionIsolation(this.transactionIsolation);
+					db = new Db(conn, this);
+					currentSession.set(db);
+				}
+				return db;
+			}
+
 			Connection conn = dataSource.getConnection();
 			conn.setAutoCommit(this.autoCommit);
 			conn.setTransactionIsolation(this.transactionIsolation);
-			return new Db(conn, this);
+			Db db = new Db(conn, this);
+			currentSession.set(db);
+			return db;
 		}
 		catch (Exception e) {
 			throw convert(e);
@@ -170,6 +226,31 @@ public final class JaquSessionFactory {
         return (TableDefinition<T>) classMap.get(clazz);
     }
     
+    /**
+     * Updates the table definition map that lazy loads and holds all the table definitions so we don't go through the
+     * definition on each call. It returns null when we successfully insert a new definition to the map. Before inserting
+     * we check for an existing map. If it exist we return the found map (which means it is already configured) 
+     * and does not need reconfiguring.
+     * 
+     * @param <T>
+     * @param clazz
+     * @param def
+     * @return TableDefinition<T> - when the definition is already in the map, or 'null' when the definition is new and is put into the map.
+     */
+    <T> TableDefinition<T> updateTableDefinition(Class<T> clazz, TableDefinition<T> def){
+    	synchronized (classMap) {
+    		// Within the synchronized block we check again for the existence of the definition
+    		// because some other thread may have created it in the mean time. Only if it is null
+    		// we insert it to the map.
+    		TableDefinition<T> existing = getTableDefinition(clazz);
+    		if (null == existing) {
+    			classMap.put(clazz, def);
+    			return null;
+    		}
+    		return existing;
+		}
+    }
+    
     /*
      * convert an exception to an error object
      */
@@ -193,11 +274,17 @@ public final class JaquSessionFactory {
      * @return TableDefinition<T>
      */
     static <T> TableDefinition<T> define(Class<T> clazz, Db db, boolean allowCreate) {
-        TableDefinition<T> def = db.factory.getTableDefinition(clazz);
+        // first non blocking operation. After the definition exists we just return
+    	TableDefinition<T> def = db.factory.getTableDefinition(clazz);
         if (def == null) {
             def = new TableDefinition<T>(clazz, db.factory.DIALECT);
-            def.mapFields(db);
-            db.factory.classMap.put(clazz, def);
+            TableDefinition<T> existing = db.factory.updateTableDefinition(clazz, def);
+            if (null != existing)
+            	// This check is done for thread safety. It means that by the time the current thread reached here some other thread 
+            	// had already updated the map with the definition so we don't need to configure it again, we just discard 'def' and 
+            	// return the 'existing' definition.
+            	return existing;
+            def.mapFields(db);            
             def.mapOneToOneFields(db);
             if (db.factory.createTable && allowCreate)
             	def.createTableIfRequired(db);
