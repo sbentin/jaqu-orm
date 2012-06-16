@@ -58,11 +58,11 @@ public interface SQLDialect {
 	/**
 	 * Checks if the table already exists. Some databases don't have this feature incorporated in their SQL language.
 	 * 
-	 * @param joinTableName
+	 * @param tableName
 	 * @param db
 	 * @return boolean
 	 */
-	public abstract boolean checkTableExists(String joinTableName, Db db);
+	public abstract boolean checkTableExists(String tableName, Db db);
 
 	/**
 	 * The type of field type used for Identity in the Dialect Jargon
