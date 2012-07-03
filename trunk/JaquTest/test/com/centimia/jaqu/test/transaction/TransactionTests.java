@@ -22,10 +22,12 @@ import javax.transaction.SystemException;
 import junit.framework.TestResult;
 
 import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.Dialect;
 import com.centimia.orm.jaqu.JaquSessionFactory;
 
 import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
+import bitronix.tm.resource.jdbc.PoolingDataSource;
 
 import com.centimia.jaqu.test.JaquTest;
 import com.centimia.jaqu.test.entity.Person;
@@ -72,12 +74,24 @@ public class TransactionTests extends JaquTest {
 //		pool.setUniqueName("JAQU");
 //		pool.init();
 
-		com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
-		pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
-		pool.setUser("JAQU");
-		pool.setPassword("JAQU");
+		PoolingDataSource pool = new PoolingDataSource();
+		pool.setClassName("com.mysql.jdbc.jdbc2.optional.MysqlXADataSource");
+		pool.setUniqueName("mySqlDB");
+		pool.setMaxPoolSize(3);
+		pool.setAllowLocalTransactions(true);
+		pool.getDriverProperties().setProperty("user", "JAQU");
+		pool.getDriverProperties().setProperty("password", "JAQU");
+		pool.getDriverProperties().setProperty("URL", "jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+
+		
+//		com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
+//		pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+//		pool.setUser("JAQU");
+//		pool.setPassword("JAQU");
 
 		sessionFactory = new JaquSessionFactory(pool, false, Connection.TRANSACTION_READ_COMMITTED);
+		sessionFactory.setDialect(Dialect.MYSQL);
+		sessionFactory.setCreateTable(false);
 		
 		btm = TransactionManagerServices.getTransactionManager();
 		try {
@@ -131,7 +145,6 @@ public class TransactionTests extends JaquTest {
 			try {
 				System.out.println("Running thread " + name);
 				btm.begin();
-				
 				dbSession = sessionFactory.getSession();
 				// first read
 				Person desc = new Person();
@@ -139,11 +152,11 @@ public class TransactionTests extends JaquTest {
 				
 				assertEquals("Shai", person.getFirstName());
 				dbSession.from(desc).set(desc.getFirstName(), "NewShai"+name).where(desc.getId()).is(1L).update();
-				
+
 				System.out.println(name + " --> " + "update Done!!!");
 				person = dbSession.from(desc).primaryKey().is(1L).selectFirst();
 				
-				assertEquals("NewShai"+name, person.getFirstName());
+				assertEquals("NewShai" + name, person.getFirstName());
 				
 				System.out.println("Thead " + name + " Completed the update but not committed!!");
 				if (name.equals("Thread A"))
