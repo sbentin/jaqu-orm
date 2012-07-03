@@ -104,7 +104,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestInheritance());
 		
 		// Transactional Behavior Testing
-//		suite.addTest(new TransactionTests());
+		suite.addTest(new TransactionTests());
 		
 		return suite;
 	}
