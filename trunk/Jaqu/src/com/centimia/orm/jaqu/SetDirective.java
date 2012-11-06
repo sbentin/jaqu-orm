@@ -47,6 +47,8 @@ public class SetDirective<A> implements Token {
 			query.getDb().merge(value);
 			query.appendSQL(stat, query.getDb().factory.getPrimaryKey(value));
 		}
+		else if (value != null && value.getClass().isEnum())
+			query.appendSQL(stat, value.toString());
 		else
 			query.appendSQL(stat, value);
 	}
