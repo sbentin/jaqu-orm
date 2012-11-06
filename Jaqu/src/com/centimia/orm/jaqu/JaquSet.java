@@ -34,6 +34,8 @@ import com.centimia.orm.jaqu.util.Utils;
  */
 class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 
+	private static final long	serialVersionUID	= -1456310904754891892L;
+
 	public JaquSet(Set<E> origSet, Db db, FieldDefinition definition, Object parentPk) {
 		super(origSet, db, definition, parentPk);		
 	}
