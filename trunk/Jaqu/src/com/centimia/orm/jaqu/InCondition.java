@@ -49,7 +49,7 @@ public class InCondition<A> implements Token {
         StatementBuilder buff = new StatementBuilder(" (");
         for (A item: y) {
         	buff.appendExceptFirst(", ");
-        	if (item instanceof String) {
+        	if (item instanceof String || item.getClass().isEnum()) {
         		buff.append("'" + item.toString() + "'");
         	}
         	else {
