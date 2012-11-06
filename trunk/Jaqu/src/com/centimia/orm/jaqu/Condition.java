@@ -41,6 +41,9 @@ class Condition<A> implements Token {
             // check if a relation type
             if (y != null && y.getClass().getAnnotation(Entity.class) != null)
             	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y));
+            else if (y != null && y.getClass().isEnum()) {
+            	query.appendSQL(stat, y.toString());
+            }
             else
             	query.appendSQL(stat, y);
         }
