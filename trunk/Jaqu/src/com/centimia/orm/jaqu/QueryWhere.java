@@ -14,8 +14,6 @@ package com.centimia.orm.jaqu;
 
 import java.util.List;
 
-import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
-
 /**
  * This class represents a query with a condition.
  * 
@@ -51,55 +49,6 @@ public class QueryWhere<T> {
 		return new QueryCondition<T, A>(query, x);
 	}
 
-	/**
-	 * Use this method specifically to perform an 'AND' operator in the query on enum types
-	 * 
-	 * @param alias - the table descriptor of which the enum field belongs to
-	 * @param fieldName - the name of the field in the queried object holding the enum type
-	 * @param comapreType
-	 * @param values - one or more enum values to check against.
-	 * @return QueryWhere<T>
-	 */
-	@SuppressWarnings("unchecked")
-	public QueryWhere<T> andEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
-		query.addConditionToken(ConditionAndOr.AND);
-		TableDefinition tDef =  query.getDb().define(alias.getClass());
-    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
-    	EnumToken t = null;
-    	if (alias == query.getSelectTable().getAlias())
-    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
-    	else {
-    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getJoins().get(alias), values);
-    	}
-    	query.addConditionToken(t);
-    	return this;
-	}
-
-	/**
-	 * Use this method specifically to perform an 'OR' operator in the query on enum types
-	 * 
-	 * @param alias - the table descriptor of which the enum field belongs to
-	 * @param fieldName - the name of the field in the queried object holding the enum type
-	 * @param comapreType
-	 * @param values - one or more enum values to check against.
-	 * @return QueryWhere<T>
-	 */
-	@SuppressWarnings("unchecked")
-	public QueryWhere<T> orEnum(Object alias, String fieldName, final CompareType comapreType, final Enum<?> ... values) {
-		query.addConditionToken(ConditionAndOr.OR);
-		TableDefinition tDef =  query.getDb().define(alias.getClass());
-    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
-    	EnumToken t = null;
-    	if (alias == query.getSelectTable().getAlias())
-    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getAs(), values);
-    	else {
-    		
-    		t = new EnumToken(fDef, comapreType, query.getSelectTable().getJoins().get(alias), values);
-    	}
-    	query.addConditionToken(t);
-    	return this;
-	}
-	
 	/**
 	 * Performs the select of the query. Returns the results or an empty list. Does not return null.
 	 * This select returns a List of a given object that mapping is given to from the result set to the field in that object 
