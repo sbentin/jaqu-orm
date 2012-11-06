@@ -68,7 +68,7 @@ public class Utils {
 		return new IdentityHashMap<A, B>();
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static <T> T newObject(Class<T> clazz) {
 		// must create new instances
 		if (clazz == Integer.class) {
