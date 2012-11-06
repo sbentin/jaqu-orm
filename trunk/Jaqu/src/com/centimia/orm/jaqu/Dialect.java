@@ -146,7 +146,7 @@ public enum Dialect {
 	 * @param clazz
 	 * @return Dialect
 	 */
-	Dialect getDialect(String clazz) {
+	static Dialect getDialect(String clazz) {
 		if (clazz.toLowerCase().indexOf("oracle") != -1)
 			return ORACLE;
 		if (clazz.toLowerCase().indexOf("db2") != -1)
