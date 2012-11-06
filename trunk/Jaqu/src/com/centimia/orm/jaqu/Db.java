@@ -13,6 +13,7 @@
 package com.centimia.orm.jaqu;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,7 +42,7 @@ public class Db {
     private static final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
 
     private final Connection conn;
-    protected JaquSessionFactory factory;
+    protected final JaquSessionFactory factory;
     
     /* 
      * A list of objects this thread has already visited. Keeps a different list per thread.
@@ -263,6 +264,19 @@ public class Db {
     }
     
     /**
+     * Deletes all elements from the table.
+     * <b>Note></b> this utility method simply executes "delete from [TableName]". It runs without a session on the connection. 
+	 * the method is not complient with cascade and will throw an exception when unable to delete due to constraints.
+     * 
+     * @param clazz<T>
+     * @return int - num of elements deleted
+     */
+    public <T> int deleteAll(Class<T> clazz) {
+    	TableDefinition<?> definition = define(clazz);
+    	return definition.deleteAll(this);
+    }
+    
+    /**
      * Updates the immediate given object. If the object has a relationship, the link is always updated as needed. In case where the link 
      * is to a non persisted entity the new entity is inserted into the DB.
      * 
@@ -309,6 +323,77 @@ public class Db {
     	for (T t: tArray){
     		update(t);
     	}
+    }
+    
+    /**
+     * The query will be built according to all fields that have value within the example object.
+     * 
+     * @param example
+     * @return List<T>
+     */
+    public <T> List<T> selectByExample(T example){
+    	return selectByExample(example, new FullExampleOptions());
+    }
+    
+    /**
+     * The query will be built according to the 'example' object and the options given.
+     * 
+     * @see {@link ExampleOptions}
+     * @param example
+     * @param params
+     * @return List<T>
+     */
+    public <T> List<T> selectByExample(T example, ExampleOptions params){
+    	@SuppressWarnings("unchecked")
+		Class<T> clazz = (Class<T>)example.getClass();
+    	T desc = Utils.newObject(clazz);
+    	QueryWhere<T> select = this.from(desc).where(new StringFilter() {
+			
+			public String getConditionString(ISelectTable<?> selectTable) {
+				return "1=1";
+			}
+		});
+    	
+    	TableDefinition<?> tDef = define(clazz);
+		try {
+			for (FieldDefinition fDef: tDef.getFields()) {
+				if (null == params.getExcludeProps().get(fDef.field.getName())) {
+					fDef.field.setAccessible(true);
+					Object val = fDef.field.get(example);
+					boolean add = true;
+					if (params.getExcludeNulls() && null == val)
+						add = false;
+					if (params.getExcludeZeros()) {
+						if (null != val) {
+							if (val.getClass().isPrimitive()) {
+								if (0 == new BigDecimal(String.valueOf(val)).intValue())
+									add = false;
+							}
+							else if (Number.class.isAssignableFrom(val.getClass())) {
+								if (0 == ((Number)val).intValue())
+									add = false;
+							}
+						}
+					}
+					if (add) {
+						if (null == val) {
+							select = select.and(fDef.field.get(desc)).isNull();
+						}
+						else if (String.class.isAssignableFrom(val.getClass())) {
+							select = select.and(fDef.field.get(desc)).like(val, params.getLikeMode());
+						}
+						else {
+							select = select.and(fDef.field.get(desc)).is(val);
+						}
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			// we cant process this example
+			throw new JaquError(e, e.getMessage());
+		}
+    	return select.select();
     }
     
     /**
@@ -375,7 +460,20 @@ public class Db {
         }
     }
 
-    /**
+    
+    /* (non-Javadoc)
+	 * @see java.lang.Object#finalize()
+	 */
+	@Override
+	protected void finalize() throws Throwable {
+		super.finalize();
+		if (null != conn && !conn.isClosed()) {
+			InternalLogger.debug("Closing connection for you!!!, please make sure you close the connection yourself");
+			close();
+		}
+	}	
+
+	/**
      * Run a SQL query directly against the database.
      *
      * @param sql the SQL statement
@@ -459,8 +557,8 @@ public class Db {
 						Collection<?> col = (Collection<?>) fdef.field.get(t);
 						if (col != null) {
 							if (AbstractJaquCollection.class.isAssignableFrom(col.getClass())) {
-								((AbstractJaquCollection) col).setDb(this);
-								((AbstractJaquCollection) col).merge();
+								((AbstractJaquCollection<?>) col).setDb(this);
+								((AbstractJaquCollection<?>) col).merge();
 							}
 							else {
 								// here we get a whole new relationship container which symbolizes the current relationships
@@ -475,12 +573,14 @@ public class Db {
 										deleteParentRelation(fdef, parent);
 								}
 								if (List.class.isAssignableFrom(col.getClass())) {
+									@SuppressWarnings("rawtypes")
 									JaquList l = new JaquList((List) col, this, fdef, factory.getPrimaryKey(t));
 									l.setDb(this);
 									l.merge();
 									fdef.field.set(t, l);
 								}
 								else if (Set.class.isAssignableFrom(col.getClass())) {
+									@SuppressWarnings("rawtypes")
 									JaquSet s = new JaquSet((Set)col, this, fdef, factory.getPrimaryKey(t));
 									s.setDb(this);
 									s.merge();
