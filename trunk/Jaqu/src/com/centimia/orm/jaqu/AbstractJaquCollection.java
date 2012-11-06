@@ -20,6 +20,7 @@
  */
 package com.centimia.orm.jaqu;
 
+import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,14 +34,17 @@ import com.centimia.orm.jaqu.util.Utils;
  * A special collection class used to support merging entities into running Db sessions.
  * @author Shai Bentin
  */
-abstract class AbstractJaquCollection<E> implements Collection<E> {
+abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable {
 
+	private static final long	serialVersionUID	= 3249922548306321787L;
+	
 	protected final Collection<E> originalList;
-	protected WeakReference<Db> db;
 	protected List<E> internalMapping;
 	protected List<E> internalDeleteMapping;
-	protected FieldDefinition definition;
-	protected final Object parentPk;
+	
+	protected transient WeakReference<Db> db;
+	protected transient FieldDefinition definition;
+	protected transient final Object parentPk;
 	
 	AbstractJaquCollection(Collection<E> origList, Db db, FieldDefinition definition, Object parentPk) {
 		this.originalList = origList;
