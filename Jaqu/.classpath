@@ -6,11 +6,15 @@
 	<classpathentry kind="lib" path="lib/gradle-core-1.0-rc-1.jar" sourcepath="P:/פיתוח/gradle-1.0-rc-1/src"/>
 	<classpathentry kind="lib" path="lib/groovy-all-1.8.6.jar"/>
 	<classpathentry kind="lib" path="lib/gradle-plugins-1.0-rc-1.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-api-1.6.0.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-simple-1.6.0.jar"/>
 	<classpathentry kind="lib" path="lib/gradle-base-services-1.0-rc-1.jar" sourcepath="P:/פיתוח/gradle-1.0-rc-1/src"/>
 	<classpathentry kind="lib" path="lib/asm-4.0.jar"/>
 	<classpathentry kind="lib" path="lib/asm-commons-4.0.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.5.0_19"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.6.0_26"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.6.0.jar"/>
+	<classpathentry kind="lib" path="lib/jta-1_1-classes.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/C:/Users/shai.TNV/Downloads/jta-1_1-doc.zip!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
