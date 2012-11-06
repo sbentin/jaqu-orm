@@ -21,10 +21,12 @@
 package com.centimia.orm.jaqu;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-import javax.sql.DataSource;
+import javax.transaction.RollbackException;
+import javax.transaction.SystemException;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.Utils;
@@ -40,10 +42,11 @@ public final class JaquSessionFactory {
 	private final ThreadLocal<Db> currentSession = new ThreadLocal<Db>();
 	private final Map<Class<?>, TableDefinition<?>> classMap; 
 	
-	// configuration fields
+	enum ACID_CONFIG {INTERNAL, EXTERNAL};
 	
+	// configuration fields
 	/** Holds the underlying database connection factory/Datasource */
-	private DataSource dataSource;
+	private DatasourceWrapper dataSource;
 	
 	/** 
 	 * This variable decides whether the connection will autoCommit or not. 
@@ -79,30 +82,54 @@ public final class JaquSessionFactory {
 	boolean createTable = true;
 
 	/** The underlying relational DB dialect. Default dialect is set to H2 */
-	Dialect DIALECT = Dialect.H2;
+	Dialect dialect = Dialect.H2;
 
-    public JaquSessionFactory(DataSource ds) {
+	/** specify EXTERNAL if you want to manage transaction isolation and auto commit externally. Use INTERNAL to let JaquSession Factory configure your connections via autoCommit and transactionIsolation fields */
+	ACID_CONFIG acidConfig = ACID_CONFIG.INTERNAL;
+	
+	/**
+	 * Define the factory with a datasource. Use this constructor when running inside a container that manages its own transactions
+	 * 
+	 * @param ds - the datasource. expected either javax.sql.Datasource or javax.sql.XADatasource
+	 */
+	public JaquSessionFactory(Object ds) {
     	if (null == ds)
     		throw new JaquError("IllegalState - Missing valid datasource!!!");
-    	this.dataSource = ds;
+    	this.dataSource = new DatasourceWrapper(ds);
     	// This map is synchronized on put operations. The reason is that this map can be updated by more then one thread and
     	// I don't want a situation where two threads update it at the same time with the same definition.
     	classMap = Utils.newHashMap();
+    	
+    	// attempt auto strapping of the dialect
+    	// this.dialect = Dialect.getDialect(ds.getClass().getName());
     }
     
-    /**
-     * 
-     * @param ds
-     * @param autoCommit
-     * @param transactionIsolation
-     */
-    public JaquSessionFactory(DataSource ds, boolean autoCommit, int transactionIsolation) {
-    	this(ds);
-    	this.autoCommit = autoCommit;
-    	this.transactionIsolation = transactionIsolation;
-    	this.DIALECT = DIALECT.getDialect(ds.getClass().getName());
-    }
-    
+	/**
+	 * Start jaqu with or without a transaction manager but change some basic JDBC transaction defaults allowing manual commit/ rollback handeling.
+	 * <b>Note: </b>Using this constructor sets the {@link ACID_CONFIG} to INTERNAL
+	 * 
+	 * @param ds - the datasource. expected either javax.sql.Datasource or javax.sql.XADatasource
+	 * @param autoCommit
+	 * @param transactionIsolation
+	 */
+	public JaquSessionFactory(Object ds, boolean autoCommit, int transactionIsolation) {
+		this(ds);
+		this.acidConfig = ACID_CONFIG.INTERNAL;
+		this.autoCommit = autoCommit;
+		this.transactionIsolation = transactionIsolation;
+	}
+	
+	/**
+	 * Allows changing the {@link ACID_CONFIG} throttle.
+	 * @param isExternal
+	 */
+	public void setAcidConfigIsExternal(boolean isExternal) {
+		if (isExternal)
+			this.acidConfig = ACID_CONFIG.EXTERNAL;
+		else
+			this.acidConfig = ACID_CONFIG.INTERNAL;
+	}
+	
     /**
      * Returns a JaQu session backed up by an underlying DB connection.<br>
      * When making multiple calls to get session on the same thread this methods attempts to return the same Db session provided
@@ -115,30 +142,54 @@ public final class JaquSessionFactory {
 	    	/* since it is not in the dataSource.getConnection contract 
 	    	 * to make sure we always get the open connection on the thread we take care of this here
 	    	 */
-			if (null != currentSession.get()){
+			if (null != currentSession.get()) {
 				Db db = currentSession.get();
 				if (db.closed()){
 					currentSession.remove();
-					Connection conn = dataSource.getConnection();
-					conn.setAutoCommit(this.autoCommit);
-					conn.setTransactionIsolation(this.transactionIsolation);
-					db = new Db(conn, this);
-					currentSession.set(db);
+					db = createConnection();
 				}
 				return db;
 			}
-
-			Connection conn = dataSource.getConnection();
-			conn.setAutoCommit(this.autoCommit);
-			conn.setTransactionIsolation(this.transactionIsolation);
-			Db db = new Db(conn, this);
-			currentSession.set(db);
-			return db;
+			return createConnection();
 		}
 		catch (Exception e) {
 			throw convert(e);
 		}
     }
+
+	/**
+	 * Creates a database connection. 
+	 * @return Db
+	 * @throws SQLException
+	 * @throws SystemException 
+	 * @throws RollbackException 
+	 * @throws IllegalStateException 
+	 */
+	private Db createConnection() throws Exception {
+		Connection conn = null;
+		try {			
+			// if I'm an XADatasource i know that I'm in a transaction so don't play with autocommit.
+			if (dataSource.isXA()) {
+				conn = dataSource.getXAConnection().getConnection();
+			}
+			else {
+				conn = dataSource.getConnection();
+			}
+			if (acidConfig == ACID_CONFIG.INTERNAL) {
+				conn.setAutoCommit(this.autoCommit);
+				conn.setTransactionIsolation(this.transactionIsolation);
+			}
+		}
+		catch (Exception e) {
+			if (null != conn && !conn.isClosed()) {
+				conn.close();
+			}
+			throw e;
+		}
+		Db db = new Db(conn, this);
+		currentSession.set(db);
+		return db;
+	}
     
     /**
      * Sets whether to create the table if it does not exist in the underlying storage.
@@ -161,7 +212,7 @@ public final class JaquSessionFactory {
      * @return Dialect
      */
     public Dialect getDialect() {
-    	return this.DIALECT;
+    	return this.dialect;
     }
     
     /**
@@ -169,7 +220,7 @@ public final class JaquSessionFactory {
      * @param dialect
      */
     public void setDialect(Dialect dialect) {
-		this.DIALECT = dialect;		
+		this.dialect = dialect;		
 	}
     
     /**
@@ -277,7 +328,7 @@ public final class JaquSessionFactory {
         // first non blocking operation. After the definition exists we just return
     	TableDefinition<T> def = db.factory.getTableDefinition(clazz);
         if (def == null) {
-            def = new TableDefinition<T>(clazz, db.factory.DIALECT);
+            def = new TableDefinition<T>(clazz, db.factory.dialect);
             TableDefinition<T> existing = db.factory.updateTableDefinition(clazz, def);
             if (null != existing)
             	// This check is done for thread safety. It means that by the time the current thread reached here some other thread 
