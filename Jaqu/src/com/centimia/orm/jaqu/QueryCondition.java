@@ -64,8 +64,28 @@ public class QueryCondition<T, A> {
         return new QueryWhere<T>(query);
     }
 
+    /**
+     * Like allowes the 'LIKE' query. dependeing on the query string given. If '%' is used in the 'pattern' it will effect the result.
+     * 
+     * @param pattern the pattern to check against.
+     * @return QueryWhere<T>
+     */
     public QueryWhere<T> like(A pattern) {
         query.addConditionToken(new Condition<A>(x, pattern, CompareType.LIKE));
+        return new QueryWhere<T>(query);
+    }
+    
+    /**
+     * Although @{link {@link QueryCondition#like(Object)} allows the use of '%' within the 
+     * pattern sometime the user will want to specify it without changing the original pattern or might 
+     * have no control over the pattern. This method lets the user specify the Like pattern he needs.
+     * 
+     * @param pattern
+     * @param mode
+     * @return QueryWhere<T>
+     */
+    public QueryWhere<T> like(A pattern, LikeMode mode) {
+        query.addConditionToken(new LikeCondition<A>(x, pattern, mode));
         return new QueryWhere<T>(query);
     }
     
