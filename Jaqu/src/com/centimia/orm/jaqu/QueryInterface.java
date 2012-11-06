@@ -209,14 +209,4 @@ public interface QueryInterface<T> {
 	 * @return QueryWhere<T>
 	 */
 	public QueryInterface<T> orderByDescNullsLast(Object ... expr);
-
-	/**
-	 * Use this "where" when evaluating enum types.
-	 * 
-	 * @param fieldName - the name of the field in the descriptor which is the 'enum' column to work with.
-	 * @param comapreType
-	 * @param values - one or more 'enum' values
-	 * @return QueryWhere<T>
-	 */
-	public QueryWhere<T> whereEnum(String fieldName, final CompareType comapreType, final Enum<?> ... values);
 }
