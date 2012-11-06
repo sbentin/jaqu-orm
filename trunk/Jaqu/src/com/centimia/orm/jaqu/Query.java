@@ -357,18 +357,6 @@ public class Query<T> implements FullQueryInterface<T> {
         return new QueryCondition<T, A>(this, x);
     }
     
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#whereEnum(java.lang.String, com.centimia.orm.jaqu.CompareType, java.lang.Enum<?>[])
-     */
-	public QueryWhere<T> whereEnum(String fieldName, final CompareType comapreType, final Enum<?> ... values) {
-    	TableDefinition<T> tDef =  this.from.getAliasDefinition();
-    	final FieldDefinition fDef = tDef.getDefinitionForField(fieldName);
-    	EnumToken t = new EnumToken(fDef, comapreType, from.getAs(), values);
-    	conditions.add(t);
-    	return new QueryWhere<T>(this);
-    }
-    
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#set(A, A)
 	 */
@@ -611,7 +599,7 @@ public class Query<T> implements FullQueryInterface<T> {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     SQLStatement prepare(SQLStatement selectList, boolean distinct) {
         SQLStatement stat = selectList;
         String selectSQL = stat.getSQL();
@@ -657,7 +645,7 @@ public class Query<T> implements FullQueryInterface<T> {
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#innerJoin(U)
 	 */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <U> QueryJoin innerJoin(U alias) {
         TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
         SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.INNER_JOIN);
@@ -669,7 +657,7 @@ public class Query<T> implements FullQueryInterface<T> {
     /* (non-Javadoc)
      * @see com.centimia.orm.jaqu.FullQueryInterface#leftOuterJoin(U)
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <U> QueryJoin leftOuterJoin(U alias) {
         TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
         SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.LEFT_OUTER_JOIN);
