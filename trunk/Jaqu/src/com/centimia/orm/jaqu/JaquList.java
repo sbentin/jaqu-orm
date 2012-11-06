@@ -36,6 +36,8 @@ import com.centimia.orm.jaqu.util.Utils;
  */
 class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	
+	private static final long	serialVersionUID	= -4977190877509050721L;
+
 	public JaquList(List<E> origList, Db db, FieldDefinition definition, Object parentPk) {
 		super(origList, db, definition, parentPk);
 	}
