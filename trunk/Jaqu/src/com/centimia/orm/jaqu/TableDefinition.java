@@ -102,7 +102,7 @@ class TableDefinition<T> {
 			}
 		}
 
-		@SuppressWarnings({ "unchecked" })
+		@SuppressWarnings({ "unchecked", "rawtypes" })
 		void setValue(final Object obj, Object o, final Db db) {
 			try {
 				Object tmp = o;
@@ -278,7 +278,7 @@ class TableDefinition<T> {
 	InheritedType inheritedType = null;
 	char discriminatorValue;
 	String discriminatorColumn;
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes")
 	private CRUDInterceptor	interceptor;
 	private Event[]	interceptorEvents;
 
@@ -696,7 +696,7 @@ class TableDefinition<T> {
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
 		buff.append(tableName).append('(');
-		if (null == primaryKeyColumnNames) {
+		if (null == primaryKeyColumnNames || primaryKeyColumnNames.isEmpty()) {
 			for (FieldDefinition field : fields) {
 	            buff.appendExceptFirst(", ");
 	            buff.append(field.columnName);
@@ -745,7 +745,7 @@ class TableDefinition<T> {
 	void merge(Db db, Object obj) {
 		if (db.checkReEntrant(obj))
 			return;
-		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
+		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - no merge possible", obj.getClass());
 		}
 		
@@ -840,7 +840,7 @@ class TableDefinition<T> {
 	void update(Db db, Object obj) {
 		if (db.checkReEntrant(obj))
 			return;
-		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
+		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", obj.getClass());
 		}
 		SQLStatement stat = new SQLStatement(db);
@@ -901,7 +901,7 @@ class TableDefinition<T> {
 	}
 
 	void delete(Db db, Object obj) {
-		if (primaryKeyColumnNames == null || primaryKeyColumnNames.size() == 0) {
+		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", obj.getClass());
 		}
 		SQLStatement stat = new SQLStatement(db);
@@ -932,6 +932,25 @@ class TableDefinition<T> {
 		stat.executeUpdate();
 	}
 
+	int deleteAll(Db db) {
+		SQLStatement stat = new SQLStatement(db);
+		StatementBuilder buff = new StatementBuilder();
+		Object alias = Utils.newObject(this.clazz);
+		Query<Object> query = Query.from(db, alias);
+		String as = query.getSelectTable().getAs();
+		
+		if (DIALECT == Dialect.MYSQL) {
+			buff.append("DELETE " + as + " FROM ");
+		}
+		else
+			buff.append("DELETE FROM ");
+		buff.append(tableName);
+		stat.setSQL(buff.toString());
+		if (db.factory.isShowSQL())
+			StatementLogger.delete(stat.getSQL());
+		return stat.executeUpdate();
+	}
+	
 	TableDefinition<T> createTableIfRequired(Db db) {
 		if (DIALECT.checkTableExists(tableName, db))
 			return this;
@@ -947,7 +966,7 @@ class TableDefinition<T> {
 				}
 			}
 		}
-		if (primaryKeyColumnNames != null) {
+		if (primaryKeyColumnNames != null && primaryKeyColumnNames.isEmpty()) {
 			buff.append(", PRIMARY KEY(");
 			buff.resetCount();
 			for (FieldDefinition n : primaryKeyColumnNames) {
@@ -995,7 +1014,7 @@ class TableDefinition<T> {
 		}
 	}
 
-	@SuppressWarnings({ "unchecked" })
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	void initSelectObject(SelectTable<T> table, Object obj, Map<Object, SelectColumn<T>> map) {
 		for (FieldDefinition def : fields) {
 			Object o = def.initWithNewObject(obj);
@@ -1129,7 +1148,7 @@ class TableDefinition<T> {
 	 * Return the interceptor instance for this table.
 	 * @return Interceptor
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes" )
 	CRUDInterceptor getInterceptor() {
 		return interceptor;
 	}
