@@ -151,7 +151,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * <span style="margin-left: 4em;">throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");</span></br>
 	 * <span style="margin-left: 3em;">Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);</span></br>
 	 * <span style="margin-left: 3em;">method.setAccessible(true);</span></br>
-	 * <span style="margin-left: 3em;">children = (List<TestTable>)method.invoke(db, [fieldName], this, TestTable.class);</span></br>
+	 * <span style="margin-left: 3em;">children = (Collection<TestTable>)method.invoke(db, [fieldName], this, TestTable.class);</span></br>
 	 * <span style="margin-left: 3em;">method.setAccessible(false);</span></br>
 	 * <span style="margin-left: 2em;">}</span></br>
 	 * <span style="margin-left: 2em;">catch (Exception e) {</span></br>
