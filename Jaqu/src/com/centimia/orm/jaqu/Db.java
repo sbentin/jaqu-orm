@@ -52,7 +52,7 @@ public class Db {
      */
     ThreadLocal<Map<Class<?>, Map<String, Object>>> reEntrantList = new ThreadLocal<Map<Class<?>, Map<String, Object>>>();
 
-	private boolean closed = true;
+	private volatile boolean closed = true;
     
     Db(Connection conn, JaquSessionFactory factory) {
         this.conn = conn;
@@ -454,6 +454,8 @@ public class Db {
         try {
             conn.close();
             this.closed  = true;
+            this.reEntrantList.get().clear();
+            this.reEntrantList.remove();
         } 
         catch (SQLException e) {
             throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
@@ -735,7 +737,7 @@ public class Db {
 	<T> List<T> getRelationByRelationTable(FieldDefinition def, Object myPrimaryKey, Class<T> type){
 		TableDefinition<T> targetDef = define(type);
 		// for String primary keys do the following
-		String pk = (myPrimaryKey instanceof String) ? "'"+myPrimaryKey.toString()+"'" : myPrimaryKey.toString();
+		String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
 		StatementBuilder builder = new StatementBuilder("SELECT target.* FROM ").append(targetDef.tableName).append(" target, ").append(def.relationDefinition.relationTableName);
 		builder.append(" rt where rt.").append(def.relationDefinition.relationFieldName).append("=").append(pk).append(" and rt.").append(def.relationDefinition.relationColumnName);
 		builder.append("= target.").append(targetDef.getPrimaryKeyFields().get(0).columnName);
@@ -789,7 +791,8 @@ public class Db {
 				 * @see com.centimia.orm.jaqu.StringFilter#getConditionString(com.centimia.orm.jaqu.SelectTable)
 				 */
 				public String getConditionString(ISelectTable<?> st) {
-					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + myPrimaryKey.toString();
+					String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());		
+					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;
 				}
 			}).select();
 		}

@@ -966,7 +966,7 @@ class TableDefinition<T> {
 				}
 			}
 		}
-		if (primaryKeyColumnNames != null && primaryKeyColumnNames.isEmpty()) {
+		if (primaryKeyColumnNames != null && !primaryKeyColumnNames.isEmpty()) {
 			buff.append(", PRIMARY KEY(");
 			buff.resetCount();
 			for (FieldDefinition n : primaryKeyColumnNames) {
