@@ -451,14 +451,18 @@ public class Db {
      * Closes the session and underlying db connection
      */
     public void close() {
-        try {
-            conn.close();
-            this.closed  = true;
-            this.reEntrantList.get().clear();
-            this.reEntrantList.remove();
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
+        if (!closed){
+        	try {
+	            conn.close();
+	        } 
+	        catch (SQLException e) {
+	            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
+	        }
+	        finally {
+	        	this.closed  = true;
+	            this.reEntrantList.get().clear();
+	            this.reEntrantList.remove();
+	        }
         }
     }
 
@@ -821,6 +825,22 @@ public class Db {
 	 * @return boolean
 	 */
 	boolean closed() {
+		if (closed)
+			return true;
+		
+		try {
+			if (this.conn.isClosed()) {
+				this.closed = true;
+				this.reEntrantList.get().clear();
+			    this.reEntrantList.remove();
+			}
+		}
+		catch (SQLException e) {
+			this.closed = true;
+			this.reEntrantList.get().clear();
+		    this.reEntrantList.remove();
+		}
+			
 		return closed;
 	}
 
