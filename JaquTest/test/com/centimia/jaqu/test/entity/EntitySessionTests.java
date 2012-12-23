@@ -24,6 +24,7 @@ import junit.framework.TestCase;
 import junit.framework.TestResult;
 
 import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.Dialect;
 import com.centimia.orm.jaqu.JaquSessionFactory;
 
 /**
@@ -52,11 +53,12 @@ public class EntitySessionTests extends TestCase {
 //		pool.setPassword("JAQU");
 
 		com.mysql.jdbc.jdbc2.optional.MysqlConnectionPoolDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlConnectionPoolDataSource();
-		pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8"); 
-		pool.setUser("JAQU");
-		pool.setPassword("JAQU");
+		pool.setURL("jdbc:mysql://tnv-db:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8"); 
+		pool.setUser("jaqu");
+		pool.setPassword("jaqu");
 		
 		sessionFactory = new JaquSessionFactory(pool, false, Connection.TRANSACTION_READ_COMMITTED);
+		sessionFactory.setDialect(Dialect.MYSQL);
 	}
 
 	/* (non-Javadoc)

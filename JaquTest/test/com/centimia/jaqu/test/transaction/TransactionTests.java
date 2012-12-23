@@ -79,9 +79,9 @@ public class TransactionTests extends JaquTest {
 		pool.setUniqueName("mySqlDB");
 		pool.setMaxPoolSize(3);
 		pool.setAllowLocalTransactions(true);
-		pool.getDriverProperties().setProperty("user", "JAQU");
-		pool.getDriverProperties().setProperty("password", "JAQU");
-		pool.getDriverProperties().setProperty("URL", "jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+		pool.getDriverProperties().setProperty("user", "jaqu");
+		pool.getDriverProperties().setProperty("password", "jaqu");
+		pool.getDriverProperties().setProperty("URL", "jdbc:mysql://tnv-db:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
 
 		
 //		com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();

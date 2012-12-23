@@ -87,6 +87,12 @@ public class EntitySequenceIdentityTest extends JaquTest {
 				final TableWithIdentity descI = new TableWithIdentity();
 				twi = db.from(descI).where(descI.getName()).is("anotherName").selectFirst();
 				assertNotNull(twi);
+				
+				twi = new TableWithIdentity("check primary key");
+				db.insert(twi);
+				assertNotNull(twi.getId());	
+				
+				db.delete(twi);
 			}
 			db.commit();
 			tearDown();

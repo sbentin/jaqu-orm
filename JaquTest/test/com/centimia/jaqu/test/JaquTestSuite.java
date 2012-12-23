@@ -26,6 +26,7 @@ import junit.framework.TestCase;
 import junit.framework.TestFailure;
 import junit.framework.TestResult;
 
+import com.centimia.jaqu.test.entity.AutoCommitTest;
 import com.centimia.jaqu.test.entity.EntityDeleteTest;
 import com.centimia.jaqu.test.entity.EntityInsertTest;
 import com.centimia.jaqu.test.entity.EntityMergeTetst;
@@ -36,11 +37,13 @@ import com.centimia.jaqu.test.entity.TestInsertNoId;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
 import com.centimia.jaqu.test.simple.TestFunctions;
+import com.centimia.jaqu.test.simple.TestQueryByExample;
 import com.centimia.jaqu.test.simple.TestSimpleDelete;
 import com.centimia.jaqu.test.simple.TestSimpleInnerJoin;
 import com.centimia.jaqu.test.simple.TestSimpleInsert;
 import com.centimia.jaqu.test.simple.TestSimpleObjectUpdate;
 import com.centimia.jaqu.test.simple.TestSimpleOuterJoin;
+import com.centimia.jaqu.test.simple.TestSimpleSelect;
 import com.centimia.jaqu.test.transaction.TransactionTests;
 import com.centimia.orm.jaqu.StatementLogger;
 
@@ -86,6 +89,8 @@ public class JaquTestSuite {
 		suite.addTest(new TestSimpleOuterJoin());
 		suite.addTest(new TestEnumType());
 		suite.addTest(new TestFunctions());
+		suite.addTest(new TestSimpleSelect());
+		suite.addTest(new TestQueryByExample());
 		
 		// Test with entity objects.
 		// You can also use them as entities and maintain object relations. If you want to use them as entities you first need to instrument them with the special ant task to 
@@ -93,6 +98,7 @@ public class JaquTestSuite {
 		// You can use relationships between objects, thus you don't need to do the joins, these are done for you. One to One relations are always eagerly loaded.
 		// One 2 Many can be eager loaded but the default is lazy loading. Many 2 Many are always lazy loaded. Cascade delete is also supported. The default is Cascade.NONE;
 		suite.addTest(new EntityInsertTest());
+		suite.addTest(new AutoCommitTest());
 		suite.addTest(new EntityUpdateTest());
 		suite.addTest(new EntityDeleteTest());
 		suite.addTest(new EntityMergeTetst());
