@@ -11,25 +11,33 @@
  * 
  *  Date			User				Comment
  * ------			-------				--------
- * 12/07/2011		shai				 create
+ * 08/02/2010		Shai Bentin				 create
  */
 package com.centimia.jaqu.test.simple;
+
+import java.util.List;
 
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.GeneralExampleOptions;
 
 /**
  * 
- * @author shai
+ * @author Shai Bentin
  *
  */
-public class TestEnumType extends JaquTest {
+public class TestQueryByExample extends JaquTest {
+
 	
+	/* (non-Javadoc)
+	 * @see junit.framework.TestCase#getName()
+	 */
+	@Override
 	public String getName() {
-		return "Enum Type support Test";
+		return "Query by example Tests ";
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#run(junit.framework.TestResult)
 	 */
@@ -38,19 +46,20 @@ public class TestEnumType extends JaquTest {
 		result.startTest(this);
 		try {
 			setUp();
+				
+			// Select all rows from the Testtable1 in the DB
+			TableForFunctions example = new TableForFunctions();
+			example.setName("name1");
+			example.setValue(4.1D);
+			List<TableForFunctions> tffs = db.selectByExample(example);
+			assertEquals(1, tffs.size());
 			
-			EnumUser u = new EnumUser(SEASON.WINTER, "spring", "SP");
-			db.insert(u);
-			db.commit();
+			tffs = db.selectByExample(example, new GeneralExampleOptions(new String[] {"value"}).setExcludeNulls(false));
+			assertEquals(0, tffs.size());
 			
-			EnumUser d = new EnumUser();
-			EnumUser otherUser = db.from(d).where(d.getId()).is("SP").and(d.getSeason()).is(SEASON.WINTER).selectFirst();
-			assertEquals(SEASON.WINTER, otherUser.getSeason());
-			
-			db.close();
 			tearDown();
 		}
-		catch (Throwable e) {
+		catch (Throwable e){
 			db.rollback();
 			result.addError(this, e);
 		}

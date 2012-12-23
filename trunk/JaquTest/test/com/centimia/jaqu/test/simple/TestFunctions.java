@@ -3,13 +3,13 @@
  */
 package com.centimia.jaqu.test.simple;
 
+import java.math.BigDecimal;
 import java.util.List;
-
-import com.centimia.orm.jaqu.Function;
 
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.Function;
 
 /**
  * Checks aggaragate function usage.
@@ -64,7 +64,7 @@ public class TestFunctions extends JaquTest {
 					value = Function.sum(desc.getValue());
 				}
 			});
-			assertEquals(48.0D, tff.getValue());
+			assertEquals(48.0D, new BigDecimal(tff.getValue()).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
 			
 			// get the sum in the table
 			tff = db.from(desc).selectFirst(new TableForFunctions(){
@@ -75,6 +75,15 @@ public class TestFunctions extends JaquTest {
 				}
 			});
 			assertEquals(15, tff.getId().longValue());
+			
+			tff = db.from(desc).selectFirst(new TableForFunctions(){
+				{
+					id = desc.getId();
+					name = desc.getName();
+					value = Function.avg(desc.getValue());
+				}
+			});
+			assertEquals(3.2D,  new BigDecimal(tff.getValue()).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
 			
 			List<TableForFunctions> tffs= db.from(desc).groupBy(desc.getName()).select(new TableForFunctions(){
 				{
@@ -104,6 +113,22 @@ public class TestFunctions extends JaquTest {
 				}
 			});
 			assertEquals(3, tffs.size());
+			
+			// get all that their name is like 'name1'
+			List<TestObject> testObjects = db.from(desc).select(new TestObject(){
+				{
+					id = desc.getId();
+					name = desc.getName();
+					testResult = Function.like(desc.getName(), "%me1");
+					value = desc.value;
+				}
+			});
+			for (int i = 0; i < 5; i++) {
+				assertEquals(true, testObjects.get(i).testResult.booleanValue());
+			}
+			for (int i = 5; i < 15; i++) {
+				assertEquals(false, testObjects.get(i).testResult.booleanValue());
+			}
 		}
 		catch (Throwable e) {
 			db.rollback();
