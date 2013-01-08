@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import com.centimia.orm.jaqu.dialect.Functions;
+import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
  * An interface implemented by all Dialects
@@ -105,4 +106,22 @@ public interface SQLDialect {
 	 * @return String
 	 */
 	public abstract String createIndexStatement(String name, String tableName, boolean unique, String[] columns);
+	
+	/**
+	 * wraps the correct form for writing the update statement for this dialect
+	 * @param innerUpdate
+	 * @param tableName
+	 * @param as
+	 * @return StatementBuilder
+	 */
+	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as);
+	
+	/**
+	 * wraps the correct form for writing the delete statement for this dialect
+	 * @param innerDelete
+	 * @param tableName
+	 * @param as
+	 * @return StatementBuilder
+	 */
+	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as);
 }
