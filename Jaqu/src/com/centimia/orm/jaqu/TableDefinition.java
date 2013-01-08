@@ -40,6 +40,7 @@ import com.centimia.orm.jaqu.annotation.Many2Many;
 import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.util.ClassUtils;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 import com.centimia.orm.jaqu.util.StringUtils;
@@ -687,6 +688,8 @@ class TableDefinition<T> {
 
 	private String getDataType(Field field) {
 		Class<?> fieldClass = field.getType();
+		if (fieldClass.isPrimitive())
+			fieldClass = ClassUtils.getWrapperClass(fieldClass);
 		return DIALECT.getDataType(fieldClass);
 	}
 
@@ -695,51 +698,45 @@ class TableDefinition<T> {
 			return;
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
-		buff.append(tableName).append('(');
-		if (null == primaryKeyColumnNames || primaryKeyColumnNames.isEmpty()) {
-			for (FieldDefinition field : fields) {
-	            buff.appendExceptFirst(", ");
-	            buff.append(field.columnName);
-	        }
-	        buff.append(") VALUES(");
-	        buff.resetCount();
-	        for (FieldDefinition field : fields) {
-	            buff.appendExceptFirst(", ");
-	            buff.append('?');
-	            handleValue(db, obj, stat, field);
-	        }
-	        buff.append(')');
-	        stat.setSQL(buff.toString());
-			if (db.factory.isShowSQL())
-				StatementLogger.insert(stat.getSQL());
+		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
+		buff.append(tableName).append('(');		
+		for (FieldDefinition field : fields) {
+			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
+				// skip identity types because these are auto incremented
+        		continue;
 			
-			stat.executeUpdate();
-		}
-		else {
-			// we insert first basically to get the generated primary key (either Identity or Sequence)
-			for (FieldDefinition pkField: primaryKeyColumnNames) {
-				buff.appendExceptFirst(", ");
-				buff.append(pkField.columnName);
-			}
-			buff.append(") VALUES(");
-			buff.resetCount();
-			for (FieldDefinition pkField: primaryKeyColumnNames) {
-				buff.appendExceptFirst(", ");
-				buff.append('?');
-				handleValue(db, obj, stat, pkField);
-			}
-			buff.append(')');
-			stat.setSQL(buff.toString());
-			if (db.factory.isShowSQL())
-				StatementLogger.insert(stat.getSQL());
-			
-			if (genType == GeneratorType.IDENTITY){
+			if (field.isSilent)
+				// skip silent fields because they don't really exist.
+        		continue;
+        	
+        	if (field.fieldType != FieldType.NORMAL)
+        		// skip everything which is not a plain field (i.e any type of relationship)
+        		continue;
+        	
+        	fieldTypes.appendExceptFirst(", ");
+        	fieldTypes.append(field.columnName);
+        	
+        	valueTypes.appendExceptFirst(", ");
+        	valueTypes.append('?');
+            handleValue(db, obj, stat, field);
+        }
+		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');
+        stat.setSQL(buff.toString());
+		if (db.factory.isShowSQL())
+			StatementLogger.insert(stat.getSQL());
+		
+		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
+			if (GeneratorType.IDENTITY == genType)
+				// we insert first basically to get the generated primary key on Identity fields
+				// note that unlike Idnetity, Sequence is generated in 'handleValue'
 				updateWithId(obj, stat);
-			}
 			else
 				stat.executeUpdate();
 			update(db, obj);
 		}
+		else {
+			stat.executeUpdate();
+		}		
 	}
 
 	void merge(Db db, Object obj) {
@@ -841,27 +838,26 @@ class TableDefinition<T> {
 		if (db.checkReEntrant(obj))
 			return;
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
-			throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", obj.getClass());
+			throw new JaquError("IllegalState - No primary key columns defined for table %s - can't locate row", obj.getClass());
 		}
 		SQLStatement stat = new SQLStatement(db);
 		Object alias = Utils.newObject(obj.getClass());
 		Query<Object> query = Query.from(db, alias);
 		String as = query.getSelectTable().getAs();
-		StatementBuilder buff = new StatementBuilder("UPDATE ");
-		buff.append(tableName).append(" ").append(as).append(" SET ");
-		buff.resetCount();
+		
+		StatementBuilder innerUpdate = new StatementBuilder();
+		innerUpdate.resetCount();
 		for (FieldDefinition field : fields) {
 			if (!field.isPrimaryKey) {
 				if (!field.isSilent) {
-					buff.appendExceptFirst(", ");
-					buff.append(as + ".");
-					buff.append(field.columnName);
-					buff.append(" = ?");
+					innerUpdate.appendExceptFirst(", ");
+					innerUpdate.append(as + ".");
+					innerUpdate.append(field.columnName);
+					innerUpdate.append(" = ?");
 				}
 				handleValue(db, obj, stat, field);
 			}
 		}
-
 		boolean firstCondition = true;
 		for (FieldDefinition field : primaryKeyColumnNames) {
 			Object aliasValue = field.getValue(alias);
@@ -872,6 +868,7 @@ class TableDefinition<T> {
 			firstCondition = false;
 			query.addConditionToken(new Condition<Object>(aliasValue, value, CompareType.EQUAL));
 		}
+		StatementBuilder buff = DIALECT.wrapUpdateQuery(innerUpdate, tableName, as);		
 		stat.setSQL(buff.toString());
 		query.appendWhere(stat);
 		if (db.factory.isShowSQL())
@@ -908,13 +905,8 @@ class TableDefinition<T> {
 		Object alias = Utils.newObject(obj.getClass());
 		Query<Object> query = Query.from(db, alias);
 		String as = query.getSelectTable().getAs();
-		StatementBuilder buff = new StatementBuilder();
-		if (DIALECT == Dialect.MYSQL) {
-			buff.append("DELETE " + as + " FROM ");
-		}
-		else
-			buff.append("DELETE FROM ");
-		buff.append(tableName).append(" ").append(as).append(" ");
+		StatementBuilder innerDelete = new StatementBuilder();
+		
 		boolean firstCondition = true;
 		for (FieldDefinition field : primaryKeyColumnNames) {
 			Object aliasValue = field.getValue(alias);
@@ -925,6 +917,7 @@ class TableDefinition<T> {
 			firstCondition = false;
 			query.addConditionToken(new Condition<Object>(aliasValue, value, CompareType.EQUAL));
 		}
+		StatementBuilder buff = DIALECT.wrapDeleteQuery(innerDelete, tableName, as);
 		stat.setSQL(buff.toString());
 		query.appendWhere(stat);
 		if (db.factory.isShowSQL())
@@ -934,17 +927,11 @@ class TableDefinition<T> {
 
 	int deleteAll(Db db) {
 		SQLStatement stat = new SQLStatement(db);
-		StatementBuilder buff = new StatementBuilder();
 		Object alias = Utils.newObject(this.clazz);
 		Query<Object> query = Query.from(db, alias);
 		String as = query.getSelectTable().getAs();
 		
-		if (DIALECT == Dialect.MYSQL) {
-			buff.append("DELETE " + as + " FROM ");
-		}
-		else
-			buff.append("DELETE FROM ");
-		buff.append(tableName);
+		StatementBuilder buff = DIALECT.wrapDeleteQuery(new StatementBuilder(), tableName, as);
 		stat.setSQL(buff.toString());
 		if (db.factory.isShowSQL())
 			StatementLogger.delete(stat.getSQL());
