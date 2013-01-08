@@ -41,8 +41,8 @@ public class Db {
 
     private static final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
 
-    private final Connection conn;
-    protected final JaquSessionFactory factory;
+    private Connection conn;
+    protected JaquSessionFactory factory;
     
     /* 
      * A list of objects this thread has already visited. Keeps a different list per thread.
@@ -459,9 +459,7 @@ public class Db {
 	            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
 	        }
 	        finally {
-	        	this.closed  = true;
-	            this.reEntrantList.get().clear();
-	            this.reEntrantList.remove();
+	        	clean();
 	        }
         }
     }
@@ -829,19 +827,52 @@ public class Db {
 			return true;
 		
 		try {
-			if (this.conn.isClosed()) {
-				this.closed = true;
-				this.reEntrantList.get().clear();
-			    this.reEntrantList.remove();
+			if (this.conn.isClosed() || !this.isValid()) {
+				clean();
 			}
 		}
-		catch (SQLException e) {
-			this.closed = true;
-			this.reEntrantList.get().clear();
-		    this.reEntrantList.remove();
+		catch (Exception e) {
+			clean();
 		}
 			
 		return closed;
+	}
+
+	/*
+	 * see if connection is still valid. Many implementations get this wrong, the connection is not marked closed but the connection is no longer valid, timedout or something similar
+	 * this method checks this exact situation.
+	 */
+	private boolean isValid() {
+		try {
+			return conn.isValid(1);
+		}
+		catch (Throwable t) {
+			// many jdbc driver implementations don't actually implement this method so we catch this error and try to validate the connection our selves.
+		}
+		try {
+			Statement stmnt = conn.createStatement();
+			stmnt.setQueryTimeout(1);
+			stmnt.executeQuery("select 1");
+		}
+		catch (Throwable t) {
+			// catching any throwable here means the connection is not valid any more
+			StatementLogger.log("Invalid connection found!!! Cleaning up");
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * cleans the DB from everything
+	 */
+	private void clean() {
+		this.closed = true;
+		this.conn = null;
+		this.factory = null;
+		Map<Class<?>, Map<String, Object>> reEntrents = this.reEntrantList.get();
+		if (null != reEntrents)
+			reEntrents.clear();
+		this.reEntrantList.remove();
 	}
 
 	/**
