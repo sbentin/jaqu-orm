@@ -65,6 +65,17 @@ public class StatementBuilder {
         builder.append(s);
         return this;
     }
+    
+    /**
+     * Append a Statement part.
+     *
+     * @param s the statementpart to append
+     * @return itself
+     */
+    public StatementBuilder append(StatementBuilder s) {
+        builder.append(s.builder);
+        return this;
+    }
 
     /**
      * Append a character.
