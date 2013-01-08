@@ -580,7 +580,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         }
         // add the discriminator if 'T' is a part of an inheritance tree.
-        if (from.getAliasDefinition().inheritedType == InheritedType.DISCRIMINATOR) {
+        if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType) {
         	stat.appendSQL(" AND " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "= '" + from.getAliasDefinition().discriminatorValue + "' ");
         }
     }
