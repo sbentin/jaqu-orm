@@ -12,13 +12,27 @@
  */
 package com.centimia.orm.jaqu.util;
 
+import java.util.HashMap;
+
 /**
  * This utility class contains functions related to class loading. There is a mechanism to restrict class loading.
  */
 public class ClassUtils {
 
+	private static HashMap<Class<?>, Class<?>> map = new HashMap<Class<?>, Class<?>>();
+	static {
+	    map.put(boolean.class, Boolean.class);
+	    map.put(byte.class, Byte.class);
+	    map.put(short.class, Short.class);
+	    map.put(char.class, Character.class);
+	    map.put(int.class, Integer.class);
+	    map.put(long.class, Long.class);
+	    map.put(float.class, Float.class);
+	    map.put(double.class, Double.class);
+	}
+	
 	private ClassUtils() {
-	// utility class
+	
 	}
 
 	@SuppressWarnings("unchecked")
@@ -33,5 +47,16 @@ public class ClassUtils {
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * returns the Object Type class of a primitive class type. i.e. int.class returns Integer.class
+	 * @param clazz
+	 * @return Class<?>
+	 */
+	public static Class<?> getWrapperClass(Class<?> clazz) {
+		if (clazz.isPrimitive())
+			return map.get(clazz);
+		return clazz;
 	}
 }
