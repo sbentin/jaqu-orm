@@ -29,6 +29,7 @@ import com.centimia.orm.jaqu.dialect.H2Dialect;
 import com.centimia.orm.jaqu.dialect.MySqlDialect;
 import com.centimia.orm.jaqu.dialect.OracleDialect;
 import com.centimia.orm.jaqu.dialect.SQLServerDialect;
+import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
  * 
@@ -117,6 +118,28 @@ public enum Dialect {
 	 */
 	String getIdentityType() {
 		return dialect.getIdentityType();
+	}
+	
+	/**
+	 * wraps the correct form for writing the update statement for this dialect
+	 * @param innerUpdate
+	 * @param tableName
+	 * @param as
+	 * @return StatementBuilder
+	 */
+	StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as) {
+		return dialect.wrapUpdateQuery(innerUpdate, tableName, as);
+	}
+
+	/**
+	 * wraps the correct form for writing the delete statement for this dialect
+	 * @param innerDelete
+	 * @param tableName
+	 * @param as
+	 * @return StatementBuilder
+	 */
+	StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
+		return dialect.wrapDeleteQuery(innerDelete, tableName, as);
 	}
 	
 	/**
