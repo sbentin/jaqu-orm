@@ -28,6 +28,7 @@ import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
  * This dialect holds information to connect the Jaqu O/R Mapping to DB/2
@@ -137,7 +138,7 @@ public class DB2Dialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, com.centimia.orm.jaqu.Db)
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
-		String query = "SELECT 1 FROM syscat.columns WHERE tabname = ‘" + tableName + "' and colname = '" + discriminatorName + "'" ;
+		String query = "SELECT 1 FROM syscat.columns WHERE tabname = ï¿½" + tableName + "' and colname = '" + discriminatorName + "'" ;
 		ResultSet rs = null;
 		try {
 			rs = db.executeQuery(query);
@@ -187,5 +188,24 @@ public class DB2Dialect implements SQLDialect {
 		}
 		query += ")";
 		return query;
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.SQLDialect#wrapUpdateQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
+	 */
+	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as) {
+		StatementBuilder buff = new StatementBuilder("UPDATE ").append(tableName).append(" ").append(as).append(" SET ");
+		buff.append(innerUpdate);
+		return buff;
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
+	 */
+	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
+		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
+		return buff;
 	}
 }
