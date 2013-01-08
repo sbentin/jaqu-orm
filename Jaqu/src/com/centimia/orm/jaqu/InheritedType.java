@@ -24,11 +24,14 @@ package com.centimia.orm.jaqu;
  * The type of inheritance supported by Jaqu fro entities.<br>
  * <ol>
  * <li>TABLE_PER_CLASS - each child class has its own table with all the fields from the parent</li>
- * <li>FIDCRIMINATOR - Single table for all children and parent, each discriminated using its own discriminator letter. </li>
+ * <li>DISCRIMINATOR - Single table for all children and parent, each discriminated using its own discriminator letter. </li>
+ * <li>PARENT_TABLE - Parent has a single table. Children have only their own fields. Mappting is done based on ID. Parent must be wither a {@link MappedSuperclass} or an {@link Entity}</li>
  * </ol>
  * 
  * @author shai
  */
 public enum InheritedType {
-	TABLE_PER_CLASS, DISCRIMINATOR
+	TABLE_PER_CLASS, 
+	DISCRIMINATOR, 
+	PARENT_TABLE
 }
