@@ -28,6 +28,7 @@ import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
  * 
@@ -210,5 +211,24 @@ public class PostgresDialect implements SQLDialect {
 		}
 		query += ")";
 		return query;
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.SQLDialect#wrapUpdateQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
+	 */
+	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as) {
+		StatementBuilder buff = new StatementBuilder("UPDATE ").append(tableName).append(" ").append(as).append(" SET ");
+		buff.append(innerUpdate);
+		return buff;
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
+	 */
+	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
+		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
+		return buff;
 	}
 }
