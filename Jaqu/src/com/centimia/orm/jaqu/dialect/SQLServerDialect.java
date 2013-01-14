@@ -213,7 +213,7 @@ public class SQLServerDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
 	 */
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
-		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
+		StatementBuilder buff = new StatementBuilder("DELETE ").append(as).append(" FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 		return buff;
 	}
 }
