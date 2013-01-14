@@ -31,6 +31,7 @@ package com.centimia.orm.jaqu;
  * @author shai
  */
 public enum InheritedType {
+	NONE,
 	TABLE_PER_CLASS, 
 	DISCRIMINATOR, 
 	PARENT_TABLE
