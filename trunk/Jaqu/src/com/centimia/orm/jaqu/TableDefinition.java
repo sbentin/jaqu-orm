@@ -276,7 +276,7 @@ class TableDefinition<T> {
 	boolean isAggregateParent = false;
 	private GeneratorType genType = GeneratorType.NONE;
 	private String sequenceQuery = null;
-	InheritedType inheritedType = null;
+	InheritedType inheritedType = InheritedType.NONE;
 	char discriminatorValue;
 	String discriminatorColumn;
 	@SuppressWarnings("rawtypes")
@@ -530,7 +530,7 @@ class TableDefinition<T> {
 					String methodName = Pattern.compile(f.getName().substring(0, 1)).matcher(f.getName()).replaceFirst(f.getName().substring(0, 1).toUpperCase());
 					try {
 						Method m = null;
-						if (this.inheritedType == null)
+						if (null == this.inheritedType || InheritedType.NONE == this.inheritedType)
 							m = clazz.getDeclaredMethod("get" + methodName);
 						else
 							m = clazz.getMethod("get" + methodName);
