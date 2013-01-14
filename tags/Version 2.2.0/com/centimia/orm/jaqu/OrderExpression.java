@@ -1,0 +1,48 @@
+/*
+ * Copyright (c) 2007-2010 Centimia Ltd.
+ * All rights reserved.  Unpublished -- rights reserved
+ *
+ * Use of a copyright notice is precautionary only, and does
+ * not imply publication or disclosure.
+ *  
+ * Multiple-Licensed under the H2 License,
+ * Version 1.0, and under the Eclipse Public License, Version 1.0
+ * (http://h2database.com/html/license.html).
+ * Initial Developer: H2 Group, Centimia Inc.
+ */
+package com.centimia.orm.jaqu;
+
+/**
+ * An expression to order by in a query.
+ *
+ * @param <T> the query data type
+ */
+class OrderExpression<T> {
+    private Query<T> query;
+    private Object expression;
+    private boolean desc;
+    private boolean nullsFirst;
+    private boolean nullsLast;
+
+    OrderExpression(Query<T> query, Object expression, boolean desc, boolean nullsFirst, boolean nullsLast) {
+        this.query = query;
+        this.expression = expression;
+        this.desc = desc;
+        this.nullsFirst = nullsFirst;
+        this.nullsLast = nullsLast;
+    }
+
+    void appendSQL(SQLStatement stat) {
+        query.appendSQL(stat, expression);
+        if (desc) {
+            stat.appendSQL(" DESC");
+        }
+        if (nullsLast) {
+            stat.appendSQL(" NULLS LAST");
+        }
+        if (nullsFirst) {
+            stat.appendSQL(" NULLS FIRST");
+        }
+    }
+
+}
