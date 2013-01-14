@@ -1,9 +1,0 @@
-com.centimia.orm.jaqu
-com.centimia.orm.jaqu.annotation
-com.centimia.orm.jaqu.constant
-com.centimia.orm.jaqu.dialect
-com.centimia.orm.jaqu.ext.ant
-com.centimia.orm.jaqu.ext.asm
-com.centimia.orm.jaqu.ext.common
-com.centimia.orm.jaqu.ext.gradle
-com.centimia.orm.jaqu.util
