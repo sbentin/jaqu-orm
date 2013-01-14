@@ -84,7 +84,11 @@ public final class JaquSessionFactory {
 	/** The underlying relational DB dialect. Default dialect is set to H2 */
 	Dialect dialect = Dialect.H2;
 
-	/** specify EXTERNAL if you want to manage transaction isolation and auto commit externally. Use INTERNAL to let JaquSession Factory configure your connections via autoCommit and transactionIsolation fields */
+	/** 
+	 * EXTERNAL - if you want to manage transaction isolation and auto commit externally. 
+	 * INTERNAL  - to let JaquSessionFactory configure your connections via autoCommit and transactionIsolation fields. This means 
+	 * 			   that if autoCommit is set to false then the user must handle commit himself.
+	 */
 	ACID_CONFIG acidConfig = ACID_CONFIG.INTERNAL;
 	
 	/**
