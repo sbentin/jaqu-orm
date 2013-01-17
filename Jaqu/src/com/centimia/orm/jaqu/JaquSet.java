@@ -20,6 +20,7 @@
  */
 package com.centimia.orm.jaqu;
 
+import java.io.ObjectStreamException;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -55,4 +56,8 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 		}
 	}
 
+	@SuppressWarnings("rawtypes")
+	Object writeReplace() throws ObjectStreamException {
+		return new SerializedSet((Set)originalList, internalMapping, internalDeleteMapping);
+	}
 }
