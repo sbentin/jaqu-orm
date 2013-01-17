@@ -561,8 +561,12 @@ public class Db {
 						Collection<?> col = (Collection<?>) fdef.field.get(t);
 						if (col != null) {
 							if (AbstractJaquCollection.class.isAssignableFrom(col.getClass())) {
+								// set all transient fields (These are session related and mean nothing outside the session so we don't carry them)
 								((AbstractJaquCollection<?>) col).setDb(this);
-								((AbstractJaquCollection<?>) col).merge();
+								((AbstractJaquCollection<?>) col).setFieldDefinition(fdef);
+								((AbstractJaquCollection<?>) col).parentPk = pk;
+								
+								((AbstractJaquCollection<?>) col).merge();								
 							}
 							else {
 								// here we get a whole new relationship container which symbolizes the current relationships
