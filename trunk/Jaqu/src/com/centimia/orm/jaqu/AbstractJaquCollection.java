@@ -39,12 +39,12 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	private static final long	serialVersionUID	= 3249922548306321787L;
 	
 	protected final Collection<E> originalList;
-	protected List<E> internalMapping;
-	protected List<E> internalDeleteMapping;
+	List<E> internalMapping;
+	List<E> internalDeleteMapping;
 	
 	protected transient WeakReference<Db> db;
 	protected transient FieldDefinition definition;
-	protected transient final Object parentPk;
+	protected transient Object parentPk;
 	
 	AbstractJaquCollection(Collection<E> origList, Db db, FieldDefinition definition, Object parentPk) {
 		this.originalList = origList;
@@ -246,6 +246,14 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	
 	void setDb(Db db) {
 		this.db = new WeakReference<Db>(db);
+	}
+	
+	void setFieldDefinition(FieldDefinition fDef) {
+		this.definition = fDef;
+	}
+	
+	void setParentPk(Object parentPk) {
+		this.parentPk = parentPk;
 	}
 
 	/*
