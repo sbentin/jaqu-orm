@@ -847,6 +847,7 @@ class TableDefinition<T> {
 		
 		StatementBuilder innerUpdate = new StatementBuilder();
 		innerUpdate.resetCount();
+		boolean hasNoneSilent = false;
 		for (FieldDefinition field : fields) {
 			if (!field.isPrimaryKey) {
 				if (!field.isSilent) {
@@ -854,26 +855,31 @@ class TableDefinition<T> {
 					innerUpdate.append(as + ".");
 					innerUpdate.append(field.columnName);
 					innerUpdate.append(" = ?");
+					hasNoneSilent = true;
 				}
 				handleValue(db, obj, stat, field);
 			}
 		}
-		boolean firstCondition = true;
-		for (FieldDefinition field : primaryKeyColumnNames) {
-			Object aliasValue = field.getValue(alias);
-			Object value = field.getValue(obj);
-			if (!firstCondition) {
-				query.addConditionToken(ConditionAndOr.AND);
+		if (hasNoneSilent) {
+			// if all fields were silent they were handled in handleValue and there would be nothing to do here
+			// so we don't do the update.
+			boolean firstCondition = true;
+			for (FieldDefinition field : primaryKeyColumnNames) {
+				Object aliasValue = field.getValue(alias);
+				Object value = field.getValue(obj);
+				if (!firstCondition) {
+					query.addConditionToken(ConditionAndOr.AND);
+				}
+				firstCondition = false;
+				query.addConditionToken(new Condition<Object>(aliasValue, value, CompareType.EQUAL));
 			}
-			firstCondition = false;
-			query.addConditionToken(new Condition<Object>(aliasValue, value, CompareType.EQUAL));
+			StatementBuilder buff = DIALECT.wrapUpdateQuery(innerUpdate, tableName, as);		
+			stat.setSQL(buff.toString());
+			query.appendWhere(stat);
+			if (db.factory.isShowSQL())
+				StatementLogger.update(stat.getSQL());
+			stat.executeUpdate();
 		}
-		StatementBuilder buff = DIALECT.wrapUpdateQuery(innerUpdate, tableName, as);		
-		stat.setSQL(buff.toString());
-		query.appendWhere(stat);
-		if (db.factory.isShowSQL())
-			StatementLogger.update(stat.getSQL());
-		stat.executeUpdate();
 
 		// if the object inserted successfully and is a Table add the session to it.
 		db.addSession(obj);
