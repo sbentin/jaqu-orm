@@ -292,17 +292,27 @@ public final class JaquSessionFactory {
      * @param def
      * @return TableDefinition<T> - when the definition is already in the map, or 'null' when the definition is new and is put into the map.
      */
-    <T> TableDefinition<T> updateTableDefinition(Class<T> clazz, TableDefinition<T> def){
+    <T> TableDefinition<T> updateTableDefinition(Class<T> clazz, Db db, boolean allowCreate){
     	synchronized (classMap) {
     		// Within the synchronized block we check again for the existence of the definition
     		// because some other thread may have created it in the mean time. Only if it is null
     		// we insert it to the map.
-    		TableDefinition<T> existing = getTableDefinition(clazz);
-    		if (null == existing) {
+    		TableDefinition<T> def = getTableDefinition(clazz);
+    		if (null == def) {
+    			def = new TableDefinition<T>(clazz, this.dialect);
+    			def.mapFields(db);
+    			// when here we have successfully mapped the fields of the entity and its O2M M2M relationships. Because 
+    			// in O2O relationships we may have a circular call for define on the same class so we put the definition 
+    			// in the map before we do it and thus we won't run through define again.
     			classMap.put(clazz, def);
-    			return null;
+    			
+    			// now define the O2O relationships.
+                def.mapOneToOneFields(db);
+                if (this.createTable && allowCreate)
+                	def.createTableIfRequired(db);
+    			
     		}
-    		return existing;
+    		return def;
 		}
     }
     
@@ -331,18 +341,8 @@ public final class JaquSessionFactory {
     static <T> TableDefinition<T> define(Class<T> clazz, Db db, boolean allowCreate) {
         // first non blocking operation. After the definition exists we just return
     	TableDefinition<T> def = db.factory.getTableDefinition(clazz);
-        if (def == null) {
-            def = new TableDefinition<T>(clazz, db.factory.dialect);
-            TableDefinition<T> existing = db.factory.updateTableDefinition(clazz, def);
-            if (null != existing)
-            	// This check is done for thread safety. It means that by the time the current thread reached here some other thread 
-            	// had already updated the map with the definition so we don't need to configure it again, we just discard 'def' and 
-            	// return the 'existing' definition.
-            	return existing;
-            def.mapFields(db);            
-            def.mapOneToOneFields(db);
-            if (db.factory.createTable && allowCreate)
-            	def.createTableIfRequired(db);
+        if (null == def) {
+            def = db.factory.updateTableDefinition(clazz, db, allowCreate);
         }
         return def;
     }
