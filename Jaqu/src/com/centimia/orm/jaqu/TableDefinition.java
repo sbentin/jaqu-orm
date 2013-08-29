@@ -37,6 +37,7 @@ import com.centimia.orm.jaqu.annotation.Inherited;
 import com.centimia.orm.jaqu.annotation.Interceptor;
 import com.centimia.orm.jaqu.annotation.JaquIgnore;
 import com.centimia.orm.jaqu.annotation.Many2Many;
+import com.centimia.orm.jaqu.annotation.Many2One;
 import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
@@ -54,7 +55,7 @@ import com.centimia.orm.jaqu.util.Utils;
 class TableDefinition<T> {
 
 	enum FieldType {
-		NORMAL, FK, M2M, O2M
+		NORMAL, FK, M2M, O2M, M2O
 	};
 	
 	/**
@@ -117,6 +118,26 @@ class TableDefinition<T> {
 						else
 							field.set(obj, o);
 						break;
+					case M2O: {
+						if (null != db) {
+							// here we need to fetch the parent object based on the id which is in the relationTable
+							// this is the same as an FK field acccept for the fact that we have no value in the DB, i.e. 'tmp' == null an 'o' == null
+							// get the primary key...
+							o = Utils.newObject(relationDefinition.dataType); // create the object to hold the data (I could use field.getType() but this way we can find mistakes												
+							String query = "select " + relationDefinition.relationColumnName + " from " + relationDefinition.relationTableName + " where " + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(obj);
+							ResultSet rs = db.executeQuery(query);
+							if (rs.next()) {
+								tmp = db.factory.getDialect().getValueByType(type, rs, relationDefinition.relationColumnName);
+								rs.close(); // close this result set it's not needed any more
+								// now continue to the FK and it should work
+							}
+							else
+								// couldn't find the needed PK....
+								break;
+						}
+						else
+							break;
+					}
 					case FK: {
 						o = Utils.convert(o, field.getType());
 						if (o != null && o.getClass().getAnnotation(Entity.class) != null
@@ -169,12 +190,14 @@ class TableDefinition<T> {
 									
 									public String getConditionString(ISelectTable<?> st) {
 										FieldDefinition fdef = ((SelectTable)st).getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
+										Object myPrimaryKey = db.factory.getPrimaryKey(obj);
+										String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
 										if (null != fdef)
 											// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
 											// different we use the columnName property.
-											return  st.getAs() + "." + fdef.columnName + " = " + db.factory.getPrimaryKey(obj).toString();
+											return  st.getAs() + "." + fdef.columnName + " = " + pk;
 										// This is the case of one sided relationship. In this case the name of the FK is given to us in the relationFieldName
-										return st.getAs() + "." + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(obj).toString();
+										return st.getAs() + "." + relationDefinition.relationFieldName + " = " + pk;
 									}
 								}).select();
 								if (!resultList.isEmpty())
@@ -462,17 +485,19 @@ class TableDefinition<T> {
 			if (f.getAnnotation(JaquIgnore.class) != null)
 				continue;
 			Class<?> classType = f.getType();
+			f.setAccessible(true);
+			FieldDefinition fieldDef = new FieldDefinition();
+			fieldDef.field = f;
+			fieldDef.columnName = f.getName();
+			fields.add(fieldDef);
+			fieldMap.put(f.getName(), fieldDef);
+			
 			if (java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
-					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {
-				f.setAccessible(true);
-				FieldDefinition fieldDef = new FieldDefinition();
-				fieldDef.field = f;
-				fieldDef.columnName = f.getName();
+					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {				
+				
 				fieldDef.dataType = getDataType(f);
 				fieldDef.type = getTypes(classType);
-				fields.add(fieldDef);
-				fieldMap.put(f.getName(), fieldDef);
 				if (String.class.isAssignableFrom(classType)|| classType.isEnum()) {
 					// strings have a default size
 					fieldDef.maxLength = 256;
@@ -513,15 +538,9 @@ class TableDefinition<T> {
 				}
 			}
 			else if (Collection.class.isAssignableFrom(classType)) {
-				// these are one to many or many to many relations.
-				FieldDefinition fieldDef = new FieldDefinition();
-				f.setAccessible(true);
-				fieldDef.field = f;
-				fieldDef.columnName = f.getName();
+				// these are one to many or many to many relations
 				fieldDef.dataType = null;
 				fieldDef.type = Types.COLLECTION;
-				fields.add(fieldDef);
-				fieldMap.put(f.getName(), fieldDef);
 				// only entities have relations
 				if (clazz.getAnnotation(Entity.class) != null) {
 					this.isAggregateParent = true;
@@ -555,34 +574,58 @@ class TableDefinition<T> {
 				// this is some kind of Object, we check if it is a table
 				if (classType.getAnnotation(Entity.class) != null) {
 					// this class is a table
-					f.setAccessible(true);
-					FieldDefinition fieldDef = new FieldDefinition();
-					fieldDef.field = f;
-					fieldDef.type = Types.FK;
-					fieldDef.columnName = f.getName();
-					fieldDef.fieldType = FieldType.FK;
-					if (this.oneToOneRelations == null)
-						this.oneToOneRelations = Utils.newArrayList();
-					this.oneToOneRelations.add(fieldDef);
-					fields.add(fieldDef);
-					fieldMap.put(f.getName(), fieldDef);
 					Column columnAnnotation = f.getAnnotation(Column.class);
 					if (columnAnnotation != null) {
 						if (!StringUtils.isNullOrEmpty(columnAnnotation.name()))
 							fieldDef.columnName = columnAnnotation.name();
 					}
+					fieldDef.type = Types.FK;
+					Many2One many2one = f.getAnnotation(Many2One.class);
+					if (null == many2one) {
+						// its a foreign key											
+						fieldDef.fieldType = FieldType.FK;
+						if (this.oneToOneRelations == null)
+							this.oneToOneRelations = Utils.newArrayList();
+						this.oneToOneRelations.add(fieldDef);
+					}
+					else {
+						// this is the other side of a O2M relationship which is handled by a join table
+						fieldDef.fieldType = FieldType.M2O;
+						fieldDef.isSilent = true;
+						RelationDefinition def = new RelationDefinition();
+						def.eagerLoad = true;
+						Class<?> otherSide = f.getType();
+						if (!Object.class.equals(many2one.childType()))
+							otherSide = many2one.childType();
+						
+						One2Many otherSideAnnotation;
+						try {
+							otherSideAnnotation = otherSide.getDeclaredField(many2one.relationFieldName()).getAnnotation(One2Many.class);
+						}
+						catch (SecurityException e) {
+							throw new JaquError("Field {%s} in class {%s} is anntoated with M2O and declares a parent field {%s} which does not exist!!!", f.getName(), clazz, many2one.relationFieldName());
+						}
+						catch (NoSuchFieldException e) {
+							throw new JaquError("Field {%s} in class {%s} is anntoated with M2O and declares a parent field {%s} which does not exist!!!", f.getName(), clazz, many2one.relationFieldName());
+						}
+						def.relationTableName = otherSideAnnotation.joinTableName();
+						def.dataType = otherSide;
+						
+						def.relationColumnName = otherSideAnnotation.relationFieldName();
+						if ("".equals(def.relationColumnName))
+							def.relationColumnName = f.getName();
+						def.relationFieldName = otherSideAnnotation.relationColumnName();
+						if ("".equals(def.relationFieldName))
+							def.relationFieldName = clazz.getSimpleName();
+						
+						fieldDef.relationDefinition = def;
+					}
 				}
 				else {
 					// this will be stored as a blob...
-					f.setAccessible(true);
-					FieldDefinition fieldDef = new FieldDefinition();
-					fieldDef.field = f;
-					fieldDef.columnName = f.getName();
 					fieldDef.dataType = DIALECT.getDataType(Blob.class);
 					fieldDef.type = Types.BLOB;
-					fields.add(fieldDef);
-					fieldMap.put(f.getName(), fieldDef);
-					
+				
 					// handle column name on annotation
 					Column columnAnnotation = f.getAnnotation(Column.class);
 					if (null != columnAnnotation) {
@@ -699,7 +742,14 @@ class TableDefinition<T> {
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
 		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
-		buff.append(tableName).append('(');		
+		buff.append(tableName).append('(');
+		if (InheritedType.DISCRIMINATOR == this.inheritedType) {
+			// the inheritense is based on a single table with a discriminator
+			fieldTypes.appendExceptFirst(", ");
+			fieldTypes.append(this.discriminatorColumn);
+			valueTypes.appendExceptFirst(", ");
+			valueTypes.append("'" + this.discriminatorValue + "'");
+		}
 		for (FieldDefinition field : fields) {
 			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
 				// skip identity types because these are auto incremented
@@ -830,6 +880,9 @@ class TableDefinition<T> {
 					}
 				}
 				break;
+			}
+			case M2O: {
+				// this is the many side of a join table managed O2M relationship. TODO think what to do here
 			}
 		}
 	}

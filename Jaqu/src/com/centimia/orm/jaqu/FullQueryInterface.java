@@ -60,4 +60,17 @@ public interface FullQueryInterface<T> extends QueryInterface<T> {
 	 * @return List<X>
 	 */
 	public abstract <X, Z> List<X> selectDistinct(Z x);
+	
+	/**
+	 * returns the query of an sql
+	 * @return String
+	 */
+	public String getDistinctSQL();
+	
+	/**
+	 * returns the query of a distinct select based on the given object
+	 * @param z
+	 * @return String
+	 */
+	public <Z> String getDistinctSQL(Z z);
 }

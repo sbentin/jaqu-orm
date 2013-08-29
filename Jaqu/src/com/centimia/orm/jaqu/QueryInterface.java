@@ -128,8 +128,9 @@ public interface QueryInterface<T> {
 	public abstract <A> QuerySet<T, A> set(A x, A v);
 
 	/**
-	 * Returns a primary key condition. Usually used internally, when the primary key is unknown....
-	 * Does not support complex primary keys.
+	 * Returns a primary key condition. Usually used internally, when the primary key is a definit identifier which is unknown....
+	 * Does not support complex primary keys. Use this query only when the primary key to compare with is definit, any other condition 
+	 * is not supported
 	 * 
 	 * @return QueryCondition<T, Object>
 	 */
@@ -209,4 +210,15 @@ public interface QueryInterface<T> {
 	 * @return QueryWhere<T>
 	 */
 	public QueryInterface<T> orderByDescNullsLast(Object ... expr);
+
+	/**
+	 * returns the query of an sql build acording to the given object
+	 * @param z
+	 * @return String
+	 */
+	public <Z> String getSQL(Z z);
+
+	public abstract List<T> union(String unionQuery);
+
+	public abstract List<T> intersect(String intersectQuery);
 }

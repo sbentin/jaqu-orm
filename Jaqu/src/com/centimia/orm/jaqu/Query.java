@@ -73,6 +73,30 @@ public class Query<T> implements FullQueryInterface<T> {
         }
     }
 
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#union(java.lang.String)
+     */
+	public List<T> union(String unionQuery) {
+    	// add the interesct Token to the query
+    	this.addConditionToken(new UnificationToken(unionQuery, UnificationToken.UNIFICATION_MODE.UNION));
+    	
+    	// execute the select
+    	return select();
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#intersect(java.lang.String)
+     */
+	public List<T> intersect(String intersectQuery) {
+    	// add the interesct Token to the query
+    	this.addConditionToken(new UnificationToken(intersectQuery, UnificationToken.UNIFICATION_MODE.INTERESCT));
+    	
+    	// execute the select
+    	return select();
+    }
+    
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#select()
 	 */
@@ -108,11 +132,47 @@ public class Query<T> implements FullQueryInterface<T> {
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#getSQL()
 	 */
     public String getSQL() {
-        SQLStatement selectList = new SQLStatement(db);
-        selectList.setSQL("*");
+    	return this.getSQL(false);
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#getDistinctSQL()
+     */
+	public String getDistinctSQL() {
+    	return this.getSQL(true);
+    }
+    
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#getSQL(java.lang.Object)
+	 */
+	public <Z> String getSQL(Z z) {
+    	return getSQL(z, false);
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#getDistinctSQL(java.lang.Object)
+     */
+	public <Z> String getDistinctSQL(Z z) {
+    	return getSQL(z, false);
+    }
+    
+    private String getSQL(boolean distinct) {
+    	TableDefinition<T> def = from.getAliasDefinition();
+        SQLStatement selectList = def.getSelectList(db, from.getAs());
         return prepare(selectList, false).getSQL().trim();
     }
 
+    @SuppressWarnings("unchecked")
+	private <X> String getSQL(X x, boolean distinct) {
+    	Class<X> clazz = (Class<X>) x.getClass();
+    	TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
+        SQLStatement selectList = def.getSelectList(this, x);
+        return prepare(selectList, false).getSQL().trim();
+    }
+    
     private List<T> select(boolean distinct) {
     	List<T> result = Utils.newArrayList();
         TableDefinition<T> def = from.getAliasDefinition();
@@ -272,25 +332,27 @@ public class Query<T> implements FullQueryInterface<T> {
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinct(Z)
 	 */
-    public <X, Z> List<X> selectDistinct(Z x) {
-        return select(x, true);
+    @SuppressWarnings("unchecked")
+	public <X, Z> List<X> selectDistinct(Z x) {
+        return select((X)x, true);
     }
 
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#select(Z)
 	 */
-    public <X, Z> List<X> select(Z x) {
-        return select(x, false);
+    @SuppressWarnings("unchecked")
+	public <X, Z> List<X> select(Z x) {
+        return select((X)x, false);
     }
 
     @SuppressWarnings("unchecked")
-    private <X, Z> List<X> select(Z x, boolean distinct) {
+    private <Z> List<Z> select(Z x, boolean distinct) {
         Class< ? > clazz = x.getClass();
         if (Utils.isSimpleType(clazz)) {
-            return getSimple((X) x, distinct);
+            return getSimple(x, distinct);
         }
         clazz = clazz.getSuperclass();
-        return select((Class<X>) clazz, (X) x, distinct);
+        return select((Class<Z>) clazz,  x, distinct);
     }
 
     private <X> List<X> select(Class<X> clazz, X x, boolean distinct) {
@@ -382,7 +444,7 @@ public class Query<T> implements FullQueryInterface<T> {
     	if (primaryKeys.size() > 1)
     		throw new JaquError("UnsupportedOperation - Entity relationship is not supported for complex primary keys. Found in %s", def.tableName);
     	for (TableDefinition.FieldDefinition field: primaryKeys) {
-    		return new QueryCondition<T, Object>(this, field.getValue(from.getAlias()));
+    		return new PkQueryCondition<T, Object>(this, field.getValue(from.getAlias()));
     	}
 		return null;
 	}
@@ -572,15 +634,25 @@ public class Query<T> implements FullQueryInterface<T> {
     }
     
     void appendWhere(SQLStatement stat) {
-        if (!conditions.isEmpty()) {
+    	boolean useDiscriminator = true;
+    	if (!conditions.isEmpty()) {
             stat.appendSQL(" WHERE ");
             for (Token token : conditions) {
                 token.appendSQL(stat, this);
                 stat.appendSQL(" ");
+                // FIXME Here is the specific use of the PkConditions. When inheritence is done base on a discriminator it may be the situation
+                // where the object that needs to be mapped declares a parent (in a relationship O2O or O2M) but the actual data represents an
+                // inherited child. Since this is internally fetched by Jaqu, and since this is based on a definit and known primary key
+                // we can omit the discriminator in the query. This opens the discussion to potential problems as the object type returned is not
+                // the inherited child but the parent type. For one it will be impossible to cast it to the child and get the other fields since they will not
+                // exist. It could also be a problem saving it as updating may override the type of object. 
+                // Best thing if we could return an the actual child type here, if not maybe find a way to return an immutible object.
+                if (PkCondition.class.isAssignableFrom(token.getClass()) || PkInCondition.class.isAssignableFrom(token.getClass()))
+                	useDiscriminator = false;
             }
         }
         // add the discriminator if 'T' is a part of an inheritance tree.
-        if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType) {
+        if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType && useDiscriminator) {
         	stat.appendSQL(" AND " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "= '" + from.getAliasDefinition().discriminatorValue + "' ");
         }
     }
