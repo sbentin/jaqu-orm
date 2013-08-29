@@ -190,6 +190,7 @@ public final class JaquSessionFactory {
 			}
 			throw e;
 		}
+		StatementLogger.log("opening connection " + conn.toString());
 		Db db = new Db(conn, this);
 		currentSession.set(db);
 		return db;

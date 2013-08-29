@@ -41,9 +41,7 @@ public class LikeCondition<A> implements Token {
 	 */
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, x);
-		stat.appendSQL(" ");
-        stat.appendSQL("LIKE");
-        stat.appendSQL(" ");
+		stat.appendSQL(" LIKE ");
         // check if a relation type
         if (y != null && y.getClass().getAnnotation(Entity.class) != null)
         	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y));

@@ -21,8 +21,8 @@ package com.centimia.orm.jaqu;
  */
 public class QueryCondition<T, A> {
 
-    private Query<T> query;
-    private A x;
+    protected Query<T> query;
+    protected A x;
 
     QueryCondition(Query<T> query, A x) {
         this.query = query;

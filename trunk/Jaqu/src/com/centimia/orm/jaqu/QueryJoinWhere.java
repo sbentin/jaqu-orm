@@ -85,6 +85,28 @@ public class QueryJoinWhere<T> {
        return query.leftOuterJoin(alias);
     }
     
+    /**
+	 * interescts the query with the inner query returning all that match both selects.
+	 * All regular rules apply, make sure both querys return the same result set type.
+	 * 
+	 * @param intersectQuery
+	 * @return List<T>
+	 */
+	public List<T> intersect(String intersectQuery){
+		return query.intersect(intersectQuery);
+	}
+	
+	/**
+	 * unions the query with the inner query returning all that match either one of the selects.
+	 * All regular rules apply, make sure both querys return the same result set type.
+	 * 
+	 * @param intersectQuery
+	 * @return List<T>
+	 */
+	public List<T> union(String intersectQuery){
+		return query.union(intersectQuery);
+	}
+	
 	/**
 	 * Perform the built query Select.
 	 * 
@@ -133,11 +155,35 @@ public class QueryJoinWhere<T> {
 	 * @return String
 	 */
 	public String getSQL() {
-		SQLStatement selectList = new SQLStatement(query.getDb());
-		selectList.appendSQL("*");
-		return query.prepare(selectList, false).getSQL().trim();
+		return query.getSQL();
 	}
 
+	/**
+	 * @see {@link Query#getDistinctSQL()}
+	 * @return String
+	 */
+	public String getDistinctSQL() {
+		return query.getDistinctSQL();
+	}
+	
+	/**
+	 * @see {@link Query#getSQL(Object)
+	 * @param z
+	 * @return String
+	 */
+	public <Z> String getSQL(Z z) {
+		return query.getSQL(z);
+	}
+	
+	/**
+	 * @see {@link Query#getDistinctSQL(Object)
+	 * @param z
+	 * @return String
+	 */
+	public <Z> String getDistinctSQL(Z z) {
+		return query.getDistinctSQL(z);
+	}
+	
 	/**
 	 * Performs A select similar to {@link #select(Object)} but with the 'DISTINCT' directive. Returns results or empty List. Never 'null'
 	 * 

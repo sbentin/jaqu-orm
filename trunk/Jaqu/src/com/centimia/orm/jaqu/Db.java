@@ -454,6 +454,7 @@ public class Db {
         if (!closed){
         	try {
 	            conn.close();
+	            StatementLogger.log("closing connection " + conn.toString());
 	        } 
 	        catch (SQLException e) {
 	            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
@@ -848,7 +849,19 @@ public class Db {
 	 */
 	private boolean isValid() {
 		try {
-			return conn.isValid(1);
+			boolean valid = conn.isValid(1);
+			if (!valid) {
+				try {
+					// this is an open invalid connection. A connection that was not closed by the user
+					StatementLogger.log("Closing connection for you!!! Please close it yourself!");
+					this.conn.close();
+					StatementLogger.log("Invalid connection found!!! Cleaning up");
+				}
+				catch (SQLException sqle) {
+					// do nothinng
+				}
+			}
+			return valid;
 		}
 		catch (Throwable t) {
 			// many jdbc driver implementations don't actually implement this method so we catch this error and try to validate the connection our selves.
@@ -856,11 +869,21 @@ public class Db {
 		try {
 			Statement stmnt = conn.createStatement();
 			stmnt.setQueryTimeout(1);
+			if (factory.isShowSQL())
+				StatementLogger.log("select 1");
 			stmnt.executeQuery("select 1");
 		}
 		catch (Throwable t) {
 			// catching any throwable here means the connection is not valid any more
-			StatementLogger.log("Invalid connection found!!! Cleaning up");
+			try {
+				// this is an open invalid connection. A connection that was not closed by the user
+				StatementLogger.log("Closing connection for you!!! Please close it yourself!");
+				this.conn.close();
+				StatementLogger.log("Invalid connection found!!! Cleaning up");
+			}
+			catch (SQLException sqle) {
+				// do nothinng
+			}			
 			return false;
 		}
 		return true;
@@ -871,7 +894,7 @@ public class Db {
 	 */
 	private void clean() {
 		this.closed = true;
-		this.conn = null;
+		this.conn = null;		
 		this.factory = null;
 		Map<Class<?>, Map<String, Object>> reEntrents = this.reEntrantList.get();
 		if (null != reEntrents)
