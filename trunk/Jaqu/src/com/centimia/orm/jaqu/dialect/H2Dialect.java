@@ -191,9 +191,9 @@ public class H2Dialect implements SQLDialect{
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query = "CREATE UNIQUE INDEX IF NOT EXISTS " + name + " ON " + tableName + "(";
+			query = "CREATE UNIQUE INDEX IF NOT EXISTS " + name + " ON " + tableName + " (";
 		else
-			query = "CREATE INDEX IF NOT EXISTS " + name + " ON " + tableName + "(";
+			query = "CREATE INDEX IF NOT EXISTS " + name + " ON " + tableName + " (";
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
 				query += ",";
