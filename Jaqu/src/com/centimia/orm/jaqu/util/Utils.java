@@ -136,6 +136,7 @@ public class Utils {
 							return clazz.newInstance();
 						}
 						catch (Exception e2) {
+							// system out because logger is not available here
 							System.out.println(e2.getMessage());
 						}
 						finally {

@@ -161,7 +161,7 @@ public class PostgresDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, com.centimia.orm.jaqu.Db)
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
-		String query = "select 1 from information_schema.columns where table_name = '" + tableName + "and column_name = '" + discriminatorName + "'";
+		String query = "select 1 from information_schema.columns where table_name = '" + tableName + "' and column_name = '" + discriminatorName + "'";
 		ResultSet rs = null;
 		try {
 			rs = db.executeQuery(query);

@@ -131,14 +131,14 @@ public class DB2Dialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
 	 */
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
-        return "ALTER TABLE " + tableName + "ADD " + discriminatorName + " VARCHAR(2)";
+        return "ALTER TABLE " + tableName + " ADD " + discriminatorName + " VARCHAR(2)";
     }
 
 	/**
 	 * @see com.centimia.orm.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, com.centimia.orm.jaqu.Db)
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
-		String query = "SELECT 1 FROM syscat.columns WHERE tabname = �" + tableName + "' and colname = '" + discriminatorName + "'" ;
+		String query = "SELECT 1 FROM syscat.columns WHERE tabname = '" + tableName + "' and colname = '" + discriminatorName + "'" ;
 		ResultSet rs = null;
 		try {
 			rs = db.executeQuery(query);
@@ -177,9 +177,9 @@ public class DB2Dialect implements SQLDialect {
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + "(";
+			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + " (";
 		else
-			query = "CREATE INDEX " + name + " ON " + tableName + "(";
+			query = "CREATE INDEX " + name + " ON " + tableName + " (";
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
 				query += ",";

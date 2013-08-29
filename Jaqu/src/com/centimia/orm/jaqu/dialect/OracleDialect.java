@@ -192,7 +192,7 @@ public class OracleDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
 	 */
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
-        return "ALTER TABLE " + tableName + "ADD " + discriminatorName + " VARCHAR(2)";
+        return "ALTER TABLE " + tableName + " ADD " + discriminatorName + " VARCHAR(2)";
     }
 
 	/**

@@ -146,13 +146,14 @@ public class SQLServerDialect implements SQLDialect {
 			return false;
 		}
 		finally {
-			if (rs != null)
+			if (rs != null) {
 				try {
 					rs.close();
 				}
 				catch (SQLException e) {
 					// nothing to do here
 				}
+			}
 		}
 		return false;
 	}
@@ -161,7 +162,7 @@ public class SQLServerDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
 	 */
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
-		return null;
+		return "ALTER TABLE " + tableName + " ADD " + discriminatorName + " VARCHAR(2)";
 	}
 	
 	/*
@@ -185,9 +186,9 @@ public class SQLServerDialect implements SQLDialect {
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + "(";
+			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + " (";
 		else
-			query = "CREATE INDEX " + name + " ON " + tableName + "(";
+			query = "CREATE INDEX " + name + " ON " + tableName + " (";
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
 				query += ",";
