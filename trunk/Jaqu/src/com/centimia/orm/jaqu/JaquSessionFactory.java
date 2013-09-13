@@ -146,21 +146,50 @@ public final class JaquSessionFactory {
 	    	/* since it is not in the dataSource.getConnection contract 
 	    	 * to make sure we always get the open connection on the thread we take care of this here
 	    	 */
-			if (null != currentSession.get()) {
-				Db db = currentSession.get();
-				if (db.closed()){
-					currentSession.remove();
-					db = createConnection();
-				}
-				return db;
-			}
-			return createConnection();
+    		Db db = currentSession();
+    		if (null == db) {
+    			db = createConnection();
+    			currentSession.set(db);
+    		}
+    		return db;
 		}
 		catch (Exception e) {
 			throw convert(e);
 		}
     }
 
+    /**
+     * Returns a JaQu session backed up by an underlying DB connection that is currently associated with the running thread
+     * or 'null' if no Db is associated
+     * 
+     * @return Db
+     */
+    public Db currentSession() {
+    	Db db = currentSession.get();
+    	if (null != db && db.closed()) {
+			currentSession.remove();
+			db = null;
+		}
+    	return db;
+    }
+    
+    /**
+     * Always returns a new Jaqu session, backed up by an underlying DB connection, which is not associated to the thread 
+     * and thus it is up to the caller to manage the lifecycle of this session. 
+     * When operating under the context of a transaction the caller needs to commit/ rollback the transaction before closing. 
+     * <b>Use with care.</b>
+     * 
+     * @return Db
+     */
+    public Db newLocalSession() {
+    	try {
+    		return createConnection();
+    	}
+    	catch (Exception e) {
+			throw convert(e);
+		}
+    }
+    
 	/**
 	 * Creates a database connection. 
 	 * @return Db
@@ -191,9 +220,7 @@ public final class JaquSessionFactory {
 			throw e;
 		}
 		StatementLogger.log("opening connection " + conn.toString());
-		Db db = new Db(conn, this);
-		currentSession.set(db);
-		return db;
+		return new Db(conn, this);
 	}
     
     /**
