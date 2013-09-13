@@ -11,7 +11,7 @@
  * 
  *  Date			User				Comment
  * ------			-------				--------
- * 08/02/2010		Shai Bentin				 create
+ * 08/02/2010		Shai Bentin			 create
  */
 package com.centimia.jaqu.test.simple;
 
