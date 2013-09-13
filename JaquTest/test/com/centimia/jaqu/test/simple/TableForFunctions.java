@@ -61,6 +61,7 @@ public class TableForFunctions {
 		data.add(new TableForFunctions(13L, "name3", 3.3D));
 		data.add(new TableForFunctions(14L, "name3", 4.3D));
 		data.add(new TableForFunctions(15L, "name3", 5.3D));
+		data.add(new TableForFunctions(16L, null, 0D));
 		return data;
 	}
 

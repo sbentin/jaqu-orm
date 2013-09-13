@@ -40,6 +40,8 @@ public class DropAll extends JaquTest {
 			"drop table TABLE_WITH_IDENTITY",
 			"drop table parent",
 			"drop table child",
+			"drop table DISCRIMINATOR",
+			"drop table parent_to_child",
 			"drop sequence MY_SEQ"
 	};
 

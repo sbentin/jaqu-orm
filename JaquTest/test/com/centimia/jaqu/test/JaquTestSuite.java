@@ -34,6 +34,7 @@ import com.centimia.jaqu.test.entity.EntitySequenceIdentityTest;
 import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
+import com.centimia.jaqu.test.inheritance.TestDiscriminator;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
 import com.centimia.jaqu.test.simple.TestFunctions;
@@ -44,6 +45,7 @@ import com.centimia.jaqu.test.simple.TestSimpleInsert;
 import com.centimia.jaqu.test.simple.TestSimpleObjectUpdate;
 import com.centimia.jaqu.test.simple.TestSimpleOuterJoin;
 import com.centimia.jaqu.test.simple.TestSimpleSelect;
+import com.centimia.jaqu.test.simple.TestUnificationMethods;
 import com.centimia.jaqu.test.transaction.TransactionTests;
 import com.centimia.orm.jaqu.StatementLogger;
 
@@ -90,6 +92,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestEnumType());
 		suite.addTest(new TestFunctions());
 		suite.addTest(new TestSimpleSelect());
+		suite.addTest(new TestUnificationMethods());
 		suite.addTest(new TestQueryByExample());
 		
 		// Test with entity objects.
@@ -108,6 +111,7 @@ public class JaquTestSuite {
 		
 		// Inheritance Tests
 		suite.addTest(new TestInheritance());
+		suite.addTest(new TestDiscriminator());
 		
 		// Transactional Behavior Testing
 		suite.addTest(new TransactionTests());
