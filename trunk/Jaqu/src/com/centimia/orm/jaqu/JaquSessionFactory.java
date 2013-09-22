@@ -27,6 +27,7 @@ import java.util.Map;
 
 import javax.transaction.RollbackException;
 import javax.transaction.SystemException;
+import javax.transaction.TransactionManager;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.Utils;
@@ -44,6 +45,9 @@ public final class JaquSessionFactory {
 	
 	enum ACID_CONFIG {INTERNAL, EXTERNAL};
 	
+	// setup a transaction manager if one exists
+	TransactionManager tm = null;
+			
 	// configuration fields
 	/** Holds the underlying database connection factory/Datasource */
 	private DatasourceWrapper dataSource;
@@ -188,6 +192,10 @@ public final class JaquSessionFactory {
     	catch (Exception e) {
 			throw convert(e);
 		}
+    }
+    
+    public void addTransactionManager(TransactionManager tm) {
+    	this.tm = tm;
     }
     
 	/**
