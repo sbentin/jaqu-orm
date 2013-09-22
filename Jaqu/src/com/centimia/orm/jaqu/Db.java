@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.transaction.Status;
+import javax.transaction.SystemException;
+
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
@@ -426,11 +429,29 @@ public class Db {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
+			try {
+				if (null != this.factory.tm && this.factory.tm.getTransaction().getStatus() == Status.STATUS_NO_TRANSACTION) {
+					try {
+						this.factory.tm.getTransaction().setRollbackOnly();
+						return;
+					}
+					catch (IllegalStateException e) {
+						StatementLogger.log("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
+					}
+					catch (SystemException e) {
+						StatementLogger.log("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
+					}
+				}
+			}
+			catch (SystemException e) {
+				StatementLogger.log("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
+			}
+			// we will reach here if there is no transaction
 			this.conn.rollback();
 		}
 		catch (SQLException e) {
 			// can't rollback nothing can be done!!!
-		}		
+		}				
 	}
 
     /**
@@ -453,7 +474,16 @@ public class Db {
     public void close() {
         if (!closed){
         	try {
-	            conn.close();
+            	try {
+            		// if we're in a transaction it is not up to me to close the connection
+					if (null != this.factory.tm && this.factory.tm.getTransaction().getStatus() != Status.STATUS_NO_TRANSACTION)
+						return;
+				}
+				catch (SystemException e) {
+					StatementLogger.log("unable to get transaction status for an unknown reason. [" + e.getMessage() + "]");
+				}
+	            	
+            	conn.close();
 	            StatementLogger.log("closing connection " + conn.toString());
 	        } 
 	        catch (SQLException e) {
