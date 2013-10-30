@@ -39,14 +39,19 @@ public class TestEnumType extends JaquTest {
 		try {
 			setUp();
 			
-			EnumUser u = new EnumUser(SEASON.WINTER, "spring", "SP");
+			EnumUser u = new EnumUser(SEASON.SPRING, "spring", "SP");
 			db.insert(u);
 			db.commit();
 			
 			EnumUser d = new EnumUser();
-			EnumUser otherUser = db.from(d).where(d.getId()).is("SP").and(d.getSeason()).is(SEASON.WINTER).selectFirst();
-			assertEquals(SEASON.WINTER, otherUser.getSeason());
+			EnumUser otherUser = db.from(d).where(d.getId()).is("SP").and(d.getSeason()).in(new SEASON[] {SEASON.SPRING}).selectFirst();
+			assertEquals(SEASON.SPRING, otherUser.getSeason());
 			
+			db.from(d).set(d.getSeason(), SEASON.SUMMER).where(d.getId()).is("SP").update();
+			db.commit();
+			
+			otherUser = db.from(d).where(d.getId()).is("SP").selectFirst();
+			assertEquals(SEASON.SUMMER, otherUser.getSeason());
 			db.close();
 			tearDown();
 		}

@@ -33,6 +33,7 @@ import com.centimia.jaqu.test.entity.EntityMergeTetst;
 import com.centimia.jaqu.test.entity.EntitySequenceIdentityTest;
 import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
+import com.centimia.jaqu.test.entity.RelationWitVarcharPrimaryTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
 import com.centimia.jaqu.test.inheritance.TestDiscriminator;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
@@ -92,7 +93,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestEnumType());
 		suite.addTest(new TestFunctions());
 		suite.addTest(new TestSimpleSelect());
-		suite.addTest(new TestUnificationMethods());
+		// suite.addTest(new TestUnificationMethods());
 		suite.addTest(new TestQueryByExample());
 		
 		// Test with entity objects.
@@ -108,6 +109,7 @@ public class JaquTestSuite {
 		suite.addTest(new EntitySessionTests());
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
+		suite.addTest(new RelationWitVarcharPrimaryTest());
 		
 		// Inheritance Tests
 		suite.addTest(new TestInheritance());
