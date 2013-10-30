@@ -15,6 +15,9 @@
  */
 package com.centimia.jaqu.test.simple;
 
+import com.centimia.orm.jaqu.Types;
+import com.centimia.orm.jaqu.annotation.Column;
+
 /**
  * 
  * @author shai
@@ -22,6 +25,7 @@ package com.centimia.jaqu.test.simple;
  */
 public class EnumUser {
 	
+	@Column(enumType=Types.ENUM_INT)
 	private SEASON season;
 	
 	private String name;
