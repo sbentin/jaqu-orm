@@ -32,7 +32,8 @@ class Condition<A> implements Token {
     /**
      * @see com.centimia.orm.jaqu.Token#appendSQL(SQLStatement, Query)
      */
-    public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+    @SuppressWarnings("rawtypes")
+	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
     	query.appendSQL(stat, x);
         stat.appendSQL(" ");
         stat.appendSQL(compareType.getString());
@@ -41,8 +42,12 @@ class Condition<A> implements Token {
             // check if a relation type
             if (y != null && y.getClass().getAnnotation(Entity.class) != null)
             	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y));
-            else if (y != null && y.getClass().isEnum()) {
-            	query.appendSQL(stat, y.toString());
+            else if (y != null && y.getClass().isEnum()) {            	
+            	switch (query.getSelectColumn(x).getFieldDefinition().type) {
+            		case ENUM: query.appendSQL(stat, y.toString()); break;
+            		case ENUM_INT: query.appendSQL(stat, ((Enum)y).ordinal()); break;
+            		default: query.appendSQL(stat, y); break;
+            	}            	
             }
             else
             	query.appendSQL(stat, y);
