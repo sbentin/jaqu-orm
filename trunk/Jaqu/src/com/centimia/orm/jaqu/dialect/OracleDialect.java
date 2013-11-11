@@ -149,6 +149,7 @@ public class OracleDialect implements SQLDialect {
     		case BYTE: return (rs.getObject(columnName) != null) ? rs.getByte(columnName): null;
     		case STRING: return rs.getString(columnName);
     		case ENUM: return rs.getString(columnName);
+    		case ENUM_INT: return rs.getInt(columnName);
     		case DOUBLE: return (rs.getObject(columnName) != null) ? rs.getDouble(columnName): null;
     		case FLOAT: return (rs.getObject(columnName) != null) ? rs.getFloat(columnName): null;
     		case SHORT: return (rs.getObject(columnName) != null) ? rs.getShort(columnName): null;
