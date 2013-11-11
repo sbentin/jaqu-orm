@@ -47,9 +47,9 @@ public class LikeCondition<A> implements Token {
         	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y));
         else {
         	switch(mode) {
-        		case ANYWHERE: stat.appendSQL("%"); query.appendSQL(stat, y); stat.appendSQL("%"); break;
-        		case END: query.appendSQL(stat, y); stat.appendSQL("%"); break;
-        		case START: stat.appendSQL("%"); query.appendSQL(stat, y); break;
+        		case ANYWHERE: stat.appendSQL("'%"); stat.appendSQL((String)y); stat.appendSQL("%'"); break;
+        		case END: stat.appendSQL("'" + (String)y); stat.appendSQL("%'"); break;
+        		case START: stat.appendSQL("'%"); stat.appendSQL((String)y + "'"); break;
         		case EXACT: query.appendSQL(stat, y); break;
         	}
         }
