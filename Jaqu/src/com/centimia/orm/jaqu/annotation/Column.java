@@ -25,6 +25,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import com.centimia.orm.jaqu.Types;
+
 /**
  * Use this annotation if column name in underlying storage is different the name of the field.
  * @author shai
@@ -43,4 +45,11 @@ public @interface Column {
 
 	/** If true then this field will be created with not null. */
 	boolean notNull() default false;
+	
+	/** 
+	 * When the field is an enum use this annotation if you want the underlying persistence to work with the ordinal value.
+	 * To do so set the value to Types.ENUM_INT. <b>Note</b> that it is more performent to work with the default setting of
+	 * Types.ENUM which saves the value as a String, so only use this when it is imperative.
+	 */
+	Types enumType() default Types.ENUM;
 }
