@@ -70,20 +70,23 @@ class TableDefinition<T> {
 		FieldType fieldType = FieldType.NORMAL;
 		RelationDefinition relationDefinition;
 		public boolean isSilent = false;
-		private Types type;
+		Types type;
 		Method getter;
 		public boolean unique;
 		public boolean notNull;
 
+		@SuppressWarnings("rawtypes")
 		Object getValue(Object obj) {
 			try {
-				if (type == Types.ENUM){
-					Object enumObj = field.get(obj);
-					if (null != enumObj)
-						return enumObj.toString();
-					return null;
+				Object actualValue = field.get(obj);
+				if (null != actualValue) {
+					switch (type) {
+						case ENUM: return actualValue.toString();
+						case ENUM_INT: return ((Enum)actualValue).ordinal();
+						default: break;
+					}
 				}
-				return field.get(obj);
+				return actualValue;
 			}
 			catch (Exception e) {
 				throw new JaquError(e, "In fieldDefinition.getValue -> %s", e.getMessage());
@@ -91,11 +94,18 @@ class TableDefinition<T> {
 		}
 
 		Object initWithNewObject(Object obj) {
-			if (type == Types.ENUM) {
+			if (Types.ENUM == type || Types.ENUM_INT == type) {
 				Class<?> enumClass = field.getType();
-				String enumValue = enumClass.getEnumConstants()[0].toString();
-				setValue(obj, enumValue, null);
-				return enumValue;
+				if (Types.ENUM_INT == type) {
+					Integer enumValue = 0;
+					setValue(obj, enumValue, null);
+					return enumValue;
+				}
+				else {
+					String enumValue = enumClass.getEnumConstants()[0].toString();
+					setValue(obj, enumValue, null);
+					return enumValue;
+				}
 			}
 			else {
 				Object o = Utils.newObject(field.getType());
@@ -111,9 +121,14 @@ class TableDefinition<T> {
 				switch (fieldType) {
 					case NORMAL:
 						// if 'o' equals null then setting the 'enum' will cause a nullPointerException
-						if (type == Types.ENUM && null != o) {
+						if ((Types.ENUM_INT == type || Types.ENUM == type) && null != o) {
 							Class enumClass = field.getType();
-							field.set(obj, Enum.valueOf(enumClass, (String)o));
+							if (Types.ENUM_INT == type) {
+								field.set(obj, enumClass.getEnumConstants()[(Integer)o]);
+							}
+							else {
+								field.set(obj, Enum.valueOf(enumClass, (String)o));
+							}
 						}
 						else
 							field.set(obj, o);
@@ -240,12 +255,14 @@ class TableDefinition<T> {
 						break;
 					}
 					default:
-						throw new JaquError("IllegalState - Field %s " 
-								+ "was marked as relation but has no relation MetaData in define method", columnName);
+						throw new JaquError("IllegalState - Field %s was marked as relation but has no relation MetaData in define method", columnName);
 				}
 			}
 			catch (Exception e) {
-				throw new JaquError(e, e.getMessage());
+				String objectString = (obj == null) ? "null" : obj.getClass().getName();
+				String valueString = (o == null) ? null : o.toString();
+				String msg = String.format("[Object: %s], [value: %s]\t", objectString, valueString);						
+				throw new JaquError(e, msg + e.getMessage());
 			}
 		}
 
@@ -496,9 +513,8 @@ class TableDefinition<T> {
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
 					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {				
 				
-				fieldDef.dataType = getDataType(f);
 				fieldDef.type = getTypes(classType);
-				if (String.class.isAssignableFrom(classType)|| classType.isEnum()) {
+				if (String.class.isAssignableFrom(classType) || classType.isEnum()) {
 					// strings have a default size
 					fieldDef.maxLength = 256;
 				}
@@ -513,6 +529,10 @@ class TableDefinition<T> {
 					fieldDef.unique = columnAnnotation.unique();
 					fieldDef.notNull = columnAnnotation.notNull();
 				}
+				if (!getEnumType(fieldDef, columnAnnotation)) {
+					fieldDef.dataType = getDataType(f);
+				}
+				
 				PrimaryKey pkAnnotation = f.getAnnotation(PrimaryKey.class);
 				if (pkAnnotation != null) {
 					if (null == primaryKeyColumnNames)
@@ -642,6 +662,22 @@ class TableDefinition<T> {
 		Collections.sort(fields);
 	}
 
+	private boolean getEnumType(FieldDefinition fieldDef, Column columnAnnotation) {
+		if (Types.ENUM == fieldDef.type) {
+			 if (null != columnAnnotation && Types.ENUM_INT == columnAnnotation.enumType()) {
+				 fieldDef.type = Types.ENUM_INT;
+				 fieldDef.dataType = DIALECT.getDataType(Integer.class);
+				 fieldDef.maxLength = 0; // make sure that integer type does not get a length value when creating tables
+			 }
+			 else {
+				 fieldDef.dataType = DIALECT.getDataType(String.class);
+			 }
+			 return true;
+		}
+			
+		return false;
+	}
+
 	/**
 	 * @return
 	 */
@@ -718,13 +754,16 @@ class TableDefinition<T> {
 			else {
 				// Single primary key is here we find out the type and move on....
 				Field primaryKeyDataType = null;
+				int primaryKeyMaxSize = 0;
 				for (FieldDefinition innerDef : def.fields) {
 					if (innerDef.isPrimaryKey) {
 						primaryKeyDataType = innerDef.field;
+						primaryKeyMaxSize = innerDef.maxLength;
 						break;
 					}
 				}
 				fdef.dataType = getDataType(primaryKeyDataType);
+				fdef.maxLength = primaryKeyMaxSize;
 			}
 		}
 	}
@@ -1065,9 +1104,13 @@ class TableDefinition<T> {
 		for (FieldDefinition def : fields) {
 			Object o = def.initWithNewObject(obj);
 			SelectColumn<T> column = new SelectColumn<T>(table, def);
-			if (def.type == Types.ENUM) {
+			if (Types.ENUM == def.type) {
 				Class type = def.field.getType();
 				map.put(Enum.valueOf(type, (String)o), column);
+			}
+			else if (Types.ENUM_INT == def.type) {
+				Class type = def.field.getType();
+				map.put(type.getEnumConstants()[(Integer)o], column);
 			}
 			else {
 				map.put(o, column);
@@ -1122,14 +1165,14 @@ class TableDefinition<T> {
 		return selectList;
 	}
 
-	<Y, X> void copyAttributeValues(Query<Y> query, X to, X map) {
-		for (FieldDefinition def : fields) {
-			Object obj = def.getValue(map);
-			SelectColumn<Y> col = query.getSelectColumn(obj);
-			Object value = col.getCurrentValue();
-			def.setValue(to, value, null);
-		}
-	}
+//	<Y, X> void copyAttributeValues(Query<Y> query, X to, X map) {
+//		for (FieldDefinition def : fields) {
+//			Object obj = def.getValue(map);
+//			SelectColumn<Y> col = query.getSelectColumn(obj);
+//			Object value = col.getCurrentValue();
+//			def.setValue(to, value, null);
+//		}
+//	}
 
 	/**
 	 * Returns a list of primary key definitions
@@ -1167,7 +1210,7 @@ class TableDefinition<T> {
 			String myPkLength = myPkDef.maxLength != 0 ? "(" + myPkDef.maxLength + ")" : "";
 
 			// Locate the pk field of the target relation
-			Field[] fields = childType.getFields();
+			Field[] fields = getAllFields(childType);
 			String relationPkLength = "";
 			for (Field f : fields) {
 				if (f.getAnnotation(PrimaryKey.class) != null) {
