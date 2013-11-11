@@ -55,6 +55,7 @@ public class Db {
      */
     ThreadLocal<Map<Class<?>, Map<String, Object>>> reEntrantList = new ThreadLocal<Map<Class<?>, Map<String, Object>>>();
 
+    // determines if the Db connection is closed. This gets value of true only when the underlying connection is closed on invalid
 	private volatile boolean closed = true;
     
     Db(Connection conn, JaquSessionFactory factory) {
@@ -340,6 +341,7 @@ public class Db {
     
     /**
      * The query will be built according to the 'example' object and the options given.
+     * <b>Noet: </b> values in O2M, M2M, M2O relationships are disregarded and set as an example in the select. To select on relationships write your own selects
      * 
      * @see {@link ExampleOptions}
      * @param example
@@ -360,6 +362,8 @@ public class Db {
     	TableDefinition<?> tDef = define(clazz);
 		try {
 			for (FieldDefinition fDef: tDef.getFields()) {
+				if (fDef.isSilent)
+					continue; // this field can not be selected upon.
 				if (null == params.getExcludeProps().get(fDef.field.getName())) {
 					fDef.field.setAccessible(true);
 					Object val = fDef.field.get(example);
@@ -430,7 +434,7 @@ public class Db {
     		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
 			try {
-				if (null != this.factory.tm && this.factory.tm.getTransaction().getStatus() == Status.STATUS_NO_TRANSACTION) {
+				if (null != this.factory.tm && hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
 					try {
 						this.factory.tm.getTransaction().setRollbackOnly();
 						return;
@@ -446,6 +450,9 @@ public class Db {
 			catch (SystemException e) {
 				StatementLogger.log("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
 			}
+			catch (NullPointerException npe) {
+				// this means that there is no transaction (getTransaction() was null)
+			}
 			// we will reach here if there is no transaction
 			this.conn.rollback();
 		}
@@ -454,7 +461,7 @@ public class Db {
 		}				
 	}
 
-    /**
+	/**
      * Commit the underlying connection
      */
 	public void commit() {
@@ -474,24 +481,26 @@ public class Db {
     public void close() {
         if (!closed){
         	try {
-            	try {
-            		// if we're in a transaction it is not up to me to close the connection
-					if (null != this.factory.tm && this.factory.tm.getTransaction().getStatus() != Status.STATUS_NO_TRANSACTION)
-						return;
-				}
-				catch (SystemException e) {
-					StatementLogger.log("unable to get transaction status for an unknown reason. [" + e.getMessage() + "]");
-				}
-	            	
-            	conn.close();
-	            StatementLogger.log("closing connection " + conn.toString());
-	        } 
-	        catch (SQLException e) {
+        		// if we're in a transaction it is not up to me to close the connection
+				if (null != this.factory.tm && hasRunningTransaction(this.factory.tm.getTransaction().getStatus()))
+					return;
+			}
+			catch (SystemException e) {
+				StatementLogger.log("unable to get transaction status for an unknown reason. [" + e.getMessage() + "]");
+			}
+        	catch (NullPointerException npe) {
+				// this means that there is no transaction (getTransaction() was null)
+			}	
+        	try {
+        		conn.close();
+        		StatementLogger.log("closing connection " + conn.toString());
+        	}
+        	catch (SQLException e) {
 	            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
 	        }
-	        finally {
+        	finally {
 	        	clean();
-	        }
+	        }         
         }
     }
 
@@ -838,7 +847,10 @@ public class Db {
 		return result;		
 	}
 	
-	void addSession(Object obj) {
+	/**
+	 * Add a Db Session to the Entity class. Object must be annotated with @Entity
+	 */
+	public void addSession(Object obj) {
 		try {
 			if (obj.getClass().getAnnotation(Entity.class) != null) {
 				// instrument this instance of the class
@@ -887,8 +899,8 @@ public class Db {
 					this.conn.close();
 					StatementLogger.log("Invalid connection found!!! Cleaning up");
 				}
-				catch (SQLException sqle) {
-					// do nothinng
+				catch (Throwable sqle) {
+					// this means we have a serious problem with this connection. We will return false and send this object for clean up.
 				}
 			}
 			return valid;
@@ -911,8 +923,8 @@ public class Db {
 				this.conn.close();
 				StatementLogger.log("Invalid connection found!!! Cleaning up");
 			}
-			catch (SQLException sqle) {
-				// do nothinng
+			catch (Throwable sqle) {
+				// this means we have a serious problem with this connection. We will return false and send this object for clean up.
 			}			
 			return false;
 		}
@@ -947,6 +959,15 @@ public class Db {
 		}
 	}
 
+	/**
+	 * returns true if there is a running transaction status
+	 * @param status
+	 * @return boolean
+	 */
+	private boolean hasRunningTransaction(int status) {
+		return status != Status.STATUS_NO_TRANSACTION && status != Status.STATUS_UNKNOWN;
+	}
+	
 	private void handleM2Mrelationship(FieldDefinition field, Object table, Object obj, String primaryKey, String relationPK) {
 		// we wan't to update the other side relationship. Because we're in session we can simply get the list and set it to null
 		// when the user calls get again the list will be lazy loaded with the correct values....
