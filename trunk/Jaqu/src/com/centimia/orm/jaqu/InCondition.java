@@ -20,6 +20,7 @@
  */
 package com.centimia.orm.jaqu;
 
+import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
@@ -42,6 +43,7 @@ public class InCondition<A> implements Token {
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
+	@SuppressWarnings("rawtypes")
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, x);
 		stat.appendSQL(" ");
@@ -49,8 +51,22 @@ public class InCondition<A> implements Token {
         StatementBuilder buff = new StatementBuilder(" (");
         for (A item: y) {
         	buff.appendExceptFirst(", ");
-        	if (item instanceof String || item.getClass().isEnum()) {
+        	if (item instanceof String) {
         		buff.append("'" + item.toString() + "'");
+        	}
+        	else if (item.getClass().isEnum()) {
+        		switch (query.getSelectColumn(x).getFieldDefinition().type) {
+            		case ENUM: buff.append("'" + item.toString() + "'"); break;
+            		case ENUM_INT: buff.append(((Enum)item).ordinal()); break;
+            		default: buff.append("'" + item.toString() + "'"); break;
+            	} 
+        	}
+        	else if (y != null && y.getClass().getAnnotation(Entity.class) != null) {
+        		Object o = query.getDb().factory.getPrimaryKey(y);
+        		if (String.class.isAssignableFrom(o.getClass()))
+        			buff.append("'" + o.toString() + "'");
+        		else
+        			buff.append(o.toString());
         	}
         	else {
         		buff.append(item.toString());
