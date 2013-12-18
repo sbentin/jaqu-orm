@@ -27,6 +27,9 @@ public class SQLStatement {
     private String sql;
     private ArrayList<Object> params = new ArrayList<Object>();
 
+    // used only in batch...
+    private PreparedStatement prep;
+    
     SQLStatement(Db db) {
         this.db = db;
     }
@@ -49,6 +52,22 @@ public class SQLStatement {
         return sql;
     }
 
+    String logSQL() {
+    	StringBuilder log = new StringBuilder(buff.toString()).append(" [");
+    	boolean first = true;
+    	for (Object obj: params) {
+    		if (!first)
+    			log.append(", ");
+    		if (null != obj)
+    			log.append(obj.toString());
+    		else
+    			log.append(" ");
+    		first = false;
+    	}
+    	log.append("]");
+    	return log.toString();
+    }
+    
     SQLStatement addParameter(Object o) {
         params.add(o);
         return this;
@@ -63,8 +82,37 @@ public class SQLStatement {
         }
     }
 
-	int executeUpdate() {
+    void prepareBatch() {
         try {
+			if (null == prep)
+				prep = db.prepare(getSQL());
+			for (int i = 0; i < params.size(); i++) {
+			    Object o = params.get(i);
+			    setValue(prep, i + 1, o);
+			}
+			prep.addBatch();
+		}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+    int[] executeBatch(boolean clean) {
+    	try {
+			int[] result = prep.executeBatch();
+			if (clean) {
+				// we need to clear this statement from here
+				prep = null;
+			}
+			return result;
+		}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+	int executeUpdate() {
+		try {
         	return prepare().executeUpdate();
         } 
         catch (SQLException e) {
@@ -116,5 +164,4 @@ public class SQLStatement {
         }
         return prep;
     }
-
 }
