@@ -83,6 +83,25 @@ public class Db {
     }
 
     /**
+     * Insert the array of objects in batch mode.<p>
+     * <b>NOTE: using batch insert only works on pojos or {@link Entity} that has no relationship.<br>When relationships exist on the {@link Entity} it will insert but relationships are disregarded</b>
+     * 
+     * @param batchSize
+     * @param tArray
+     */
+    public <T> void insertBatch(final int batchSize, T ... tArray) {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (null == tArray || 0 == tArray.length)
+    		return;
+
+    	Class<?> clazz = tArray[0].getClass();
+		TableDefinition<?> definition = define(clazz);
+		
+		definition.insertBatch(this, batchSize, tArray);
+    }
+    
+    /**
      * Inserts the object and returns it's primary key, generated or not.
      * 
      * @param <T>
@@ -615,7 +634,7 @@ public class Db {
 								// If the relationship has cascade type delete, we need to dispose of the objects as well as the relationships, else we just 
 								// dispose of the relationships.
 								if (null != pk) {
-									// we may get objects that have a primary key to be inserted with which means they don't exist in the DB
+									// we may get objects that have a primary key to be inserted with, which means they don't exist in the DB
 									Object parent = this.from(t.getClass().newInstance()).primaryKey().is(pk).selectFirst();
 									if (null != parent)
 										deleteParentRelation(fdef, parent);
@@ -956,6 +975,7 @@ public class Db {
 		switch (field.fieldType) {
 			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
 			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
+			case M2O: handleM2ORelationship(field, table, obj, primaryKey, relationPK); return;
 		}
 	}
 
@@ -1020,6 +1040,22 @@ public class Db {
 		mergeRelationTable(field, primaryKey, relationPK);
 	}
 
+	/**
+	 * Create a relation if it does not exist between a One side and the many. Information comming from the mNY side.
+	 * @param field - the field holding the relationship
+	 * @param table - the parent (one side) object
+	 * @param obj - the child object (many side) 
+	 * @param primaryKey - the one side key
+	 * @param relationPK - the many side key.
+	 */
+	private void handleM2ORelationship(FieldDefinition field, Object table, Object obj, String primaryKey, String relationPK) {
+		// first determine the relation table name.
+		String relationTableName = field.relationDefinition.relationTableName;
+		if (null != relationTableName && !relationTableName.isEmpty()) {
+			mergeRelationTable(field, primaryKey, relationPK);
+		}
+	}
+	
 	/**
 	 * Create a relation table entry for the relationship if one does not exist.
 	 * @param field
