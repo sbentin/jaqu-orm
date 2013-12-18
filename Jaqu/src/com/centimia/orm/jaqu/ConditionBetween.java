@@ -39,11 +39,9 @@ public class ConditionBetween<A> implements Token {
 	 */
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, x);
-		stat.appendSQL(" BETWEEN (");
+		stat.appendSQL(" BETWEEN ");
 		query.appendSQL(stat, y);
 		stat.appendSQL(" AND ");
 		query.appendSQL(stat, z);
-		stat.appendSQL(")");
 	}
-
 }
