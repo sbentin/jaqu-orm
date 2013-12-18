@@ -775,6 +775,70 @@ class TableDefinition<T> {
 		return DIALECT.getDataType(fieldClass);
 	}
 
+	/*
+	 * insert a batch of entities or pojos without entity relationships.
+	 */
+	void insertBatch(Db db, final int batchSize, Object ... objs) {
+		// first we build an insert statement
+		SQLStatement stat = new SQLStatement(db);
+		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
+		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
+		buff.append(tableName).append('(');
+		if (InheritedType.DISCRIMINATOR == this.inheritedType) {
+			// the inheritense is based on a single table with a discriminator
+			fieldTypes.appendExceptFirst(", ");
+			fieldTypes.append(this.discriminatorColumn);
+			valueTypes.appendExceptFirst(", ");
+			valueTypes.append("'" + this.discriminatorValue + "'");
+		}
+		for (FieldDefinition field : fields) {
+			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
+				// skip identity types because these are auto incremented
+        		continue;
+			
+			if (field.isSilent)
+				// skip silent fields because they don't really exist.
+        		continue;
+        	
+        	if (field.fieldType != FieldType.NORMAL)
+        		// skip everything which is not a plain field (i.e any type of relationship)
+        		continue;
+        	
+        	fieldTypes.appendExceptFirst(", ");
+        	fieldTypes.append(field.columnName);
+        	
+        	valueTypes.appendExceptFirst(", ");
+        	valueTypes.append('?');
+        }
+		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');  
+		stat.setSQL(buff.toString());
+		int count = 0;
+		for (Object o: objs) {
+			// add the parameters
+			for (FieldDefinition field : fields) {
+				if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
+					// skip identity types because these are auto incremented
+	        		continue;
+				
+				if (field.isSilent)
+					// skip silent fields because they don't really exist.
+	        		continue;
+	        	
+	        	if (field.fieldType != FieldType.NORMAL)
+	        		// skip everything which is not a plain field (i.e any type of relationship)
+	        		continue;
+	        	
+				handleValue(db, o, stat, field);
+			}
+			stat.prepareBatch();
+			
+			if (++count % batchSize == 0) {
+		        stat.executeBatch(false);
+		    }
+		}
+		stat.executeBatch(true);
+	}
+	
 	void insert(Db db, Object obj) {
 		if (db.checkReEntrant(obj))
 			return;
@@ -809,10 +873,10 @@ class TableDefinition<T> {
         	valueTypes.append('?');
             handleValue(db, obj, stat, field);
         }
-		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');
-        stat.setSQL(buff.toString());
+		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');        
+		stat.setSQL(buff.toString());
 		if (db.factory.isShowSQL())
-			StatementLogger.insert(stat.getSQL());
+			StatementLogger.insert(stat.logSQL());
 		
 		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
 			if (GeneratorType.IDENTITY == genType)
@@ -848,7 +912,7 @@ class TableDefinition<T> {
 		
 		stat.setSQL(buff.toString());
 		if (db.factory.isShowSQL())
-			StatementLogger.merge(stat.getSQL());
+			StatementLogger.merge(stat.logSQL());
 		ResultSet rs  = stat.executeQuery();
 		try {
 			if (rs.next()) {
@@ -921,7 +985,14 @@ class TableDefinition<T> {
 				break;
 			}
 			case M2O: {
-				// this is the many side of a join table managed O2M relationship. TODO think what to do here
+				// this is the many side of a join table managed O2M relationship.
+				if (value != null) {
+					db.prepareRentrant(obj);
+					db.merge(value);
+					db.updateRelationship(field, obj, value); // the parent is still the one side as 'obj' is the many side
+					db.removeReentrant(obj);
+				}
+				break;
 			}
 		}
 	}
@@ -969,7 +1040,7 @@ class TableDefinition<T> {
 			stat.setSQL(buff.toString());
 			query.appendWhere(stat);
 			if (db.factory.isShowSQL())
-				StatementLogger.update(stat.getSQL());
+				StatementLogger.update(stat.logSQL());
 			stat.executeUpdate();
 		}
 
@@ -1019,7 +1090,7 @@ class TableDefinition<T> {
 		stat.setSQL(buff.toString());
 		query.appendWhere(stat);
 		if (db.factory.isShowSQL())
-			StatementLogger.delete(stat.getSQL());
+			StatementLogger.delete(stat.logSQL());
 		stat.executeUpdate();
 	}
 
@@ -1032,7 +1103,7 @@ class TableDefinition<T> {
 		StatementBuilder buff = DIALECT.wrapDeleteQuery(new StatementBuilder(), tableName, as);
 		stat.setSQL(buff.toString());
 		if (db.factory.isShowSQL())
-			StatementLogger.delete(stat.getSQL());
+			StatementLogger.delete(stat.logSQL());
 		return stat.executeUpdate();
 	}
 	
@@ -1063,7 +1134,7 @@ class TableDefinition<T> {
 		buff.append(')');
 		stat.setSQL(buff.toString());
 		if (db.factory.isShowSQL())
-			StatementLogger.create(stat.getSQL());
+			StatementLogger.create(stat.logSQL());
 		stat.executeUpdate();
 		createIndices(db);
 		AlterTableDiscriminatorIfRequired(db);
@@ -1080,7 +1151,7 @@ class TableDefinition<T> {
 				StatementBuilder buff = new StatementBuilder(query);
 				stat.setSQL(buff.toString());
 				if (db.factory.isShowSQL())
-					StatementLogger.alter(stat.getSQL());
+					StatementLogger.alter(stat.logSQL());
 				stat.executeUpdate();
 			}
 		}
@@ -1093,7 +1164,7 @@ class TableDefinition<T> {
 				StatementBuilder buff = new StatementBuilder(DIALECT.getDiscriminatorStatment(tableName, discriminatorColumn));
 				stat.setSQL(buff.toString());
 				if (db.factory.isShowSQL())
-					StatementLogger.alter(stat.getSQL());
+					StatementLogger.alter(stat.logSQL());
 				stat.executeUpdate();
 			}
 		}
@@ -1164,15 +1235,6 @@ class TableDefinition<T> {
 		}
 		return selectList;
 	}
-
-//	<Y, X> void copyAttributeValues(Query<Y> query, X to, X map) {
-//		for (FieldDefinition def : fields) {
-//			Object obj = def.getValue(map);
-//			SelectColumn<Y> col = query.getSelectColumn(obj);
-//			Object value = col.getCurrentValue();
-//			def.setValue(to, value, null);
-//		}
-//	}
 
 	/**
 	 * Returns a list of primary key definitions
