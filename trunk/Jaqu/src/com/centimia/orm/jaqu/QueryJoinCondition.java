@@ -33,4 +33,9 @@ public class QueryJoinCondition<T, A> {
         join.addConditionToken(new Condition<A>(x, y, CompareType.EQUAL));
         return new QueryJoinWhere<T>(query, join);
     }
+    
+    public QueryJoinWhere<T> isNot(A y) {
+        join.addConditionToken(new Condition<A>(x, y, CompareType.NOT_EQUAL));
+        return new QueryJoinWhere<T>(query, join);
+    } 
 }

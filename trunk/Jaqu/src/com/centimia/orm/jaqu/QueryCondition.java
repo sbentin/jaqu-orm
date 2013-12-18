@@ -33,6 +33,11 @@ public class QueryCondition<T, A> {
         query.addConditionToken(new Condition<A>(x, y, CompareType.EQUAL));
         return new QueryWhere<T>(query);
     }
+    
+    public QueryWhere<T> isNot(A y) {
+        query.addConditionToken(new Condition<A>(x, y, CompareType.NOT_EQUAL));
+        return new QueryWhere<T>(query);
+    }
 
     public QueryWhere<T> in(A[] y) {
     	query.addConditionToken(new InCondition<A>(x, y, CompareType.IN));
