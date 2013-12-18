@@ -162,7 +162,7 @@ public class Query<T> implements FullQueryInterface<T> {
     private String getSQL(boolean distinct) {
     	TableDefinition<T> def = from.getAliasDefinition();
         SQLStatement selectList = def.getSelectList(db, from.getAs());
-        return prepare(selectList, false).getSQL().trim();
+        return prepare(selectList, false).logSQL().trim();
     }
 
     @SuppressWarnings("unchecked")
@@ -170,7 +170,7 @@ public class Query<T> implements FullQueryInterface<T> {
     	Class<X> clazz = (Class<X>) x.getClass();
     	TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
         SQLStatement selectList = def.getSelectList(this, x);
-        return prepare(selectList, false).getSQL().trim();
+        return prepare(selectList, false).logSQL().trim();
     }
     
     private List<T> select(boolean distinct) {
@@ -279,7 +279,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	        from.appendSQL(stat);
 	        appendWhere(stat);
 	        if (db.factory.isShowSQL())
-	        	StatementLogger.delete(stat.getSQL());
+	        	StatementLogger.delete(stat.logSQL());
 	        ResultSet rs = stat.executeQuery();
 	        try {
 	            while (rs.next()) {
@@ -309,7 +309,7 @@ public class Query<T> implements FullQueryInterface<T> {
         from.appendSQL(stat);
         appendWhere(stat);
         if (db.factory.isShowSQL())
-        	StatementLogger.delete(stat.getSQL());
+        	StatementLogger.delete(stat.logSQL());
         return stat.executeUpdate();
     }
     
@@ -710,7 +710,7 @@ public class Query<T> implements FullQueryInterface<T> {
             }
         }
         if (db.factory.isShowSQL())
-        	StatementLogger.select(stat.getSQL());
+        	StatementLogger.select(stat.logSQL());
         return stat;
     }
 
