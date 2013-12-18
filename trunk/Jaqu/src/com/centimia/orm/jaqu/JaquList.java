@@ -20,7 +20,6 @@
  */
 package com.centimia.orm.jaqu;
 
-import java.io.ObjectStreamException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -160,10 +159,5 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 				tmpList.removeAll(internalDeleteMapping);
 			return new JaquIterator<E>(tmpList.iterator(), false);
 		}
-	}
-	
-	@SuppressWarnings("rawtypes")
-	Object writeReplace() throws ObjectStreamException {
-		return new SerializedList((List)originalList, internalMapping, internalDeleteMapping);
 	}
 }
