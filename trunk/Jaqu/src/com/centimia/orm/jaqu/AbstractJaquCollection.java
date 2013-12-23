@@ -196,8 +196,11 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	}
 
 	protected boolean dbClosed() {
+		if (null == db)
+			// because db is transient, on the client side it may be null.
+			return true;
 		Db internal = db.get();
-		if (internal != null)
+		if (null != internal)
 			return internal.closed();
 		return true;
 	}
