@@ -192,6 +192,7 @@ public class Query<T> implements FullQueryInterface<T> {
         finally {
             JdbcUtils.closeSilently(rs);
         }
+        
         return result;
     }
     
@@ -348,10 +349,11 @@ public class Query<T> implements FullQueryInterface<T> {
     @SuppressWarnings("unchecked")
     private <Z> List<Z> select(Z x, boolean distinct) {
         Class< ? > clazz = x.getClass();
-        if (Utils.isSimpleType(clazz)) {
+        if (Utils.isSimpleType(clazz) || clazz.isEnum()) {
             return getSimple(x, distinct);
         }
-        clazz = clazz.getSuperclass();
+        if (!Object.class.equals(clazz.getSuperclass()))
+        	clazz = clazz.getSuperclass();
         return select((Class<Z>) clazz,  x, distinct);
     }
 
@@ -366,9 +368,11 @@ public class Query<T> implements FullQueryInterface<T> {
                 def.readRow(row, rs, db);
                 result.add(row);
             }
-        } catch (SQLException e) {
+        } 
+        catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
-        } finally {
+        } 
+        finally {
             JdbcUtils.closeSilently(rs);
         }
         return result;
@@ -377,13 +381,17 @@ public class Query<T> implements FullQueryInterface<T> {
     @SuppressWarnings("unchecked")
     private <X> List<X> getSimple(X x, boolean distinct) {
         SQLStatement selectList = new SQLStatement(db);
-        appendSQL(selectList, x);
+        appendSQL(selectList, x, false, null);
         ResultSet rs = prepare(selectList, distinct).executeQuery();
         List<X> result = Utils.newArrayList();
         try {
             while (rs.next()) {
                 try {
-                    X value = (X) rs.getObject(1);
+                	X value = null;
+                	if (x.getClass().isEnum())
+                		value = (X)handleAsEnum(x.getClass(), rs.getObject(1));
+                	else
+                    	value = (X) rs.getObject(1);
                     result.add(value);
                 } 
                 catch (Exception e) {
@@ -400,7 +408,17 @@ public class Query<T> implements FullQueryInterface<T> {
         return result;
     }
 
-    public <A> QueryWhere<T> where(final StringFilter whereCondition){
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private Object handleAsEnum(Class enumClass, Object object) {
+    	if (null == object || object.getClass().isEnum())
+    		return object;
+		if (String.class.isAssignableFrom(object.getClass()))
+			return Enum.valueOf(enumClass, (String) object);
+		// it must be an int type
+		return Utils.newEnum(enumClass, (Integer)object);
+	}
+
+	public <A> QueryWhere<T> where(final StringFilter whereCondition){
     	Token conditionCode = new Token() {
 			
 			@SuppressWarnings("hiding")
@@ -606,16 +624,22 @@ public class Query<T> implements FullQueryInterface<T> {
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#appendSQL(com.centimia.orm.jaqu.SQLStatement, java.lang.Object)
 	 */
-    public void appendSQL(SQLStatement stat, Object x) {
+    public void appendSQL(SQLStatement stat, Object x, boolean isEnum, Class<?> enumClass) {
         if (x == Function.count()) {
             stat.appendSQL("COUNT(*)");
             return;
         }
         Token token = Db.getToken(x);
+        if (null == token && isEnum) {
+           	// try to get the token according to an enum value
+           	token = Db.getToken(handleAsEnum(enumClass, x));
+        }
+        
         if (token != null) {
             token.appendSQL(stat, this);
             return;
         }
+        
         SelectColumn<T> col = aliasMap.get(x);
         if (col != null) {
             col.appendSQL(stat, from.getAs());
@@ -694,7 +718,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 if (i++ > 0) {
                     stat.appendSQL(", ");
                 }
-                appendSQL(stat, obj);
+                appendSQL(stat, obj, obj.getClass().isEnum(), obj.getClass());
                 stat.appendSQL(" ");
             }
         }
