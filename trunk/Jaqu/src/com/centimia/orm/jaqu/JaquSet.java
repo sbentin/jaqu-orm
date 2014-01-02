@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.Set;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
-import com.centimia.orm.jaqu.util.Utils;
 
 /**
  * A set implementation of the Jaqu Collection
@@ -41,17 +40,6 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 	}
 
 	public Iterator<E> iterator() {
-		if (!dbClosed()) {
-			return new JaquIterator<E>(originalList.iterator());
-		}
-		else {
-			Set<E> tmpSet = Utils.newHashSet();
-			tmpSet.addAll(originalList);
-			if (internalMapping != null)
-				tmpSet.addAll(internalMapping);
-			if (internalDeleteMapping != null)
-				tmpSet.removeAll(internalDeleteMapping);
-			return new JaquIterator<E>(tmpSet.iterator(), false);
-		}
+		return new JaquIterator<E>(originalList.iterator());
 	}
 }
