@@ -14,6 +14,7 @@ package com.centimia.orm.jaqu.util;
 
 import java.io.Reader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Clob;
@@ -122,6 +123,9 @@ public class Utils {
 		else if (clazz == Set.class) {
 			return (T) new HashSet();
 		}
+		else if (clazz.isEnum()) {
+			return newEnum(clazz, 0);
+		}
 		try {
 			return clazz.newInstance();
 		}
@@ -161,6 +165,25 @@ public class Utils {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <E> E newEnum(Class<E> clazz, int ordinal) {
+		if (clazz.isEnum()) {
+			Object[] objs = null;
+			try {
+				Method m = clazz.getMethod("values");
+				objs = (Object[]) m.invoke(null);
+			}
+			catch (Exception e) {
+				return null;
+			}
+			if (null != objs && objs.length > ordinal)
+				return (E)objs[ordinal];
+			else
+				return null;
+		}
+		throw new RuntimeException(clazz.getName() + ": is not an enum type"); 
+	}
+	
 	public static <T> boolean isSimpleType(Class<T> clazz) {
 		if (Number.class.isAssignableFrom(clazz)) {
 			return true;
