@@ -33,7 +33,7 @@ class OrderExpression<T> {
     }
 
     void appendSQL(SQLStatement stat) {
-        query.appendSQL(stat, expression);
+        query.appendSQL(stat, expression, false, null);
         if (desc) {
             stat.appendSQL(" DESC");
         }
