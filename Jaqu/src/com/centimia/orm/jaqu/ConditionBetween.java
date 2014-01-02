@@ -38,10 +38,10 @@ public class ConditionBetween<A> implements Token {
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		query.appendSQL(stat, x);
+		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" BETWEEN ");
-		query.appendSQL(stat, y);
+		query.appendSQL(stat, y, false, null);
 		stat.appendSQL(" AND ");
-		query.appendSQL(stat, z);
+		query.appendSQL(stat, z, false, null);
 	}
 }
