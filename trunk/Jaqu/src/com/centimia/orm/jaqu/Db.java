@@ -196,7 +196,7 @@ public class Db {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
     	checkSession(t);
-        Class< ? > clazz = t.getClass();
+        Class<?> clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onMerge(t);
@@ -233,6 +233,10 @@ public class Db {
     
     /**
      * Delete the immediate given object. If the object has a relationships, the link is always updated according to the cascade type.
+     * <b>Note: </b> This delete works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).where()....delete();
+     * </pre>
      * 
      * @param <T>
      * @param t
@@ -241,6 +245,9 @@ public class Db {
 	public <T> void delete(T t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (null == factory.getPrimaryKey(t))
+    		// if I don't have a primary key I can't delete the object, don't know how
+    		return;
     	checkSession(t);
     	Class<?> clazz = t.getClass();
     	TableDefinition<?> tdef = define(clazz);
@@ -260,6 +267,10 @@ public class Db {
     
     /**
      * Delete all the given objects of the same type. Deletes in the order the given list is iterated upon.
+     * <b>Note: </b> This delete works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).where()....delete();
+     * </pre>
      * 
      * @param <T>
      * @param list
@@ -274,6 +285,10 @@ public class Db {
     
     /**
      * Delete all the given objects of the same type. Deletes in the order they given.
+     * <b>Note: </b> This delete works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).where()....delete();
+     * </pre>
      * 
      * @param <T>
      * @param list
@@ -302,6 +317,10 @@ public class Db {
     /**
      * Updates the immediate given object. If the object has a relationship, the link is always updated as needed. In case where the link 
      * is to a non persisted entity the new entity is inserted into the DB.
+     * <b>Note: </b> This update works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).set()....update();
+     * </pre>
      * 
      * @param <T>
      * @param t
@@ -310,6 +329,9 @@ public class Db {
 	public <T> void update(T t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (null == factory.getPrimaryKey(t))
+    		// if I don't have a primary key I can't delete the object, don't know how
+    		return;
     	checkSession(t);
         Class< ? > clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
@@ -320,6 +342,10 @@ public class Db {
 
     /**
      * Update all the given objects of the same type. Updates in the order the given list is iterated upon.
+     * <b>Note: </b> This update works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).set()....update();
+     * </pre>
      * 
      * @param <T>
      * @param list
@@ -335,6 +361,10 @@ public class Db {
     
     /**
      * Update all the given objects of the same type. Updates in the order they are given.
+     * <b>Note: </b> This update works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).set()....update();
+     * </pre>
      * 
      * @param <T>
      * @param list
@@ -422,6 +452,49 @@ public class Db {
     	return select.select();
     }
     
+    /**
+     * Returns a single object based on the given class built from the given result set.
+     * @param rs
+     * @param clazz
+     * @return T or null if no results were found.
+     * @throws JaquError when there is a mismatch between the resultSet and the object
+     */
+    public <T> T selectFirstByResultSet(ResultSet rs, Class<T> clazz){
+    	List<T> results = selectByResultSet(rs, clazz);
+    	if (!results.isEmpty())
+    		return results.get(0);
+    	return null;
+    }
+    
+    /**
+     * Returns the objects based on the given class built from the given result set.
+     * <b>Note: </b> The resultSet is not closed by this method, you need to close it yourself!
+     * 
+     * @param rs
+     * @param clazz
+     * @return List<T>
+     * @throws JaquError when there is a mismatch between the resultSet and the object
+     */
+    public <T> List<T> selectByResultSet(ResultSet rs, Class<T> clazz){
+    	TableDefinition<T> def = JaquSessionFactory.define(clazz, this);
+    	List<T> result = Utils.newArrayList();
+    	try {
+            while (rs.next()) {
+                T item = Utils.newObject(clazz);
+                def.readRow(item, rs, this);
+                this.addSession(item);
+                result.add(item);
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
+    	catch (Exception e) {
+    		throw new JaquError("Unable to fill row. Maybe resultSet is not of this object type?", e);
+    	}        
+        return result;
+    }
+
     /**
      * Represents the "from clause" of the SQL select
      * @param <T>
@@ -629,7 +702,7 @@ public class Db {
 							}
 							else {
 								// here we get a whole new relationship container which symbolizes the current relationships
-								// of the Entity. However, there still might be  a case where we have relationships existing in the DB.
+								// of the Entity. However, there still might be a case where we have relationships existing in the DB.
 								// Thus, our algorithm should be, clean the current relationships then apply the new ones. Here we think of performance!
 								// If the relationship has cascade type delete, we need to dispose of the objects as well as the relationships, else we just 
 								// dispose of the relationships.
@@ -753,17 +826,7 @@ public class Db {
     <T> TableDefinition<T> define(Class<T> clazz){
     	return JaquSessionFactory.define(clazz, this);
     }
-    
-    /*
-     * 
-     * @param <A>
-     * @param x
-     * @return
-     */
-    <A> TestCondition<A> test(A x) {
-        return new TestCondition<A>(x);
-    }
-    
+     
     /**
      * Prepares the reentrant list with the object that should no be reentered into.
      * 
@@ -957,12 +1020,19 @@ public class Db {
 		this.closed = true;
 		this.conn = null;		
 		this.factory = null;
-		Map<Class<?>, Map<String, Object>> reEntrents = this.reEntrantList.get();
-		if (null != reEntrents)
-			reEntrents.clear();
+		clearReentrent();
 		this.reEntrantList.remove();
 	}
 
+	/**
+	 * Clears the reEntrent cache
+	 */
+	void clearReentrent() {
+		Map<Class<?>, Map<String, Object>> reEntrents = this.reEntrantList.get();
+		if (null != reEntrents)
+			reEntrents.clear();
+	}
+	
 	/**
 	 * 
 	 * @param field - the definition of the field on the parent
