@@ -155,8 +155,7 @@ class TableDefinition<T> {
 					}
 					case FK: {
 						o = Utils.convert(o, field.getType());
-						if (o != null && o.getClass().getAnnotation(Entity.class) != null
-								&& !tmp.getClass().isAssignableFrom(field.getType())) {
+						if (o != null && o.getClass().getAnnotation(Entity.class) != null && !tmp.getClass().isAssignableFrom(field.getType())) {
 							Object reEntrant = db.checkReEntrant(o.getClass(), tmp);
 							if (reEntrant != null) {
 								o = reEntrant;
@@ -164,8 +163,11 @@ class TableDefinition<T> {
 							else {
 								db.prepareRentrant(obj);
 								List<?> result = db.from(o).primaryKey().is(tmp.toString()).select();
-								if (!result.isEmpty())
+								if (!result.isEmpty()) {
 									o = result.get(0);
+									// db.prepareRentrant(o); // TODO this puts the FK onto a memory cache. problem is that it is remembered between calls. 
+									// One option is to clean the cache between calls. this would mean that each call will have differet instances
+								}
 								else
 									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
 													+ " with value %s in table %s" 
@@ -899,6 +901,11 @@ class TableDefinition<T> {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - no merge possible", obj.getClass());
 		}
 		
+		if (null == db.factory.getPrimaryKey(obj)) {
+			// no primary key so we can only do insert
+			db.insert(obj);
+			return;
+		}
 		// check if object exists in the DB
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("SELECT * FROM ");
@@ -1078,8 +1085,12 @@ class TableDefinition<T> {
 		
 		boolean firstCondition = true;
 		for (FieldDefinition field : primaryKeyColumnNames) {
-			Object aliasValue = field.getValue(alias);
 			Object value = field.getValue(obj);
+			if (null == value) {
+				// I don't have a primary key so I can't delete from the underlying db
+				return;
+			}
+			Object aliasValue = field.getValue(alias);			
 			if (!firstCondition) {
 				query.addConditionToken(ConditionAndOr.AND);
 			}
@@ -1226,7 +1237,7 @@ class TableDefinition<T> {
 				selectList.appendSQL(", ");
 			}			
 			Object obj = def.getValue(x);
-			query.appendSQL(selectList, obj);
+			query.appendSQL(selectList, obj, def.field.getType().isEnum(), def.field.getType());
 			
 			// since the 'X' type object does not necessarily have field types as the queried objects in the result set we add a column name
 			// that conforms with the 'X' type
