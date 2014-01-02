@@ -40,17 +40,17 @@ public class LikeCondition<A> implements Token {
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		query.appendSQL(stat, x);
+		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" LIKE ");
         // check if a relation type
         if (y != null && y.getClass().getAnnotation(Entity.class) != null)
-        	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y));
+        	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y), false, null);
         else {
         	switch(mode) {
         		case ANYWHERE: stat.appendSQL("'%"); stat.appendSQL((String)y); stat.appendSQL("%'"); break;
         		case END: stat.appendSQL("'" + (String)y); stat.appendSQL("%'"); break;
         		case START: stat.appendSQL("'%"); stat.appendSQL((String)y + "'"); break;
-        		case EXACT: query.appendSQL(stat, y); break;
+        		case EXACT: query.appendSQL(stat, y, false, null); break;
         	}
         }
 	}
