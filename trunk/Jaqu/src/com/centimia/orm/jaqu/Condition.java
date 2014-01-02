@@ -31,26 +31,27 @@ class Condition<A> implements Token {
 
     /**
      * @see com.centimia.orm.jaqu.Token#appendSQL(SQLStatement, Query)
+     * TODO check  if new enum implementation can change the ugliness here
      */
     @SuppressWarnings("rawtypes")
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-    	query.appendSQL(stat, x);
+    	query.appendSQL(stat, x, false, null);
         stat.appendSQL(" ");
         stat.appendSQL(compareType.getString());
         if (compareType.hasRightExpression()) {
             stat.appendSQL(" ");
             // check if a relation type
             if (y != null && y.getClass().getAnnotation(Entity.class) != null)
-            	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y));
+            	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y), false, null);
             else if (y != null && y.getClass().isEnum()) {            	
             	switch (query.getSelectColumn(x).getFieldDefinition().type) {
-            		case ENUM: query.appendSQL(stat, y.toString()); break;
-            		case ENUM_INT: query.appendSQL(stat, ((Enum)y).ordinal()); break;
-            		default: query.appendSQL(stat, y); break;
+            		case ENUM: query.appendSQL(stat, y.toString(), false, null); break;
+            		case ENUM_INT: query.appendSQL(stat, ((Enum)y).ordinal(), false, null); break;
+            		default: query.appendSQL(stat, y, false, null); break;
             	}            	
             }
             else
-            	query.appendSQL(stat, y);
+            	query.appendSQL(stat, y, false, null);
         }
     }
 }
