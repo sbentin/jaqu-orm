@@ -39,7 +39,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	private static final long	serialVersionUID	= 3249922548306321787L;
 	
 	protected final Collection<E> originalList;
-	List<E> internalMapping;
 	List<E> internalDeleteMapping;
 	
 	protected transient WeakReference<Db> db;
@@ -53,18 +52,21 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		this.parentPk = parentPk;
 	}	
 	
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#add(java.lang.Object)
+	 */
 	public boolean add(E e) {
 		if (!dbClosed()) {			
-			db.get().addSession(e); // merge the Object into the DB
-			return originalList.add(e);
+			db.get().checkSession(e); // merge the Object into the DB
 		}
-		else {
-			if (internalMapping == null)
-				internalMapping = Utils.newArrayList();
-			return internalMapping.add(e);
-		}
+		return originalList.add(e);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#addAll(java.util.Collection)
+	 */
 	public boolean addAll(Collection<? extends E> c) {
 		boolean result = false;
 		for (E e: c) {
@@ -74,6 +76,10 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return result;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#clear()
+	 */
 	public void clear() {
 		if (!dbClosed()) {
 			for (E e: originalList) {
@@ -86,63 +92,59 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 				internalDeleteMapping = Utils.newArrayList();
 			internalDeleteMapping.addAll(originalList);
 			originalList.clear();
-			if (internalMapping != null)
-				internalMapping.clear();
 		}
 			
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#contains(java.lang.Object)
+	 */
 	public boolean contains(Object o) {
-		boolean result = originalList.contains(o);
-		if (result)
-			return result;
-		if (internalMapping != null)
-			return internalMapping.contains(o);
-		return false;
+		return originalList.contains(o);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#containsAll(java.util.Collection)
+	 */
 	public boolean containsAll(Collection<?> c) {
-		if (!dbClosed())
-			return originalList.containsAll(c);
-		else {
-			// this has to look at the joined list...
-			List<E> tmpList = Utils.newArrayList();
-			tmpList.addAll(originalList);
-			if (internalMapping != null)
-				tmpList.addAll(originalList);
-			if (internalDeleteMapping != null)
-				tmpList.removeAll(internalDeleteMapping);
-			return tmpList.containsAll(c);
-		}
+		return originalList.containsAll(c);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#isEmpty()
+	 */
 	public boolean isEmpty() {
-		return originalList.isEmpty() && (internalMapping != null ? internalMapping.isEmpty() : true);
+		return originalList.isEmpty();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#remove(java.lang.Object)
+	 */
 	@SuppressWarnings("unchecked")
 	public boolean remove(Object o) {
-		if (!dbClosed()) {
-			db.get().deleteChildRelation(definition, o, parentPk);
-			return originalList.remove(o);
-		}
-		else {
-			if (internalMapping != null) {
-				boolean result = internalMapping.remove(o);
-				if (result)
-					return true;
+		boolean removed = originalList.remove(o);
+		if (removed) {
+			if (!dbClosed()) {
+				if (null != db.get().factory.getPrimaryKey(o))
+					db.get().deleteChildRelation(definition, o, parentPk);
+			}
+			else {
+				if (null == internalDeleteMapping)
+					internalDeleteMapping = Utils.newArrayList();
+				internalDeleteMapping.add((E)o);
 			}
 		}
-		if (originalList.contains(o)) {
-			if (internalDeleteMapping == null)
-				internalDeleteMapping = Utils.newArrayList();
-			internalDeleteMapping.add((E)o);
-			originalList.remove(o);
-			return true;
-		}
-		return false;
+		return removed;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#removeAll(java.util.Collection)
+	 */
 	public boolean removeAll(Collection<?> c) {
 		boolean result = false;
 		for (Object e: c) {
@@ -152,47 +154,40 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return result;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#retainAll(java.util.Collection)
+	 */
 	public boolean retainAll(Collection<?> c) {
-		// retaining is tricky because we don't know what to delete...
-		if (!dbClosed()) {
-			boolean result = false;
-			for (E e: originalList) {
-				if (!c.contains(e))
-					if (remove(e))
-						result = true;
-			}
-			return result;
+		boolean result = false;
+		for (E e: originalList) {
+			if (!c.contains(e))
+				if (remove(e))
+					result = true;
 		}
-		throw new JaquError("IllegalState - This list is backed up by the DB. Can't retain objects outside the Db Session");
+		return result;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#size()
+	 */
 	public int size() {
-		int delete = 0, add = 0;
-		if (internalMapping != null)
-			add = internalMapping.size();
-		return originalList.size() + add - delete;
+		return originalList.size();
 	}
 
 	/**
 	 * The array is not backed up by the list
 	 */
 	public Object[] toArray() {
-		List<E> elements = Utils.newArrayList();
-		elements.addAll(originalList);
-		if (internalMapping != null)
-			elements.addAll(internalMapping);
-		return elements.toArray();
+		return originalList.toArray();
 	}
 
 	/**
 	 * The array is not backed up by the list
 	 */
 	public <T> T[] toArray(T[] a) {
-		List<E> elements = Utils.newArrayList();
-		elements.addAll(originalList);
-		if (internalMapping != null)
-			elements.addAll(internalMapping);
-		return elements.toArray(a);
+		return originalList.toArray(a);
 	}
 
 	protected boolean dbClosed() {
@@ -209,19 +204,12 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	protected class JaquIterator<E> implements Iterator<E>{
 
 		private final Iterator<E> delagete;
-		private final boolean removable;
 		private E current;
 		
 		JaquIterator(Iterator<E> iter) {
 			this.delagete = iter;
-			removable = true;
 		}
 		
-		public JaquIterator(Iterator<E> iter, boolean b) {
-			this.delagete = iter;
-			removable = b;
-		}
-
 		public boolean hasNext() {
 			return delagete.hasNext();
 		}
@@ -233,16 +221,16 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 
 		@SuppressWarnings("unchecked")
 		public void remove() {
-			if (!dbClosed() && removable) {
-				delagete.remove();
-				db.get().deleteChildRelation(definition, current, parentPk);				
+			delagete.remove();
+			if (!dbClosed()) {
+				if (null != db.get().factory.getPrimaryKey(current))
+					db.get().deleteChildRelation(definition, current, parentPk);				
 			}
 			else {
 				AbstractJaquCollection<E> col = ((AbstractJaquCollection<E>)AbstractJaquCollection.this);
 				if (col.internalDeleteMapping == null)
 					col.internalDeleteMapping = new ArrayList<E>();
 				col.internalDeleteMapping.add((E) current);
-				delagete.remove();
 			}
 		}
 	}
@@ -263,20 +251,16 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	 * Merge the list to the open db session
 	 */
 	void merge() {
-		if (internalMapping != null)
-			originalList.addAll(internalMapping);
 		if (internalDeleteMapping != null) {
 			for (E child: internalDeleteMapping) {
-				db.get().deleteChildRelation(definition, child, parentPk);
+				if (null != db.get().factory.getPrimaryKey(child))
+					db.get().deleteChildRelation(definition, child, parentPk);
 			}
-			originalList.removeAll(internalDeleteMapping); // make sure we don't have left overs
-		}
-		
+		}		
 		
 		internalDeleteMapping = null;
-		internalMapping = null;
 		for (E e: originalList) {
-			db.get().addSession(e);
+			db.get().checkSession(e);
 		}			
 	}
 }
