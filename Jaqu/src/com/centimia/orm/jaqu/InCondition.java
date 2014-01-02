@@ -45,7 +45,7 @@ public class InCondition<A> implements Token {
 	 */
 	@SuppressWarnings("rawtypes")
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		query.appendSQL(stat, x);
+		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" ");
         stat.appendSQL(compareType.getString());
         StatementBuilder buff = new StatementBuilder(" (");
