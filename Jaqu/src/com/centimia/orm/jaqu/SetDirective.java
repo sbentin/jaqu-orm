@@ -38,24 +38,25 @@ public class SetDirective<A> implements Token {
 
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
+	 * TODO check if new enum handler can change the ugliness here
 	 */
 	@SuppressWarnings("rawtypes")
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		query.appendSQL(stat, x);
+		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" = ");
 		// for relationship support
 		if (value != null && value.getClass().getAnnotation(Entity.class) != null) {
 			query.getDb().merge(value);
-			query.appendSQL(stat, query.getDb().factory.getPrimaryKey(value));
+			query.appendSQL(stat, query.getDb().factory.getPrimaryKey(value), false, null);
 		}
 		else if (value != null && value.getClass().isEnum()) {
 			switch (query.getSelectColumn(x).getFieldDefinition().type) {
-        		case ENUM: query.appendSQL(stat, value.toString()); break;
-        		case ENUM_INT: query.appendSQL(stat, ((Enum)value).ordinal()); break;
-        		default: query.appendSQL(stat, value); break;
+        		case ENUM: query.appendSQL(stat, value.toString(), false, null); break;
+        		case ENUM_INT: query.appendSQL(stat, ((Enum)value).ordinal(), false, null); break;
+        		default: query.appendSQL(stat, value, false, null); break;
         	} 
 		}
 		else
-			query.appendSQL(stat, value);
+			query.appendSQL(stat, value, false, null);
 	}
 }
