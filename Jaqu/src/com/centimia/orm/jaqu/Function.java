@@ -38,7 +38,7 @@ public class Function implements Token {
             if (i++ > 0) {
                 stat.appendSQL(",");
             }
-            query.appendSQL(stat, o);
+            query.appendSQL(stat, o, o.getClass().isEnum(), o.getClass());
         }
         stat.appendSQL(")");
     }
@@ -67,7 +67,7 @@ public class Function implements Token {
         return Db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
                 public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-                	query.appendSQL(stat, x[0]);
+                	query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                     stat.appendSQL(" IS NULL");
                 }
             });
@@ -77,7 +77,7 @@ public class Function implements Token {
         return Db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
                 public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-                	query.appendSQL(stat, x[0]);
+                	query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                     stat.appendSQL(" IS NOT NULL");
                 }
             });
@@ -88,7 +88,7 @@ public class Function implements Token {
             Utils.newObject(Boolean.class), new Function("", x) {
                 public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                     stat.appendSQL("NOT ");
-                    query.appendSQL(stat, x[0]);
+                    query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                 }
             });
     }
@@ -103,7 +103,7 @@ public class Function implements Token {
                     if (i++ > 0) {
                         stat.appendSQL(" OR ");
                     }
-                    query.appendSQL(stat, o);
+                    query.appendSQL(stat, o, o.getClass().isEnum(), o.getClass());
                 }
             }
         });
@@ -119,7 +119,7 @@ public class Function implements Token {
                     if (i++ > 0) {
                         stat.appendSQL(" AND ");
                     }
-                    query.appendSQL(stat, o);
+                    query.appendSQL(stat, o, o.getClass().isEnum(), o.getClass());
                 }
             }
         });
@@ -127,7 +127,11 @@ public class Function implements Token {
 
     @SuppressWarnings("unchecked")
     public static <X> X min(X x) {
-        Class<X> clazz = (Class<X>) x.getClass();
+        Class<X> clazz = (Class<X>) x.getClass();    
+        if (clazz.isEnum()) {
+        	X o = handleEnum(x, clazz);
+        	return Db.registerToken(o, new Function("MIN", x));
+        }
         X o = Utils.newObject(clazz);
         return Db.registerToken(o, new Function("MIN", x));
     }
@@ -135,6 +139,10 @@ public class Function implements Token {
     @SuppressWarnings("unchecked")
     public static <X> X max(X x) {
         Class<X> clazz = (Class<X>) x.getClass();
+        if (clazz.isEnum()) {
+        	X o = handleEnum(x, clazz);
+        	return Db.registerToken(o, new Function("MAX", x));
+        }
         X o = Utils.newObject(clazz);
         return Db.registerToken(o, new Function("MAX", x));
     }
@@ -165,7 +173,7 @@ public class Function implements Token {
     			name = d.getFunction(Functions.IFNULL);
     			stat.appendSQL(name).appendSQL("(");
     			// check_expression
-    			query.appendSQL(stat, x[0]);
+    			query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
     			stat.appendSQL(", ");
     			
     			// replacement value
@@ -185,17 +193,37 @@ public class Function implements Token {
     	});
     }
     
+    /**
+     * This performs a like operation at column level and returns in that column a true or false value depending on what was checked.
+     * @param x
+     * @param pattern
+     * @return Boolean
+     */
     public static Boolean like(String x, String pattern) {
         Boolean o = Utils.newObject(Boolean.class);
         return Db.registerToken(o, new Function("LIKE", x, pattern) {
             public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 stat.appendSQL("(");
-                query.appendSQL(stat, x[0]);
+                query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                 stat.appendSQL(" LIKE ");
-                query.appendSQL(stat, x[1]);
+                query.appendSQL(stat, x[1], x[1].getClass().isEnum(), x[1].getClass());
                 stat.appendSQL(")");
             }
         });
     }
 
+    /**
+	 * @param x
+	 * @param clazz
+	 * @return
+	 */
+	private static <X> X handleEnum(X x, Class<X> clazz) {
+		X o = Utils.newObject(clazz);
+		if (o == x)
+			o = Utils.newEnum(clazz, 1);
+		
+		if (null == o)
+			throw new JaquError("Doing an aggragate function on an enum type with a single value makes no sense");
+		return o;
+	}
 }
