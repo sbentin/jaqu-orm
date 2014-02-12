@@ -147,8 +147,6 @@ public class SQLStatement {
         try {
         	if (x instanceof java.util.Date)
         		x = new Timestamp(((java.util.Date) x).getTime());
-        	if (null != x && x.getClass().isEnum())
-        		x = x.toString();
             prep.setObject(parameterIndex, x);
         } 
         catch (SQLException e) {
