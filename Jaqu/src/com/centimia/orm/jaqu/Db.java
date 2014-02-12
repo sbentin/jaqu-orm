@@ -57,6 +57,8 @@ public class Db {
 
     // determines if the Db connection is closed. This gets value of true only when the underlying connection is closed on invalid
 	private volatile boolean closed = true;
+
+	private PojoUtils	pojoUtils;
     
     Db(Connection conn, JaquSessionFactory factory) {
         this.conn = conn;
@@ -80,25 +82,6 @@ public class Db {
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onInsert(t);
         definition.insert(this, t);
-    }
-
-    /**
-     * Insert the array of objects in batch mode.<p>
-     * <b>NOTE: using batch insert only works on pojos or {@link Entity} that has no relationship.<br>When relationships exist on the {@link Entity} it will insert but relationships are disregarded</b>
-     * 
-     * @param batchSize
-     * @param tArray
-     */
-    public <T> void insertBatch(final int batchSize, T ... tArray) {
-    	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (null == tArray || 0 == tArray.length)
-    		return;
-
-    	Class<?> clazz = tArray[0].getClass();
-		TableDefinition<?> definition = define(clazz);
-		
-		definition.insertBatch(this, batchSize, tArray);
     }
     
     /**
@@ -584,6 +567,8 @@ public class Db {
 				// this means that there is no transaction (getTransaction() was null)
 			}	
         	try {
+        		if (null != pojoUtils)
+					pojoUtils.clean();
         		conn.close();
         		StatementLogger.log("closing connection " + conn.toString());
         	}
@@ -650,7 +635,58 @@ public class Db {
         }
     }
 	
+    /**
+     * Check if the {@link Entity} is part of this live session. If not attach it to this session.
+     * @param <T> - must be annotated as {@link Entity} to have any session attachment effect
+     * @param t
+     */
+    public <T> void checkSession(T t) {
+    	try {
+			if (t.getClass().getAnnotation(Entity.class) != null) {
+				// instrument this instance of the class
+				Field dbField = t.getClass().getField("db");
+				dbField.setAccessible(true);
+				
+				// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj' will produce the relation
+				Object o = dbField.get(t);
+				if (!this.equals(o))
+					attach(t);
+			}
+		}
+		catch (Exception e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+	/**
+	 * Add a Db Session to the Entity class. Object must be annotated with @Entity
+	 * <b>note: </n> unlike {@link #checkSession(Object)} this does not attach the object, i.e no list merging is performed. This method is used mostly internally but is quicker for entities that do not need
+	 * list merging.
+	 */
+	public <T> void addSession(T t) {
+		try {
+			if (t.getClass().getAnnotation(Entity.class) != null) {
+				// instrument this instance of the class
+				Field dbField = t.getClass().getField("db");
+				dbField.setAccessible(true);
+				// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj' will produce the relation
+				dbField.set(t, this);
+			}
+		}
+		catch (Exception e) {
+			throw new JaquError(e, e.getMessage());
+		}
+	}
  
+	public PojoUtils pojoUtils() {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	
+		if (null == this.pojoUtils)
+			this.pojoUtils = new PojoUtils(this);
+		return this.pojoUtils;
+	}
+	
     /**
      * If the Object is not in a synchronized connection to the DB this method synchronizes the object into the session. 
      * After synchronization is done, all the deleted relations are deleted according to the cascadeType. To save the Object to the DB
@@ -737,30 +773,7 @@ public class Db {
 			}
     	}
     }
-    
-    /**
-     * Check if the {@link Entity} is part of this live session. If not attach it to this session.
-     * @param <T>
-     * @param t
-     */
-    <T> void checkSession(T t) {
-    	try {
-			if (t.getClass().getAnnotation(Entity.class) != null) {
-				// instrument this instance of the class
-				Field dbField = t.getClass().getField("db");
-				dbField.setAccessible(true);
-				
-				// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj' will produce the relation
-				Object o = dbField.get(t);
-				if (!this.equals(o))
-					attach(t);
-			}
-		}
-		catch (Exception e) {
-			throw new JaquError(e, e.getMessage());
-		}
-    }
-    
+	
     /**
      * The method returns a list of relation objects. Used for lazy loading of object relationships
      * @param <T>
@@ -930,24 +943,6 @@ public class Db {
 	}
 	
 	/**
-	 * Add a Db Session to the Entity class. Object must be annotated with @Entity
-	 */
-	public void addSession(Object obj) {
-		try {
-			if (obj.getClass().getAnnotation(Entity.class) != null) {
-				// instrument this instance of the class
-				Field dbField = obj.getClass().getField("db");
-				dbField.setAccessible(true);
-				// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj' will produce the relation
-				dbField.set(obj, this);
-			}
-		}
-		catch (Exception e) {
-			throw new JaquError(e, e.getMessage());
-		}
-	}
-
-	/**
 	 * True when the Db is closed
 	 * @return boolean
 	 */
@@ -978,6 +973,8 @@ public class Db {
 				try {
 					// this is an open invalid connection. A connection that was not closed by the user
 					StatementLogger.log("Closing connection for you!!! Please close it yourself!");
+					if (null != pojoUtils)
+						pojoUtils.clean();
 					this.conn.close();
 					StatementLogger.log("Invalid connection found!!! Cleaning up");
 				}
@@ -1002,6 +999,8 @@ public class Db {
 			try {
 				// this is an open invalid connection. A connection that was not closed by the user
 				StatementLogger.log("Closing connection for you!!! Please close it yourself!");
+				if (null != pojoUtils)
+					pojoUtils.clean();
 				this.conn.close();
 				StatementLogger.log("Invalid connection found!!! Cleaning up");
 			}
