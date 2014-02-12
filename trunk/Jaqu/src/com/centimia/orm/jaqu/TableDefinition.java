@@ -1328,4 +1328,8 @@ class TableDefinition<T> {
 		}
 		return false;
 	}
+
+	GeneratorType getGenerationtype() {
+		return this.genType;
+	}
 }
