@@ -23,7 +23,7 @@ package com.centimia.orm.jaqu;
  * 
  * @author shai
  */
-public class PkInCondition<A> extends InCondition<A> {
+class PkInCondition<A> extends InCondition<A> {
 
 	PkInCondition(A x, A[] y, CompareType compareType) {
 		super(x, y, compareType);
