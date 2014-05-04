@@ -48,13 +48,13 @@ public class TestSimpleOuterJoin extends JaquTest {
 			System.out.println(db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).getSQL());
 			List<?> t1Results = db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).select();			
 			// we have 5 entries here, 2 that were not in the inner join because these don't have a match in TestTable2.
-			assertEquals(5, t1Results.size());
+			assertEquals(2, t1Results.size());
 			
 			// to get the right side of the join. You can do this on a multiple join as well.
 			// here we again get 5 entries (result set was 5 rows), however two of the results are actually empty. Problem here is that the framework will no return
 			// null, but we get Objects with empty fields
 			List<TestTable2> t2Results = db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).selectRightHandJoin(t2Desc);
-			assertEquals(5, t2Results.size());
+			assertEquals(2, t2Results.size());
 			
 			// this way we narrow down the select to fit only what we require as we would do in a regular select.
 			System.out.println(db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).where(t2Desc.getId()).isNotNull().getSQL());

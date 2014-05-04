@@ -20,6 +20,7 @@ import java.util.List;
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.jaqu.test.entity.Person;
 import com.centimia.orm.jaqu.GeneralExampleOptions;
 
 /**
@@ -56,6 +57,15 @@ public class TestQueryByExample extends JaquTest {
 			
 			tffs = db.selectByExample(example, new GeneralExampleOptions(new String[] {"value"}).setExcludeNulls(false));
 			assertEquals(0, tffs.size());
+			
+			Person p = new Person();
+			Person parent = new Person();
+			
+			// parent.setFirstName("Einat");
+			p.setParent(parent);
+			
+			List<Person> people = db.selectByExample(p);
+			assertEquals(2, people.size());
 			
 			tearDown();
 		}

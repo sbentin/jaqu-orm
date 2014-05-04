@@ -23,13 +23,15 @@ package com.centimia.jaqu.test.simple;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.centimia.orm.jaqu.annotation.PrimaryKey;
+
 /**
  * 
  * @author Shai Bentin
  *
  */
 public class TestTable1 {
-	
+	@PrimaryKey
 	private Long id;
 	private String name;
 	private String value;
@@ -53,6 +55,14 @@ public class TestTable1 {
 		data.add(new TestTable1(1L, "name1", "value1", true));
 		data.add(new TestTable1(2L, "name2", "value2", true));
 		data.add(new TestTable1(3L, "name3", "value3", false));
+		return data;
+	}
+	
+	public static List<TestTable1> getSomeData2(){
+		ArrayList<TestTable1> data = new ArrayList<TestTable1>();
+		data.add(new TestTable1(10L, "name10", "value10", true));
+		data.add(new TestTable1(11L, "name11", "value11", true));
+		data.add(new TestTable1(12L, "name12", "value12", false));
 		return data;
 	}
 

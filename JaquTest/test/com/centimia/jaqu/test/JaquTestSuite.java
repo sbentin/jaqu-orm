@@ -35,10 +35,12 @@ import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
 import com.centimia.jaqu.test.entity.RelationWitVarcharPrimaryTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
+import com.centimia.jaqu.test.entity.TestMultiRef;
 import com.centimia.jaqu.test.inheritance.TestDiscriminator;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
 import com.centimia.jaqu.test.simple.TestFunctions;
+import com.centimia.jaqu.test.simple.TestPojoUtils;
 import com.centimia.jaqu.test.simple.TestQueryByExample;
 import com.centimia.jaqu.test.simple.TestSimpleDelete;
 import com.centimia.jaqu.test.simple.TestSimpleInnerJoin;
@@ -94,7 +96,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestFunctions());
 		suite.addTest(new TestSimpleSelect());
 		// suite.addTest(new TestUnificationMethods());
-		suite.addTest(new TestQueryByExample());
+		suite.addTest(new TestPojoUtils());
 		
 		// Test with entity objects.
 		// You can also use them as entities and maintain object relations. If you want to use them as entities you first need to instrument them with the special ant task to 
@@ -110,6 +112,10 @@ public class JaquTestSuite {
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
 		suite.addTest(new RelationWitVarcharPrimaryTest());
+//		suite.addTest(new TestMultiRef());
+		
+		// general test (work both on entites and pojos
+		suite.addTest(new TestQueryByExample());
 		
 		// Inheritance Tests
 		suite.addTest(new TestInheritance());
