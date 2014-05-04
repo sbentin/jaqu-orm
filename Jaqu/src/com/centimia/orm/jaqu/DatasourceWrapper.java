@@ -34,7 +34,7 @@ import javax.sql.XADataSource;
  * Wrapper interface for 
  * @author shai
  */
-public class DatasourceWrapper implements DataSource, XADataSource {
+class DatasourceWrapper implements DataSource, XADataSource {
 
 	private final Object datasource;
 	private final boolean isXA;
