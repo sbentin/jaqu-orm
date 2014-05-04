@@ -24,7 +24,7 @@ package com.centimia.orm.jaqu;
  * @author shai
  *
  */
-public class ConditionBetween<A> implements Token {
+class ConditionBetween<A> implements Token {
 
     A x, y, z;
 
