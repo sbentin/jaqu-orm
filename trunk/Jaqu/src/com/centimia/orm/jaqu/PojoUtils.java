@@ -23,6 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.List;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.TableDefinition.FieldType;
@@ -38,14 +39,14 @@ import com.centimia.orm.jaqu.util.Utils;
  * 
  * @author shai
  */
-class PojoUtils {
+public class PojoUtils {
 
 	private final Db	db;
 	private final HashMap<Class<?>, PreparedStatement> insertStatements = new HashMap<Class<?>, PreparedStatement>();
 	private final HashMap<Class<?>, PreparedStatement> updateStatements = new HashMap<Class<?>, PreparedStatement>();
 	private final HashMap<Class<?>, PreparedStatement> deleteStatements = new HashMap<Class<?>, PreparedStatement>();
 	
-	public PojoUtils(Db db) {
+	PojoUtils(Db db) {
 		this.db = db;
 	}
 	
@@ -67,6 +68,15 @@ class PojoUtils {
     }
     
     /**
+     * returns a PreparedStatement  backed up by the current Db session. It is the developers responibility to populate, execute, and close this statement.
+     * @param statement
+     * @return {@link PreparedStatement}
+     */
+    public PreparedStatement getPreparedStatement(String statement) {
+    	return db.prepare(statement);
+    }
+    
+    /**
      * Returns a preparedStatement for the pojo given based on the statement type (UPDATE, INSERT, DELETE).
      * This method always returns the same {@link PreparedStatement} object when running in the same db session.
      * 
@@ -75,11 +85,24 @@ class PojoUtils {
      * @return {@link PreparedStatement}
      */
     public <T> PreparedStatement getPreparedStatement(Class<T> clazz, StatementType type) {
+    	return getPreparedStatement(clazz, type, false);
+    }
+    
+    /**
+     * Returns a preparedStatement for the pojo given based on the statement type (UPDATE, INSERT, DELETE).
+     * This method always returns the same {@link PreparedStatement} object when running in the same db session.
+     * 
+     * @param clazz
+     * @param type
+     * @parm externalizePk - if true utils assumes the PK is injected by the user externally even if the PK is Identity type
+     * @return {@link PreparedStatement}
+     */
+    public <T> PreparedStatement getPreparedStatement(Class<T> clazz, StatementType type, boolean externalizePk) {
     	if (null == clazz || null == type)
     		return null;
     	switch (type) {
-    		case INSERT: return getPreparedInsertStatement(clazz);
-    		case UPDATE: return getPreparedInsertStatement(clazz);
+    		case INSERT: return getPreparedInsertStatement(clazz, externalizePk);
+    		case UPDATE: return getPreparedUpdateStatement(clazz);
     		case DELETE: return getPreparedDeleteStatement(clazz);
     		default : return null;
     	}
@@ -94,10 +117,23 @@ class PojoUtils {
      * @throws JaquError
      */
     public <T> PreparedStatement prepareStatement(T obj, StatementType type) {
+    	return prepareStatement(obj, type, false);
+    }
+    
+    /**
+     * Prerpares the data on the prepared Statement. If the preparedStatement does not exist it will be created.
+     * The statement returned is ready for execution but had not been executed.
+     * 
+     * @param obj
+     * @parm externalizePk - if true utils assumes the PK is injected by the user externally even if the PK is Identity type
+     * @return {@link PreparedStatement}
+     * @throws JaquError
+     */
+    public <T> PreparedStatement prepareStatement(T obj, StatementType type, boolean externalizePk) {
     	if (null == obj || null == type)
     		return null;
     	switch (type) {
-    		case INSERT: return prepareInsertStatement(obj);
+    		case INSERT: return prepareInsertStatement(obj, externalizePk);
     		case UPDATE: return prepareUpdateStatement(obj);
     		case DELETE: return prepareDeleteStatement(obj);
     		default : return null;
@@ -111,11 +147,22 @@ class PojoUtils {
      * @return {@link PreparedStatement}
      */
     public <T> PreparedStatement addBatch(T obj, StatementType type) {
+    	return addBatch(obj, type, false);
+    }
+    
+    /**
+     * Adds the object into the batch of executions. If the preparedStatement does not yet exist it will be created.
+     * @param obj
+     * @param type
+     * @parm externalizePk - if true utils assumes the PK is injected by the user externally even if the PK is Identity type
+     * @return {@link PreparedStatement}
+     */
+    public <T> PreparedStatement addBatch(T obj, StatementType type, boolean externalizePk) {
     	if (null == obj || null == type)
     		return null;
     	PreparedStatement ps;
     	switch (type) {
-    		case INSERT: ps = prepareInsertStatement(obj); break;
+    		case INSERT: ps = prepareInsertStatement(obj, externalizePk); break;
     		case UPDATE: ps = prepareUpdateStatement(obj); break;
     		case DELETE: ps = prepareDeleteStatement(obj); break;
     		default : ps = null; break;
@@ -184,11 +231,11 @@ class PojoUtils {
      * @param clazz
      * @return {@link PreparedStatement}
      */
-    private <T> PreparedStatement getPreparedInsertStatement(Class<T> clazz) {
+    private <T> PreparedStatement getPreparedInsertStatement(Class<T> clazz, boolean externalizePk) {
     	PreparedStatement ps = insertStatements.get(clazz);
     	if (null == ps) {
     		TableDefinition<?> definition = JaquSessionFactory.define(clazz, db);
-     		ps = db.prepare(getInsertStatement(definition).toString());
+     		ps = db.prepare(getInsertStatement(definition, externalizePk).toString());
      		insertStatements.put(clazz, ps);
     	}
     	return ps;
@@ -227,13 +274,8 @@ class PojoUtils {
     	PreparedStatement ps = deleteStatements.get(clazz);
     	if (null == ps) {
     		TableDefinition<?> definition = JaquSessionFactory.define(clazz, db);
-    		StatementBuilder builder = getDeleteStatement(definition, clazz);
-    		if (null != builder) {
-    			ps = db.prepare(builder.toString());
-    			deleteStatements.put(clazz, ps);
-    		}
-    		else
-    			return null;
+   			ps = db.prepare(getDeleteStatement(definition, clazz).toString());
+    		deleteStatements.put(clazz, ps);
     	}
     	return ps;
     }
@@ -242,16 +284,16 @@ class PojoUtils {
     * prepares the insertStatement for this object with data from the given object
     */
     @SuppressWarnings("unchecked")
-	public <T> PreparedStatement prepareInsertStatement(T obj) {
+	public <T> PreparedStatement prepareInsertStatement(T obj, boolean externalizePk) {
     	Class<T> tClazz = (Class<T>) obj.getClass();
     	PreparedStatement ps = insertStatements.get(tClazz);
     	if (null == ps) {
-    		ps = getPreparedInsertStatement(tClazz);
+    		ps = getPreparedInsertStatement(tClazz, externalizePk);
     	}
 		TableDefinition<?> definition = JaquSessionFactory.define(tClazz, db);
 		int i = 1;
 		for (FieldDefinition field : definition.getFields()) {
-			if (field.isPrimaryKey && GeneratorType.IDENTITY == definition.getGenerationtype())
+			if (!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == definition.getGenerationtype())
 				// skip identity types because these are auto incremented
         		continue;
 			
@@ -259,6 +301,12 @@ class PojoUtils {
 				// skip silent fields because they don't really exist.
         		continue;
         	
+			if (field.fieldType == FieldType.FK) {
+				setValue(ps, i, getFkValue(obj, field));
+				i++;
+				continue;				
+			}
+			
         	if (field.fieldType != FieldType.NORMAL)
         		// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
@@ -268,6 +316,25 @@ class PojoUtils {
 		}
     	return ps;
     }
+
+	/**
+	 * Return the primary key of the Fk object value.
+	 * @param obj
+	 * @param field
+	 */
+	private <T> Object getFkValue(T obj, FieldDefinition field) {
+		// try to get the value from the FK
+		Object value = field.getValue(obj);
+		TableDefinition<?> fKDefinition = db.define(value.getClass());
+		List<FieldDefinition> pks = fKDefinition.getPrimaryKeyFields();
+		if (pks.size() != 1) {
+			return null;
+		}
+		else {
+			Object pkValue = pks.get(0).getValue(value);
+			return pkValue;
+		}
+	}
     
     /*
      * prepares the updateStatement for this object with data from the given object
@@ -283,6 +350,11 @@ class PojoUtils {
 		int i = 1;
     	for (FieldDefinition field : definition.getFields()) {
 			if (!field.isPrimaryKey) {
+				if (field.fieldType == FieldType.FK) {
+					setValue(ps, i, getFkValue(obj, field));
+					i++;
+					continue;				
+				}
 				if (!field.isSilent) {
 					Object value = field.getValue(obj);
 		        	setValue(ps, i, value);
@@ -305,9 +377,9 @@ class PojoUtils {
     @SuppressWarnings("unchecked")
 	private <T> PreparedStatement prepareDeleteStatement(T obj) {
     	Class<T> tClazz = (Class<T>) obj.getClass();
-    	PreparedStatement ps = updateStatements.get(tClazz);
+    	PreparedStatement ps = deleteStatements.get(tClazz);
     	if (null == ps) {
-    		ps = getPreparedUpdateStatement(tClazz);
+    		ps = getPreparedDeleteStatement(tClazz);
     	}
     	TableDefinition<?> definition = JaquSessionFactory.define(tClazz, db);
 		int i = 1;    	
@@ -330,7 +402,7 @@ class PojoUtils {
         }
     }
 	
-	private StatementBuilder getInsertStatement(TableDefinition<?> def) {
+	private StatementBuilder getInsertStatement(TableDefinition<?> def, boolean externalizePk) {
     	StatementBuilder buff = new StatementBuilder("INSERT INTO ");
 		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
 		buff.append(def.tableName).append('(');
@@ -342,15 +414,15 @@ class PojoUtils {
 			valueTypes.append("'" + def.discriminatorValue + "'");
 		}
 		for (FieldDefinition field : def.getFields()) {
-			if (field.isPrimaryKey && GeneratorType.IDENTITY == def.getGenerationtype())
+			if (!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == def.getGenerationtype())
 				// skip identity types because these are auto incremented
         		continue;
 			
 			if (field.isSilent)
 				// skip silent fields because they don't really exist.
         		continue;
-        	
-        	if (field.fieldType != FieldType.NORMAL)
+			
+			if (field.fieldType != FieldType.FK && field.fieldType != FieldType.NORMAL)
         		// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
         	
@@ -360,7 +432,9 @@ class PojoUtils {
         	valueTypes.appendExceptFirst(", ");
         	valueTypes.append('?');
         }
-		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')'); 
+		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');
+		if (db.factory.isShowSQL())
+			StatementLogger.log(buff.toString());
 		return buff;
     }
 	
@@ -374,7 +448,7 @@ class PojoUtils {
 		boolean hasNoSilent = false;
 		for (FieldDefinition field : def.getFields()) {
 			if (!field.isPrimaryKey) {
-				if (!field.isSilent) {
+				if (field.fieldType == FieldType.FK || !field.isSilent) {
 					innerUpdate.appendExceptFirst(", ");
 					innerUpdate.append(as + ".");
 					innerUpdate.append(field.columnName);
@@ -400,6 +474,8 @@ class PojoUtils {
 		else {
 			return null;
 		}
+		if (db.factory.isShowSQL())
+			StatementLogger.log(buff.toString());
 		return buff;
 	}
 
@@ -423,6 +499,8 @@ class PojoUtils {
 			buff.append(field.columnName).append(" = ?");				
 			firstCondition = false;
 		}
+		if (db.factory.isShowSQL())
+			StatementLogger.log(buff.toString());
 		return buff;
 	}
 	
