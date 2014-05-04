@@ -25,7 +25,7 @@ import com.centimia.orm.jaqu.annotation.Entity;
  * Special to deal with cases where the user wants to explicitly say which kind of like he needs without stating it himself on the input.
  * @author shai
  */
-public class LikeCondition<A> implements Token {
+class LikeCondition<A> implements Token {
 
 	A x,y;
 	LikeMode	mode;
