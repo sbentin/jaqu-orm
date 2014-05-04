@@ -40,6 +40,22 @@ public class TestFunctions extends JaquTest {
 			Double minValue = db.from(desc).selectFirst(Function.min(desc.getValue()));
 			assertEquals(0D, minValue);
 			
+			// get the minimum row in the table
+			SEASON minSeason = db.from(desc).where(desc.name).is("name1").selectFirst(Function.min(desc.season));
+			assertEquals(SEASON.AUTOMN, minSeason);
+			
+			SEASON maxSeason = db.from(desc).where(desc.name).is("name1").selectFirst(Function.max(desc.season));
+			assertEquals(SEASON.WINTER, maxSeason);
+			
+			TableForFunctions tff = db.from(desc).where(desc.name).is("name1").selectFirst(new TableForFunctions() {
+				{
+					id = desc.id;
+					name = desc.name;
+					season = Function.min(desc.season);
+					value = desc.value;
+				}
+			});
+			
 			// get the maximum row in the table
 			Double maxValue = db.from(desc).selectFirst(Function.max(desc.getValue()));
 			assertEquals(5.3D, maxValue);
@@ -66,7 +82,7 @@ public class TestFunctions extends JaquTest {
 			assertEquals(3.0D,  new BigDecimal(avgValue).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
 			
 			// Unlike the filter like this like returns true or false on condition match. Test all that their name is like 'name1' and return true
-			List<TestObject> testObjects = db.from(desc).select(new TestObject(){
+			List<TestObject> testObjects = db.from(desc).select(new TestObject() {;
 				{
 					id = desc.getId();
 					name = desc.getName();
@@ -74,15 +90,16 @@ public class TestFunctions extends JaquTest {
 					value = desc.value;
 				}
 			});
+			
 			for (int i = 0; i < 5; i++) {
-				assertEquals(true, testObjects.get(i).testResult.booleanValue());
+				assertEquals(true, testObjects.get(i).getTestResult().booleanValue());
 			}
 			for (int i = 5; i < 15; i++) {
-				assertEquals(false, testObjects.get(i).testResult.booleanValue());
+				assertEquals(false, testObjects.get(i).getTestResult().booleanValue());
 			}
 			
 			// cool function that replaces 'null' values with some other default value you give on the fly (i.e. no default embedded in the object itself)
-			TableForFunctions tff = db.from(desc).where(desc.id).is(16L).selectFirst(new TableForFunctions() {
+			tff = db.from(desc).where(desc.id).is(16L).selectFirst(new TableForFunctions() {
 				{
 					id = desc.getId();
 					name = Function.ifNull(desc.getName(), "newName");
@@ -96,12 +113,5 @@ public class TestFunctions extends JaquTest {
 			db.rollback();
 			result.addError(this, e);
 		}
-	}
-	
-	class TestObject {
-		Long id;
-		String name;
-		Boolean testResult;
-		Double value;
 	}
 }

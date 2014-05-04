@@ -215,4 +215,11 @@ public class Person implements Serializable{
 	public void setWorkPlaces(List<WorkPlace> workPlaces) {
 		this.workPlaces = workPlaces;
 	}
+
+	public void addPhone(Phone ph) {
+		if (null == this.phones) {
+			this.phones = new HashSet<Phone>();
+		}
+		this.phones.add(ph);
+	}
 }

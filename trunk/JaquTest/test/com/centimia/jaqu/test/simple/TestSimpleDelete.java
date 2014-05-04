@@ -41,7 +41,7 @@ public class TestSimpleDelete extends JaquTest {
 		try {
 			setUp();
 			// we add three more rows to the DB
-			db.insertAll(TestTable1.getSomeData());
+			// db.insertAll(TestTable1.getSomeData());
 			// Since TestTable1 is not a Table and thus does not declare a primary key to delete it we need to use an delete SQL command like the following and not db.delete(A obj)
 			final TestTable1 descriptor = new TestTable1();
 			// notice that if the table holds more then one row with id of '2' both will be deleted.
