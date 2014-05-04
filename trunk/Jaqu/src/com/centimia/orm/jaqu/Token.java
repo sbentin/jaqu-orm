@@ -15,7 +15,7 @@ package com.centimia.orm.jaqu;
 /**
  * Classes implementing this interface can be used as a token in a statement.
  */
-public interface Token {
+interface Token {
     /**
      * Append the SQL to the given statement using the given query.
      *
