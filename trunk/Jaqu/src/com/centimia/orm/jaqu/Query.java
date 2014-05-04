@@ -480,7 +480,7 @@ public class Query<T> implements FullQueryInterface<T> {
      * (non-Javadoc)
      * @see com.centimia.orm.jaqu.QueryInterface#orderBy(java.lang.Object[])
      */
-	public QueryInterface<T> orderBy(Object... expressions) {
+	public QueryInterface<T> orderBy(Object ... expressions) {
 		for (Object expr : expressions) {
 			OrderExpression<T> e = new OrderExpression<T>(this, expr, false, false, false);
 			this.addOrderBy(e);
@@ -616,7 +616,7 @@ public class Query<T> implements FullQueryInterface<T> {
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#groupBy(java.lang.Object)
 	 */
-    public Query<T> groupBy(Object... groupBy) {
+    public Query<T> groupBy(Object ... groupBy) {
         this.groupByExpressions = groupBy;
         return this;
     }
@@ -629,10 +629,13 @@ public class Query<T> implements FullQueryInterface<T> {
             stat.appendSQL("COUNT(*)");
             return;
         }
+        SelectColumn<T> col = null;
         Token token = Db.getToken(x);
         if (null == token && isEnum) {
            	// try to get the token according to an enum value
-           	token = Db.getToken(handleAsEnum(enumClass, x));
+        	Object enumValue = handleAsEnum(enumClass, x);
+           	token = Db.getToken(enumValue);
+         	col = aliasMap.get(enumValue);
         }
         
         if (token != null) {
@@ -640,7 +643,9 @@ public class Query<T> implements FullQueryInterface<T> {
             return;
         }
         
-        SelectColumn<T> col = aliasMap.get(x);
+        if (null == col)
+        	col = aliasMap.get(x);
+        
         if (col != null) {
             col.appendSQL(stat, from.getAs());
             return;
@@ -733,8 +738,6 @@ public class Query<T> implements FullQueryInterface<T> {
                 stat.appendSQL(" ");
             }
         }
-        if (db.factory.isShowSQL())
-        	StatementLogger.select(stat.logSQL());
         return stat;
     }
 
