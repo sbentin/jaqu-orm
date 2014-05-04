@@ -75,6 +75,8 @@ public class SQLStatement {
 
     ResultSet executeQuery() {
         try {
+        	if (db.factory.isShowSQL())
+        		StatementLogger.select(logSQL());
             return prepare().executeQuery();
         } 
         catch (SQLException e) {
