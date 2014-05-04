@@ -28,6 +28,10 @@ import java.util.Map;
  */
 class FullExampleOptions implements ExampleOptions {
 
+	public FullExampleOptions() {
+		
+	}
+	
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeProps(java.util.List)
 	 */
