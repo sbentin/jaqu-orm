@@ -20,6 +20,8 @@
  */
 package com.centimia.orm.jaqu;
 
+import java.util.UUID;
+
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
@@ -28,7 +30,7 @@ import com.centimia.orm.jaqu.util.StatementBuilder;
  * @author shai
  *
  */
-public class InCondition<A> implements Token {
+class InCondition<A> implements Token {
 
 	CompareType compareType;
     A x;
@@ -51,7 +53,7 @@ public class InCondition<A> implements Token {
         StatementBuilder buff = new StatementBuilder(" (");
         for (A item: y) {
         	buff.appendExceptFirst(", ");
-        	if (item instanceof String) {
+        	if ((item instanceof String) || (item instanceof UUID)) {
         		buff.append("'" + item.toString() + "'");
         	}
         	else if (item.getClass().isEnum()) {
@@ -61,8 +63,8 @@ public class InCondition<A> implements Token {
             		default: buff.append("'" + item.toString() + "'"); break;
             	} 
         	}
-        	else if (y != null && y.getClass().getAnnotation(Entity.class) != null) {
-        		Object o = query.getDb().factory.getPrimaryKey(y);
+        	else if (item != null && item.getClass().getAnnotation(Entity.class) != null) {
+        		Object o = query.getDb().factory.getPrimaryKey(item);
         		if (String.class.isAssignableFrom(o.getClass()))
         			buff.append("'" + o.toString() + "'");
         		else
