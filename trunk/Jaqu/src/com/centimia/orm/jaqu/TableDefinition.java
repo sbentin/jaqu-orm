@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import com.centimia.orm.jaqu.annotation.Column;
@@ -83,6 +84,7 @@ class TableDefinition<T> {
 					switch (type) {
 						case ENUM: return actualValue.toString();
 						case ENUM_INT: return ((Enum)actualValue).ordinal();
+						case UUID: return actualValue.toString();
 						default: break;
 					}
 				}
@@ -95,17 +97,24 @@ class TableDefinition<T> {
 
 		Object initWithNewObject(Object obj) {
 			if (Types.ENUM == type || Types.ENUM_INT == type) {
+				// initialize with the first value in the enum (to be used as key)
+				// FIXME in case of enums, this creates a problem when the aliasMap already has this enum as key (which means the object contains two enums of the same type)
 				Class<?> enumClass = field.getType();
 				if (Types.ENUM_INT == type) {
 					Integer enumValue = 0;
 					setValue(obj, enumValue, null);
-					return enumValue;
+					return enumClass.getEnumConstants()[0];
 				}
 				else {
 					String enumValue = enumClass.getEnumConstants()[0].toString();
 					setValue(obj, enumValue, null);
-					return enumValue;
+					return enumClass.getEnumConstants()[0];
 				}
+			}
+			else if (Types.UUID == type) {
+				String sUUID = UUID.randomUUID().toString();
+				setValue(obj, sUUID, null);
+				return sUUID;
 			}
 			else {
 				Object o = Utils.newObject(field.getType());
@@ -129,6 +138,10 @@ class TableDefinition<T> {
 							else {
 								field.set(obj, Enum.valueOf(enumClass, (String)o));
 							}
+						}
+						else if (Types.UUID == type && null != o) {
+							// object from DB should be a String by mapping
+							field.set(obj, UUID.fromString((String)o));
 						}
 						else
 							field.set(obj, o);
@@ -513,7 +526,8 @@ class TableDefinition<T> {
 			
 			if (java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
-					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {				
+					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) 
+					|| UUID.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {				
 				
 				fieldDef.type = getTypes(classType);
 				if (String.class.isAssignableFrom(classType) || classType.isEnum()) {
@@ -531,6 +545,7 @@ class TableDefinition<T> {
 					fieldDef.unique = columnAnnotation.unique();
 					fieldDef.notNull = columnAnnotation.notNull();
 				}
+				
 				if (!getEnumType(fieldDef, columnAnnotation)) {
 					fieldDef.dataType = getDataType(f);
 				}
@@ -774,6 +789,8 @@ class TableDefinition<T> {
 		Class<?> fieldClass = field.getType();
 		if (fieldClass.isPrimitive())
 			fieldClass = ClassUtils.getWrapperClass(fieldClass);
+		else if (fieldClass == java.util.UUID.class)
+			fieldClass = java.lang.String.class;
 		return DIALECT.getDataType(fieldClass);
 	}
 
@@ -941,24 +958,41 @@ class TableDefinition<T> {
 		Object value = field.getValue(obj);
 		// Deal with null primary keys (if object is sequence do a sequence query and update object... if identity you need to query the
 		// object on the way out).
-		if (field.isPrimaryKey && value == null && genType == GeneratorType.SEQUENCE) {
-			ResultSet rs = null;
-			try {
-				rs = db.executeQuery(sequenceQuery);
-				if (rs.next()) {
-					value = rs.getLong(1);
+		if (field.isPrimaryKey && value == null) {
+			 if (genType == GeneratorType.SEQUENCE) {
+				ResultSet rs = null;
+				try {
+					rs = db.executeQuery(sequenceQuery);
+					if (rs.next()) {
+						value = rs.getLong(1);
+					}
+					field.field.set(obj, value); // add the new id to the object
 				}
-				field.field.set(obj, value); // add the new id to the object
-			}
-			catch (SQLException e) {
-				throw new JaquError(e, "Unable to generate key.");
-			}
-			catch (Exception e) {
-				throw new JaquError(e, e.getMessage());
-			}
-			finally {
-				JdbcUtils.closeSilently(rs);
-			}
+				catch (SQLException e) {
+					throw new JaquError(e, "Unable to generate key.");
+				}
+				catch (Exception e) {
+					throw new JaquError(e, e.getMessage());
+				}
+				finally {
+					JdbcUtils.closeSilently(rs);
+				}
+			 }
+			else if (genType == GeneratorType.UUID || UUID.class.isAssignableFrom(field.field.getType())) {
+				try {
+					UUID pk = UUID.randomUUID();
+					// add the new id to the object
+					if (String.class.isAssignableFrom(field.field.getType()))
+						field.field.set(obj, pk.toString()); 
+					else if (UUID.class.isAssignableFrom(field.field.getType()))
+							field.field.set(obj, pk);
+					
+					value = pk.toString(); // the value int underlying Db is varchar
+				}
+				catch (Exception e) {
+					throw new JaquError(e, e.getMessage());
+				}
+			}		 
 		}
 		switch (field.fieldType) {
 			case NORMAL:
@@ -1180,23 +1214,12 @@ class TableDefinition<T> {
 			}
 		}
 	}
-
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	
 	void initSelectObject(SelectTable<T> table, Object obj, Map<Object, SelectColumn<T>> map) {
 		for (FieldDefinition def : fields) {
 			Object o = def.initWithNewObject(obj);
 			SelectColumn<T> column = new SelectColumn<T>(table, def);
-			if (Types.ENUM == def.type) {
-				Class type = def.field.getType();
-				map.put(Enum.valueOf(type, (String)o), column);
-			}
-			else if (Types.ENUM_INT == def.type) {
-				Class type = def.field.getType();
-				map.put(type.getEnumConstants()[(Integer)o], column);
-			}
-			else {
-				map.put(o, column);
-			}
+			map.put(o, column);
 		}
 	}
 
