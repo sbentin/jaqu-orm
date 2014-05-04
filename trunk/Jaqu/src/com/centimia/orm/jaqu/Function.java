@@ -17,6 +17,15 @@ import com.centimia.orm.jaqu.util.Utils;
 
 /**
  * This class provides static methods that represents common SQL functions.
+ * Use as a select method parameter, or in an inner class parameter of selct methods.<br/>
+ * example:<pre>
+ * db.from(p).where(p.id).biggerThan(8).select(Function.max(p.name));
+ * </pre>
+ * This will give a list with a single String object that has the maximum value of name for records with Id bigger than 8.
+ * Same as:
+ * <pre>
+ * select max(name) from [table] where id > 8;
+ * </pre>
  */
 public class Function implements Token {
 
@@ -47,11 +56,21 @@ public class Function implements Token {
         return COUNT_STAR;
     }
 
+    /**
+     * SQL Funcation 'LENGTH'
+     * @param x
+     * @return Integer
+     */
     public static Integer length(Object x) {
         return Db.registerToken(
             Utils.newObject(Integer.class), new Function("LENGTH", x));
     }
 
+    /**
+     * SQL function Sum
+     * @param x
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public static <T extends Number> T sum(T x) {
         return (T) Db.registerToken(
