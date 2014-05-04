@@ -2,7 +2,7 @@ package com.centimia.orm.jaqu;
 
 import java.util.Map;
 
-public interface ISelectTable<T> {
+interface ISelectTable<T> {
 
 	enum JOIN_TYPE {
 		OUTER_JOIN("OUTER JOIN"),
