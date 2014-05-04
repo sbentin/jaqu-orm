@@ -47,6 +47,7 @@ class Condition<A> implements Token {
             	switch (query.getSelectColumn(x).getFieldDefinition().type) {
             		case ENUM: query.appendSQL(stat, y.toString(), false, null); break;
             		case ENUM_INT: query.appendSQL(stat, ((Enum)y).ordinal(), false, null); break;
+            		case UUID: query.appendSQL(stat, y.toString(), false, null); break;
             		default: query.appendSQL(stat, y, false, null); break;
             	}            	
             }
