@@ -32,17 +32,41 @@ class OrderExpression<T> {
         this.nullsLast = nullsLast;
     }
 
-    void appendSQL(SQLStatement stat) {
-        query.appendSQL(stat, expression, false, null);
-        if (desc) {
-            stat.appendSQL(" DESC");
-        }
-        if (nullsLast) {
-            stat.appendSQL(" NULLS LAST");
-        }
-        if (nullsFirst) {
-            stat.appendSQL(" NULLS FIRST");
-        }
-    }
-
+	void appendSQL(SQLStatement stat) {
+		if (1 >= query.getDb().factory.dialect.ordinal()) {
+			query.appendSQL(stat, expression, false, null);
+			// H2, ORACLE dialects support this
+			if (desc) {
+				stat.appendSQL(" DESC");
+				// default null ordering in descending is null last so we only need to check null first
+				if (nullsFirst) {
+					stat.appendSQL(" NULLS FIRST");
+				}
+			}
+			else {
+				stat.appendSQL(" ASC");
+				// default null ordering in ascending is null first so we only need to check null last
+				if (nullsLast) {
+					stat.appendSQL(" NULLS LAST");
+				}
+			}
+		}
+		else {
+			// the others will support something a bit more complex. (CASE WHEN ate.user_id IS NULL THEN 0 ELSE 1 END)
+			if (desc) {
+				if (nullsFirst)
+					stat.appendSQL("(CASE WHEN " + expression + " IS NULL THEN 0 ELSE 1 END), ");
+				
+				query.appendSQL(stat, expression, false, null);
+				stat.appendSQL(" DESC");
+			}
+			else {
+				if (nullsLast)
+					stat.appendSQL("(CASE WHEN " + expression + " IS NULL THEN 0 ELSE 1 END) DESC, ");
+				
+				query.appendSQL(stat, expression, false, null);
+				stat.appendSQL(" ASC");
+			}
+		}
+	}
 }
