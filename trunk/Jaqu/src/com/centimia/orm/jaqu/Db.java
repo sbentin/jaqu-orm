@@ -421,6 +421,12 @@ public class Db {
 						else if (String.class.isAssignableFrom(val.getClass())) {
 							select = select.and(fDef.field.get(desc)).like(val, params.getLikeMode());
 						}
+						else if (val.getClass().isAnnotationPresent(Entity.class)) {							
+							List<Object> joins = selectByExample(val);
+							if (!joins.isEmpty()) {
+								select = select.and(fDef.field.get(desc)).in(joins.toArray());
+							}
+						}
 						else {
 							select = select.and(fDef.field.get(desc)).is(val);
 						}
@@ -434,7 +440,7 @@ public class Db {
 		}
     	return select.select();
     }
-    
+
     /**
      * Returns a single object based on the given class built from the given result set.
      * @param rs
@@ -721,7 +727,7 @@ public class Db {
 					case FK: {
 						Object o = fdef.field.get(t);
 						if (o != null)
-							addSession(o);
+							checkSession(o);
 						break;
 					}
 					case O2M:
