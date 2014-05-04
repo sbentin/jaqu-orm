@@ -27,7 +27,7 @@ import com.centimia.orm.jaqu.annotation.Entity;
  * 
  * @author Shai Bentin
  */
-public class SetDirective<A> implements Token {
+class SetDirective<A> implements Token {
 
 	A x, value;
 	
@@ -53,6 +53,7 @@ public class SetDirective<A> implements Token {
 			switch (query.getSelectColumn(x).getFieldDefinition().type) {
         		case ENUM: query.appendSQL(stat, value.toString(), false, null); break;
         		case ENUM_INT: query.appendSQL(stat, ((Enum)value).ordinal(), false, null); break;
+           		case UUID: query.appendSQL(stat, value.toString(), false, null); break;
         		default: query.appendSQL(stat, value, false, null); break;
         	} 
 		}
