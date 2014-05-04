@@ -26,7 +26,7 @@ package com.centimia.orm.jaqu;
  * 
  * @author shai
  */
-public class PkCondition<A> extends Condition<A> {
+class PkCondition<A> extends Condition<A> {
 
     PkCondition(A x, A y, CompareType compareType) {
         super(x, y, compareType);
