@@ -30,5 +30,15 @@ public interface Logger {
 	 */
 	void debug(String statement);
 
+	/**
+	 * Output to a given log statements relevant as error
+	 * @param statement
+	 */
+	void error(String statement);
+	
+	/**
+	 * true if logging set to debug or lower
+	 * @return boolean
+	 */
 	public boolean isDebugEnabled();
 }
