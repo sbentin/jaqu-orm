@@ -227,7 +227,8 @@ public final class JaquSessionFactory {
 			}
 			throw e;
 		}
-		StatementLogger.log("opening connection " + conn.toString());
+		if (StatementLogger.isDebugEnabled())
+			StatementLogger.debug("opening connection " + conn.toString());
 		return new Db(conn, this);
 	}
     
