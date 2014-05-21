@@ -521,15 +521,15 @@ public class Db {
 						return;
 					}
 					catch (IllegalStateException e) {
-						StatementLogger.log("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
+						StatementLogger.error("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
 					}
 					catch (SystemException e) {
-						StatementLogger.log("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
+						StatementLogger.error("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
 					}
 				}
 			}
 			catch (SystemException e) {
-				StatementLogger.log("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
+				StatementLogger.error("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
 			}
 			catch (NullPointerException npe) {
 				// this means that there is no transaction (getTransaction() was null)
@@ -567,7 +567,7 @@ public class Db {
 					return;
 			}
 			catch (SystemException e) {
-				StatementLogger.log("unable to get transaction status for an unknown reason. [" + e.getMessage() + "]");
+				StatementLogger.error("unable to get transaction status for an unknown reason. [" + e.getMessage() + "]");
 			}
         	catch (NullPointerException npe) {
 				// this means that there is no transaction (getTransaction() was null)
@@ -576,7 +576,8 @@ public class Db {
         		if (null != pojoUtils)
 					pojoUtils.clean();
         		conn.close();
-        		StatementLogger.log("closing connection " + conn.toString());
+        		if (StatementLogger.isDebugEnabled())
+        			StatementLogger.debug("closing connection " + conn.toString());
         	}
         	catch (SQLException e) {
 	            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
@@ -892,6 +893,9 @@ public class Db {
 		List<T> result = Utils.newArrayList();
 		ResultSet rs = null;
 		try {
+			if (factory.isShowSQL())
+				StatementLogger.info(builder.toString());
+			
         	rs = prepare(builder.toString()).executeQuery();
             while (rs.next()) {
                 T item = Utils.newObject(type);
@@ -978,11 +982,11 @@ public class Db {
 			if (!valid) {
 				try {
 					// this is an open invalid connection. A connection that was not closed by the user
-					StatementLogger.log("Closing connection for you!!! Please close it yourself!");
+					StatementLogger.info("Closing connection for you!!! Please close it yourself!");
 					if (null != pojoUtils)
 						pojoUtils.clean();
 					this.conn.close();
-					StatementLogger.log("Invalid connection found!!! Cleaning up");
+					StatementLogger.info("Invalid connection found!!! Cleaning up");
 				}
 				catch (Throwable sqle) {
 					// this means we have a serious problem with this connection. We will return false and send this object for clean up.
@@ -997,18 +1001,18 @@ public class Db {
 			Statement stmnt = conn.createStatement();
 			stmnt.setQueryTimeout(1);
 			if (factory.isShowSQL())
-				StatementLogger.log("select 1");
+				StatementLogger.info("select 1");
 			stmnt.executeQuery("select 1");
 		}
 		catch (Throwable t) {
 			// catching any throwable here means the connection is not valid any more
 			try {
 				// this is an open invalid connection. A connection that was not closed by the user
-				StatementLogger.log("Closing connection for you!!! Please close it yourself!");
+				StatementLogger.info("Closing connection for you!!! Please close it yourself!");
 				if (null != pojoUtils)
 					pojoUtils.clean();
 				this.conn.close();
-				StatementLogger.log("Invalid connection found!!! Cleaning up");
+				StatementLogger.info("Invalid connection found!!! Cleaning up");
 			}
 			catch (Throwable sqle) {
 				// this means we have a serious problem with this connection. We will return false and send this object for clean up.
