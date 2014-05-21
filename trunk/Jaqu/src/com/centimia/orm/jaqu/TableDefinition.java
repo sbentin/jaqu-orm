@@ -276,7 +276,7 @@ class TableDefinition<T> {
 			catch (Exception e) {
 				String objectString = (obj == null) ? "null" : obj.getClass().getName();
 				String valueString = (o == null) ? null : o.toString();
-				String msg = String.format("[Object: %s], [value: %s]\t", objectString, valueString);						
+				String msg = String.format("[Object: %s], [value: %s]\t", objectString, valueString);
 				throw new JaquError(e, msg + e.getMessage());
 			}
 		}
@@ -1225,6 +1225,8 @@ class TableDefinition<T> {
 
 	void readRow(Object item, ResultSet rs, Db db) {
 		for (FieldDefinition def: fields) {
+			if (StatementLogger.isDebugEnabled())
+				StatementLogger.debug("Working on Field: " + def.field.getName());
 			if (!def.isSilent) {
 				Object o = def.read(rs, DIALECT);
 				def.setValue(item, o, db);
