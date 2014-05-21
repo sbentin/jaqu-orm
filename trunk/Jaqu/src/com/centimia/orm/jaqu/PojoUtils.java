@@ -434,7 +434,7 @@ public class PojoUtils {
         }
 		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');
 		if (db.factory.isShowSQL())
-			StatementLogger.log(buff.toString());
+			StatementLogger.info(buff.toString());
 		return buff;
     }
 	
@@ -475,7 +475,7 @@ public class PojoUtils {
 			return null;
 		}
 		if (db.factory.isShowSQL())
-			StatementLogger.log(buff.toString());
+			StatementLogger.info(buff.toString());
 		return buff;
 	}
 
@@ -500,7 +500,7 @@ public class PojoUtils {
 			firstCondition = false;
 		}
 		if (db.factory.isShowSQL())
-			StatementLogger.log(buff.toString());
+			StatementLogger.info(buff.toString());
 		return buff;
 	}
 	
