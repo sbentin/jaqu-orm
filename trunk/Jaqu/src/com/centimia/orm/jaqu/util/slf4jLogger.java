@@ -31,4 +31,8 @@ public class slf4jLogger implements Logger {
 	public boolean isDebugEnabled(){
 		return logger.isDebugEnabled();
 	}
+
+	public void error(String statement) {
+		logger.error(statement);		
+	}
 }
