@@ -41,5 +41,13 @@ public class SimpleLogger implements Logger {
 	 */
 	public void info(String statement) {
 		logger.info(statement);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.util.Logger#error(java.lang.String)
+	 */
+	public void error(String statement) {
+		logger.severe(statement);
 	} 	
 }
