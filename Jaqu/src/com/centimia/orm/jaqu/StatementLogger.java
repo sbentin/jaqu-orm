@@ -86,10 +86,28 @@ public class StatementLogger {
     }
 
     static void log(String statement) {
-    	isGathering = true;
-    	logger.info(statement);
+    	if (logger.isDebugEnabled()) {
+    		isGathering = true;
+    		logger.debug(statement);
+    	}
     }
 
+    static void error(String statement) {
+    	logger.error(statement);
+    }
+    
+    static void debug(String statement) {
+    	logger.debug(statement);
+    }
+    
+    static void info(String statement) {
+    	logger.info(statement);		
+	}
+    
+    static boolean isDebugEnabled() {
+    	return logger.isDebugEnabled();
+    }
+    
     /**
      * print CRUD usage statistics: how many selects, inserts, deletes and such were performed.
      */
