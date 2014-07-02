@@ -19,6 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -425,6 +426,11 @@ public class Db {
 							List<Object> joins = selectByExample(val);
 							if (!joins.isEmpty()) {
 								select = select.and(fDef.field.get(desc)).in(joins.toArray());
+							}
+							else {
+								// this means that the child entity was not flagged out, and nothing was found to match the example
+								// therefore we must conclude that there is no match for our search.
+								return new ArrayList<T>();
 							}
 						}
 						else {
