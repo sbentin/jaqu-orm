@@ -203,8 +203,8 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	@SuppressWarnings("hiding")
 	protected class JaquIterator<E> implements Iterator<E>{
 
-		private final Iterator<E> delagete;
-		private E current;
+		protected final Iterator<E> delagete;
+		protected E current;
 		
 		JaquIterator(Iterator<E> iter) {
 			this.delagete = iter;

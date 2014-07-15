@@ -1243,6 +1243,20 @@ public class Db {
 				otherSideRelation.set(child, null);
 				otherSideRelation.setAccessible(false);
 			}
+			catch (NoSuchFieldException nsfe) {
+				// this is not a two sided relationship, we need to update the table with the id
+				// when we reach here the object has already been merged. All we need to do is update it.
+				
+				// Calling define here costs very little since this table's definition is cached.
+				TableDefinition<?> def = define(child.getClass());
+				StatementBuilder updateQuery = new StatementBuilder("UPDATE ").append(def.tableName);
+				updateQuery.append(" SET ").append(fdef.relationDefinition.relationFieldName).append(" = ").append("null");
+				// we assume that our table has a single column primary key.
+				String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
+				updateQuery.append(" WHERE ").append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
+				
+				executeUpdate(updateQuery.toString());
+			}
 			catch (Exception e) {
 				throw new JaquError(e, e.getMessage());
 			}
