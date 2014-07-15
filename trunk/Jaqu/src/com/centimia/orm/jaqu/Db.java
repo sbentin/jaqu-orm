@@ -1242,6 +1242,8 @@ public class Db {
 				otherSideRelation.setAccessible(true);
 				otherSideRelation.set(child, null);
 				otherSideRelation.setAccessible(false);
+				// updates the child in the DB.
+				update(child);
 			}
 			catch (NoSuchFieldException nsfe) {
 				// this is not a two sided relationship, we need to update the table with the id
