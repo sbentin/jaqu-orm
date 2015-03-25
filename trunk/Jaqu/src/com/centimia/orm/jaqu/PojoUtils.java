@@ -57,7 +57,8 @@ public class PojoUtils {
      * @param batchSize - battch interval size
      * @param tArray
      */
-    public <T> void insertBatch(final int batchSize, T ... tArray) {
+    @SuppressWarnings("unchecked")
+	public <T> void insertBatch(final int batchSize, T ... tArray) {
     	if (null == tArray || 0 == tArray.length)
     		return;
 
