@@ -218,6 +218,23 @@ public interface QueryInterface<T> {
 	 */
 	public <Z> String getSQL(Z z);
 
+	/**
+	 * Create a having clause based on the column given.
+	 * <b>You can only use a single having in a select clause</b>
+	 * 
+	 * @param x
+	 * @return QueryCondition<T, A>
+	 */
+	public <A> QueryCondition<T, A> having(A x);
+	
+	/**
+	 * having clause with a supported aggregate function
+	 * @param function
+	 * @param x
+	 * @return QueryCondition<T, Long>
+	 */
+	public <A> QueryCondition<T, Long> having(HavingFunctions function, A x);
+	
 	public abstract List<T> union(String unionQuery);
 
 	public abstract List<T> intersect(String intersectQuery);
