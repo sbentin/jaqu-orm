@@ -31,6 +31,7 @@ public class Function implements Token {
 
     // must be a new instance
     private static final Long COUNT_STAR = Long.valueOf(0);
+    private static final Long IGNORE = Long.valueOf(-1);
 
     protected Object[] x;
     protected String name;
@@ -56,6 +57,10 @@ public class Function implements Token {
         return COUNT_STAR;
     }
 
+    public static Long ignore() {
+    	return IGNORE;
+    }
+    
     /**
      * SQL Funcation 'LENGTH'
      * @param x
@@ -173,44 +178,7 @@ public class Function implements Token {
         return Db.registerToken(o, new Function("AVG", x));
     }
     
-    /**
-     * creates a function that if 'checkExpression' is null then put 'replacementValue'
-     * 
-     * @param <X>
-     * @param checkExpression
-     * @param replacementValue
-     * @return
-     */
-    @SuppressWarnings("unchecked")
-	public static <X> X ifNull(X checkExpression, final Object replacementValue){
-    	Class<X> clazz = (Class<X>) checkExpression.getClass();
-    	X o = Utils.newObject(clazz);
-    	
-    	return Db.registerToken(o, new Function("IFNULL", checkExpression, replacementValue){
-    		public <T> void appendSQL(SQLStatement stat, Query<T> query){
-    			Dialect d = query.getDb().factory.getDialect();
-    			name = d.getFunction(Functions.IFNULL);
-    			stat.appendSQL(name).appendSQL("(");
-    			// check_expression
-    			query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
-    			stat.appendSQL(", ");
-    			
-    			// replacement value
-    			if (null == replacementValue){
-    				if (name.equals("COALESCE"))
-    					stat.appendSQL("''");
-    				else
-    					stat.appendSQL("null");
-    			}
-    			else if (String.class.isAssignableFrom(replacementValue.getClass())){
-    				stat.appendSQL("'" + replacementValue + "'");
-    			}
-    			else
-    				stat.appendSQL(replacementValue.toString());
-    			stat.appendSQL(")");
-    		}
-    	});
-    }
+    
     
     /**
      * This performs a like operation at column level and returns in that column a true or false value depending on what was checked.
@@ -231,6 +199,62 @@ public class Function implements Token {
         });
     }
 
+    /**
+     * creates a function that if 'checkExpression' is null then put 'replacementValue'
+     * 
+     * @param <X>
+     * @param checkExpression
+     * @param replacementValue
+     * @return
+     */
+	public static <X> X ifNull(X checkExpression, final Object replacementValue){
+    	return ifNull(checkExpression, replacementValue, false);
+    }
+    
+    /**
+     * creates a function that if 'checkExpression' is null then put 'replacementValue'
+     * 
+     * @param <X>
+     * @param checkExpression
+     * @param replacementValue
+     * @param isField - true if the second value is also a db field
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+	public static <X> X ifNull(X checkExpression, final Object replacementValue, final boolean isField){
+    	Class<X> clazz = (Class<X>) checkExpression.getClass();
+    	X o = Utils.newObject(clazz);
+    	
+    	return Db.registerToken(o, new ReplacementFunctions(isField, "IFNULL", checkExpression, replacementValue) {
+    		public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+    			Dialect d = query.getDb().factory.getDialect();
+    			name = d.getFunction(Functions.IFNULL);
+    			stat.appendSQL(name).appendSQL("(");
+    			// check_expression
+    			query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
+    			stat.appendSQL(", ");
+    			
+    			// replacement value
+    			if (null == replacementValue){
+    				if (name.equals("COALESCE"))
+    					stat.appendSQL("''");
+    				else
+    					stat.appendSQL("null");
+    			}
+    			else if (isField){
+    				query.appendSQL(stat, x[1], x[1].getClass().isEnum(), x[1].getClass());
+    			}
+    			else if (String.class.isAssignableFrom(replacementValue.getClass())){
+    				stat.appendSQL("'" + replacementValue + "'");
+    			}
+    			else {
+    				stat.appendSQL(replacementValue.toString());
+    			}
+    			stat.appendSQL(")");
+    		}
+    	});
+    }
+    
     /**
 	 * @param x
 	 * @param clazz
