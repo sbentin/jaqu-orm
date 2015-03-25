@@ -127,6 +127,7 @@ public class MySqlDialect implements SQLDialect {
 			case BYTE: return rs.getByte(columnName);
 			case ENUM: return rs.getString(columnName);
 			case ENUM_INT: return rs.getInt(columnName);
+			case BIGDECIMAL: return rs.getBigDecimal(columnName);
 			default: return rs.getObject(columnName);
 		}
 	}
