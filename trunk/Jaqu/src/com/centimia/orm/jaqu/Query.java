@@ -613,6 +613,39 @@ public class Query<T> implements FullQueryInterface<T> {
 		}
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#having(java.lang.Object)
+	 */
+	public <A> QueryCondition<T, A> having(final A x) {
+		Token conditionCode = new Token() {
+			
+			@SuppressWarnings("hiding")
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+				stat.appendSQL("having ");
+			}
+		};
+		conditions.add(conditionCode);
+		return new QueryCondition<T, A>(this, x);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#having(com.centimia.orm.jaqu.HavingFunctions, java.lang.Object)
+	 */
+	public <A> QueryCondition<T, Long> having(HavingFunctions function, final A x) {		
+		Token conditionCode = new Token() {
+			
+			@SuppressWarnings("hiding")
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+				stat.appendSQL("having ");
+			}
+		};
+		conditions.add(conditionCode);
+		conditions.add(new Function(function.name(), x));
+		return new QueryCondition<T, Long>(this, Function.ignore());
+	}
+	
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#groupBy(java.lang.Object)
 	 */
@@ -627,6 +660,9 @@ public class Query<T> implements FullQueryInterface<T> {
     public void appendSQL(SQLStatement stat, Object x, boolean isEnum, Class<?> enumClass) {
         if (x == Function.count()) {
             stat.appendSQL("COUNT(*)");
+            return;
+        }
+        if (x == Function.ignore()) {
             return;
         }
         SelectColumn<T> col = null;
@@ -669,13 +705,13 @@ public class Query<T> implements FullQueryInterface<T> {
             for (Token token : conditions) {
                 token.appendSQL(stat, this);
                 stat.appendSQL(" ");
-                // FIXME Here is the specific use of the PkConditions. When inheritence is done base on a discriminator it may be the situation
+                // FIXME Here is the specific use of the PkConditions. When inheritance is done base on a discriminator it may be the situation
                 // where the object that needs to be mapped declares a parent (in a relationship O2O or O2M) but the actual data represents an
-                // inherited child. Since this is internally fetched by Jaqu, and since this is based on a definit and known primary key
+                // inherited child. Since this is internally fetched by Jaqu, and since this is based on a definite and known primary key
                 // we can omit the discriminator in the query. This opens the discussion to potential problems as the object type returned is not
                 // the inherited child but the parent type. For one it will be impossible to cast it to the child and get the other fields since they will not
                 // exist. It could also be a problem saving it as updating may override the type of object. 
-                // Best thing if we could return an the actual child type here, if not maybe find a way to return an immutible object.
+                // Best thing if we could return an the actual child type here, if not maybe find a way to return an immutable object.
                 if (PkCondition.class.isAssignableFrom(token.getClass()) || PkInCondition.class.isAssignableFrom(token.getClass()))
                 	useDiscriminator = false;
             }
