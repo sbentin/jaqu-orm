@@ -160,7 +160,12 @@ public class H2Dialect implements SQLDialect{
 	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, java.lang.String)
 	 */
 	public Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException {
-		return rs.getObject(columnName);
+		switch (type) {
+			case ENUM: return rs.getString(columnName);
+			case ENUM_INT: return rs.getInt(columnName);
+			case BIGDECIMAL: return rs.getBigDecimal(columnName);
+			default: return rs.getObject(columnName);
+		}
 	}
 	
 	/**
