@@ -147,7 +147,8 @@ public class Db {
      * @param <T>
      * @param tArray
      */
-    public <T> void insert(T ... tArray) {
+    @SuppressWarnings("unchecked")
+	public <T> void insert(T ... tArray) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t : tArray) {
@@ -207,7 +208,8 @@ public class Db {
      * @param <T>
      * @param tArray
      */
-    public <T> void merge(T ... tArray) {
+    @SuppressWarnings("unchecked")
+	public <T> void merge(T ... tArray) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: tArray){
@@ -277,7 +279,8 @@ public class Db {
      * @param <T>
      * @param list
      */
-    public <T> void delete(T ... tArray) {
+    @SuppressWarnings("unchecked")
+	public <T> void delete(T ... tArray) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: tArray){
@@ -354,7 +357,8 @@ public class Db {
      * @param list
      * @see Db#update(Object))
      */
-    public <T> void update(T ... tArray){
+    @SuppressWarnings("unchecked")
+	public <T> void update(T ... tArray){
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
     	for (T t: tArray){
@@ -730,6 +734,7 @@ public class Db {
     	for (FieldDefinition fdef: tdef.getFields()) {
     		try {
 				switch (fdef.fieldType) {
+					case M2O:	
 					case NORMAL: continue;
 					case FK: {
 						Object o = fdef.field.get(t);
@@ -1061,6 +1066,8 @@ public class Db {
 			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
 			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
 			case M2O: handleM2ORelationship(field, table, obj, primaryKey, relationPK); return;
+			case FK:
+			case NORMAL: return;
 		}
 	}
 
