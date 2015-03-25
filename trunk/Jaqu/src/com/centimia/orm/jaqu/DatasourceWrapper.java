@@ -22,7 +22,9 @@ package com.centimia.orm.jaqu;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Wrapper;
+import java.util.logging.Logger;
 
 import javax.sql.CommonDataSource;
 import javax.sql.DataSource;
@@ -36,16 +38,16 @@ import javax.sql.XADataSource;
  */
 class DatasourceWrapper implements DataSource, XADataSource {
 
-	private final Object datasource;
+	private final CommonDataSource datasource;
 	private final boolean isXA;
 	
 	public DatasourceWrapper(Object datasource) {
 		if (DataSource.class.isAssignableFrom(datasource.getClass())) {
-			this.datasource = datasource;
+			this.datasource = (CommonDataSource)datasource;
 			this.isXA = false;
 		}
 		else if (XADataSource.class.isAssignableFrom(datasource.getClass())) {
-			this.datasource = datasource;
+			this.datasource = (CommonDataSource)datasource;
 			this.isXA = true;
 		}
 		else
@@ -136,5 +138,14 @@ class DatasourceWrapper implements DataSource, XADataSource {
 	 */
 	boolean isXA() {
 		return this.isXA;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see javax.sql.CommonDataSource#getParentLogger()
+	 */
+	@Override
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+		return this.datasource.getParentLogger();
 	}
 }
