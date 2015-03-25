@@ -14,7 +14,7 @@
 /*
  ISSUE			DATE			AUTHOR
 -------		   ------	       --------
-Created		   May 6, 2012			shai
+Created		   May 6, 2012		shai
 
 */
 package com.centimia.orm.jaqu.ext.common;
@@ -61,14 +61,14 @@ public class CommonAssembly {
 		return new BuildStats(success, failure, ignored);
 	}
 	
-	private static boolean assembleFile(File classFile) throws Exception {
+	public static boolean assembleFile(File classFile) throws Exception {
 		FileInputStream fis = new FileInputStream(classFile);
         byte[] b = null;       
        
     	ClassReader cr = new ClassReader(fis);
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
             		
-        JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM4, cw);
+        JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM5, cw);
         cr.accept(jaquClassAdapter, 0);
         
         if (jaquClassAdapter.isJaquAnnotated()) {
