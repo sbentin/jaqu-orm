@@ -49,7 +49,7 @@ class SetDirective<A> implements Token {
 			query.getDb().merge(value);
 			query.appendSQL(stat, query.getDb().factory.getPrimaryKey(value), false, null);
 		}
-		else if (value != null && value.getClass().isEnum()) {
+		else if (value != null && (value.getClass().isEnum() || value.getClass().getSuperclass().isEnum())) {
 			switch (query.getSelectColumn(x).getFieldDefinition().type) {
         		case ENUM: query.appendSQL(stat, value.toString(), false, null); break;
         		case ENUM_INT: query.appendSQL(stat, ((Enum)value).ordinal(), false, null); break;
