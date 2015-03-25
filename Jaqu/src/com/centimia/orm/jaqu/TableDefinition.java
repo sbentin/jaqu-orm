@@ -1181,7 +1181,12 @@ class TableDefinition<T> {
 		if (db.factory.isShowSQL())
 			StatementLogger.create(stat.logSQL());
 		stat.executeUpdate();
-		createIndices(db);
+		try {
+			createIndices(db);
+		}
+		catch (Throwable any){
+			StatementLogger.log("Unable to create indices [May be they exist]. " + any.getMessage());
+		}
 		AlterTableDiscriminatorIfRequired(db);
 		return this;
 	}
