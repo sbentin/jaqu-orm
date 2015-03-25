@@ -52,6 +52,30 @@ public class QueryJoinWhere<T> {
 		return new QueryJoinCondition<T, A>(query, join, x);
 	}
 	
+	/**
+	 * Create a having clause based on the column given.
+	 * <b>You can only use a single having in a select clause</b>
+	 * 
+	 * @param x
+	 * @return QueryCondition<T, A>
+	 */
+	public <A> QueryJoinCondition<T, A> having(final A x) {
+		query.having(x);
+		return new QueryJoinCondition<T, A>(query, join, x);
+	}
+	
+	/**
+	 * having clause with a supported aggregate function
+	 * 
+	 * @param function
+	 * @param x
+	 * @return QueryCondition<T, Long>
+	 */
+	public <A> QueryJoinCondition<T, Long> having(HavingFunctions function, final A x) {		
+		query.having(function, x);
+		return new QueryJoinCondition<T, Long>(query, join, Function.ignore());
+	}
+	
     /**
      * Opens a where clause after join.
      * 
@@ -63,6 +87,15 @@ public class QueryJoinWhere<T> {
         return new QueryCondition<T, A>(query, x);
     }
 	
+    /**
+     * create a where clause based on a String Filter (String based where clause)
+     * @param whereCondition
+     * @return QueryWhere<T>
+     */
+    public <A> QueryWhere<T> where(final StringFilter whereCondition){
+    	return query.where(whereCondition);
+    }
+    
     /**
 	 * inner Join another table. (returns only rows that match)
 	 *
@@ -86,8 +119,8 @@ public class QueryJoinWhere<T> {
     }
     
     /**
-	 * interescts the query with the inner query returning all that match both selects.
-	 * All regular rules apply, make sure both querys return the same result set type.
+	 * Intersects the query with the inner query returning all that match both selects.
+	 * All regular rules apply, make sure both queries return the same result set type.
 	 * 
 	 * @param intersectQuery
 	 * @return List<T>
@@ -245,6 +278,7 @@ public class QueryJoinWhere<T> {
 		return query.selectDistinctRightHandJoin(table);
 	}
 
+	
 	/**
 	 * Group By ordered objects
 	 * 
