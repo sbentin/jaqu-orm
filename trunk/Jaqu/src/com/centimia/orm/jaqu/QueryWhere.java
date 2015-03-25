@@ -50,6 +50,27 @@ public class QueryWhere<T> {
 	}
 
 	/**
+	 * Create a having clause based on the column given.
+	 * <b>You can only use a single having in a select clause</b>
+	 * 
+	 * @param x
+	 * @return QueryCondition<T, A>
+	 */
+	public <A> QueryCondition<T, A> having(final A x) {
+		return query.having(x);
+	}
+	
+	/**
+	 * having clause with a supported aggregate function
+	 * @param function
+	 * @param x
+	 * @return QueryCondition<T, Long>
+	 */
+	public <A> QueryCondition<T, Long> having(HavingFunctions function, final A x) {		
+		return query.having(function, x);
+	}
+	
+	/**
 	 * Performs the select of the query. Returns the results or an empty list. Does not return null.
 	 * This select returns a List of a given object that mapping is given to from the result set to the field in that object 
 	 * 
@@ -97,8 +118,8 @@ public class QueryWhere<T> {
 	}
 	
 	/**
-	 * interescts the query with the inner query returning all that match both selects.
-	 * All regular rules apply, make sure both querys return the same result set type.
+	 * Intersects the query with the inner query returning all that match both selects.
+	 * All regular rules apply, make sure both queries return the same result set type.
 	 * 
 	 * @param intersectQuery
 	 * @return List<T>
@@ -109,7 +130,7 @@ public class QueryWhere<T> {
 	
 	/**
 	 * unions the query with the inner query returning all that match either one of the selects.
-	 * All regular rules apply, make sure both querys return the same result set type.
+	 * All regular rules apply, make sure both queries return the same result set type.
 	 * 
 	 * @param intersectQuery
 	 * @return List<T>
@@ -164,24 +185,53 @@ public class QueryWhere<T> {
 		return list.isEmpty() ? null : list.get(0);
 	}
 
+	/**
+	 * Select only distinct results in the table
+	 * 
+	 * @return List<T>
+	 */
 	public List<T> selectDistinct() {
 		return query.selectDistinct();
 	}
 
+	/**
+	 * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+	 * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
+	 * 
+	 * @param tableClass - the object descriptor of the type needed on return
+	 * @throws JaquError - when not in join query
+	 */
 	public <U> List<U> selectRightHandJoin(U table) {
 		return query.selectRightHandJoin(table);
 	}
-
+	
+    /**
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     */
 	public <U> U selectFirstRightHandJoin(U table) {
 		return query.selectFirstRightHandJoin(table);
 	}
 
+    /**
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     */
 	public <U> List<U> selectDistinctRightHandJoin(U table) {
 		return query.selectDistinctRightHandJoin(table);
 	}
 
-	// ## Java 1.5 end ##
-
+	/**
+	 * Group By ordered objects
+	 * @param groupBy
+	 * @return FullQueryInterface<T>
+	 */
 	public QueryInterface<T> groupBy(Object ... groupBy){
 		return query.groupBy(groupBy);
 	}
