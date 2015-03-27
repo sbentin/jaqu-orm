@@ -23,7 +23,7 @@ Here are some of the features:
 # Using eclipse #
 Use automatic update for eclipse to get the plugin from the site.
 
-update site URL: TBD
+update site URL: https://github.com/sbentin/jaqu-orm/tree/master/plugin
 
 Once you have the plugin installed you will find that it was unpacked into your plugins directory of eclipse. In that plugin directory, under lib you will find jaqu.jar and jaqu-ext.jar. You will need jaqu.jar for your run-time deployment of your code. You will need jaqu-ext.jar, only if you plan on using ant and not the plugin. For development however you will not need any of these jars as the plugin takes care of that for you.
 
