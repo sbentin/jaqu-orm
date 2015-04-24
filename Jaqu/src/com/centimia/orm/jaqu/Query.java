@@ -326,7 +326,7 @@ public class Query<T> implements FullQueryInterface<T> {
         if (stat.getSQL().indexOf("SET") == -1)
         	throw new JaquError("IllegalState - To perform update use the set directive after from...!!!");
         if (db.factory.isShowSQL())
-        	StatementLogger.update(stat.getSQL());
+        	StatementLogger.update(stat.logSQL());
         return stat.executeUpdate();
     }
 
@@ -618,13 +618,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	 * @see com.centimia.orm.jaqu.QueryInterface#having(java.lang.Object)
 	 */
 	public <A> QueryCondition<T, A> having(final A x) {
-		Token conditionCode = new Token() {
-			
-			@SuppressWarnings("hiding")
-			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-				stat.appendSQL("having ");
-			}
-		};
+		HavingToken conditionCode = new HavingToken();
 		conditions.add(conditionCode);
 		return new QueryCondition<T, A>(this, x);
 	}
@@ -634,13 +628,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	 * @see com.centimia.orm.jaqu.QueryInterface#having(com.centimia.orm.jaqu.HavingFunctions, java.lang.Object)
 	 */
 	public <A> QueryCondition<T, Long> having(HavingFunctions function, final A x) {		
-		Token conditionCode = new Token() {
-			
-			@SuppressWarnings("hiding")
-			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-				stat.appendSQL("having ");
-			}
-		};
+		HavingToken conditionCode = new HavingToken();
 		conditions.add(conditionCode);
 		conditions.add(new Function(function.name(), x));
 		return new QueryCondition<T, Long>(this, Function.ignore());
@@ -701,7 +689,9 @@ public class Query<T> implements FullQueryInterface<T> {
     void appendWhere(SQLStatement stat) {
     	boolean useDiscriminator = true;
     	if (!conditions.isEmpty()) {
-            stat.appendSQL(" WHERE ");
+            if (!(conditions.get(0) instanceof HavingToken))
+            	// if the first token is not a "having" sql clause then we print WHERE
+            	stat.appendSQL(" WHERE ");
             for (Token token : conditions) {
                 token.appendSQL(stat, this);
                 stat.appendSQL(" ");
@@ -753,7 +743,15 @@ public class Query<T> implements FullQueryInterface<T> {
         }
         appendWhere(stat);
         if (groupByExpressions != null) {
-            stat.appendSQL(" GROUP BY ");
+            int havingIdx = stat.getSQL().indexOf("having");
+            String havingQuery = null;
+            if (havingIdx != -1) {
+            	// we need to insert the group by before the having.
+            	String currentQuery = stat.getSQL().substring(0, havingIdx);
+            	havingQuery = stat.getSQL().substring(havingIdx);            	
+            	stat.setSQL(currentQuery);
+            }
+        	stat.appendSQL(" GROUP BY ");
             int i = 0;
             for (Object obj : groupByExpressions) {
                 if (i++ > 0) {
@@ -762,6 +760,8 @@ public class Query<T> implements FullQueryInterface<T> {
                 appendSQL(stat, obj, obj.getClass().isEnum(), obj.getClass());
                 stat.appendSQL(" ");
             }
+            if (null != havingQuery)
+            	stat.appendSQL(havingQuery);
         }
         if (!orderByList.isEmpty()) {
             stat.appendSQL(" ORDER BY ");

@@ -67,7 +67,7 @@ public class CommonAssembly {
        
     	ClassReader cr = new ClassReader(fis);
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
-            		
+          		
         JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM5, cw);
         cr.accept(jaquClassAdapter, 0);
         
