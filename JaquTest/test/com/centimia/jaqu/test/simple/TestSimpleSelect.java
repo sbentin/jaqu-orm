@@ -20,6 +20,8 @@ import java.util.List;
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.Function;
+import com.centimia.orm.jaqu.HavingFunctions;
 import com.centimia.orm.jaqu.LikeMode;
 
 /**
@@ -49,6 +51,7 @@ public class TestSimpleSelect extends JaquTest {
 				
 			// Select all rows from the Testtable1 in the DB
 			TableForFunctions desc = new TableForFunctions();
+			System.out.println(db.from(desc).where(desc.getName()).like("%me1").having(HavingFunctions.COUNT, desc.getId()).bigger(1L).getSQL());
 			List<TableForFunctions> rows = db.from(desc).where(desc.getName()).like("%me1").select();
 			assertEquals(5, rows.size());
 			

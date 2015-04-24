@@ -17,11 +17,10 @@ package com.centimia.jaqu.test.simple;
 
 import java.util.List;
 
-import com.centimia.orm.jaqu.Function;
-
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.Function;
 
 /**
  * 
@@ -57,7 +56,6 @@ public class TestSimpleOuterJoin extends JaquTest {
 			assertEquals(2, t2Results.size());
 			
 			// this way we narrow down the select to fit only what we require as we would do in a regular select.
-			System.out.println(db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).where(t2Desc.getId()).isNotNull().getSQL());
 			List<TestTable2> t3Results = db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).where(t2Desc.getId()).isNotNull().selectRightHandJoin(t2Desc);
 			for (Object t3Result: t3Results) {
 				assertNotNull(((TestTable2)t3Result).getDescription());

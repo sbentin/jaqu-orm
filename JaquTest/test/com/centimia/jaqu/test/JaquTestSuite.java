@@ -43,12 +43,12 @@ import com.centimia.jaqu.test.simple.TestFunctions;
 import com.centimia.jaqu.test.simple.TestPojoUtils;
 import com.centimia.jaqu.test.simple.TestQueryByExample;
 import com.centimia.jaqu.test.simple.TestSimpleDelete;
+import com.centimia.jaqu.test.simple.TestSimpleHaving;
 import com.centimia.jaqu.test.simple.TestSimpleInnerJoin;
 import com.centimia.jaqu.test.simple.TestSimpleInsert;
 import com.centimia.jaqu.test.simple.TestSimpleObjectUpdate;
 import com.centimia.jaqu.test.simple.TestSimpleOuterJoin;
 import com.centimia.jaqu.test.simple.TestSimpleSelect;
-import com.centimia.jaqu.test.simple.TestUnificationMethods;
 import com.centimia.jaqu.test.transaction.TransactionTests;
 import com.centimia.orm.jaqu.StatementLogger;
 
@@ -92,6 +92,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestSimpleDelete());
 		suite.addTest(new TestSimpleInnerJoin());
 		suite.addTest(new TestSimpleOuterJoin());
+		suite.addTest(new TestSimpleHaving());
 		suite.addTest(new TestEnumType());
 		suite.addTest(new TestFunctions());
 		suite.addTest(new TestSimpleSelect());
@@ -112,7 +113,7 @@ public class JaquTestSuite {
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
 		suite.addTest(new RelationWitVarcharPrimaryTest());
-//		suite.addTest(new TestMultiRef());
+		suite.addTest(new TestMultiRef());
 		
 		// general test (work both on entites and pojos
 		suite.addTest(new TestQueryByExample());
