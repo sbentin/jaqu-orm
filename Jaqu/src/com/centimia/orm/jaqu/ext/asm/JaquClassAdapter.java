@@ -80,7 +80,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 		// 1. if name is in the list of o2m and return type is collection instrument add call to db.getRelationFromDb or db.getRelationArrayFromDb, only if value of field is null;
-		if ((isEntityAnnotationPresent || isMappedSupperClass) && name.startsWith("get")) {
+		 if ((isEntityAnnotationPresent || isMappedSupperClass) && name.startsWith("get")) {
 			// this is a getter check if it is a relation getter
 			if (relationFields.contains(name.substring(3).toLowerCase())) {
 				// this is a relationship.
@@ -115,7 +115,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 			if (desc.indexOf("java/util/List") != -1 || desc.indexOf("java/util/Set") != -1 || desc.indexOf("java/util/Collection") != -1)
 				relationFields.add(name.toLowerCase());
 		}
-		return super.visitField(access, name, desc, signature, value);
+		return new JaquFieldVisitor(Opcodes.ASM5, super.visitField(access, name, desc, signature, value), name.toLowerCase(), relationFields);
 	}
 	
 	/* (non-Javadoc)
