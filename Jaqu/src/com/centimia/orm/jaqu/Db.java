@@ -44,7 +44,7 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
 public class Db {
 
     private static final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
-
+    
     private Connection conn;
     protected JaquSessionFactory factory;
     
@@ -291,7 +291,7 @@ public class Db {
     /**
      * Deletes all elements from the table.
      * <b>Note></b> this utility method simply executes "delete from [TableName]". It runs without a session on the connection. 
-	 * the method is not complient with cascade and will throw an exception when unable to delete due to constraints.
+	 * the method is not compliant with cascade and will throw an exception when unable to delete due to constraints.
      * 
      * @param clazz<T>
      * @return int - num of elements deleted
@@ -367,13 +367,48 @@ public class Db {
     }
     
     /**
-     * The query will be built according to all fields that have value within the example object.
+     * The query will be built according to all immediate fields (not including relationships) that have value within the example object.
      * 
      * @param example
      * @return List<T>
      */
     public <T> List<T> selectByExample(T example){
-    	return selectByExample(example, new FullExampleOptions());
+    	return selectByExample(example, new BasicExampleOptions(example, this));
+    }
+    
+    /**
+     * Select by example using a builder object result type mapping. The example is built based on {@link BasicExampleOptions}.
+     * 
+     * @param example
+     * @param result
+     * @return List<X>
+     */
+    public <T, Z, X> List<X> selectByExample(T example, Z result) {
+    	QueryWhere<T> select = getExampleQuery(example, new BasicExampleOptions(example, this));
+    	if (null == select)
+    		// this means that the child entity was not flagged out, and nothing was found to match the example
+			// therefore we must conclude that there is no match for our search.
+    		return new ArrayList<X>();
+    	return select.select(result);
+    }
+    
+    /**
+     * Select by example using a builder object result type mapping. The example is built based on the given example options.
+     * 
+     * @see GeneralExampleOptions
+     * @see FullExampleOptions
+     * @param example
+     * @param result
+     * @param params
+     * @return List<X>
+     */
+    public <T, Z, X> List<X> selectByExample(T example, Z result, ExampleOptions params) {
+    	QueryWhere<T> select = getExampleQuery(example, params);
+    	if (null == select)
+    		// this means that the child entity was not flagged out, and nothing was found to match the example
+			// therefore we must conclude that there is no match for our search.
+    		return new ArrayList<X>();
+    	return select.select(result);
     }
     
     /**
@@ -385,7 +420,22 @@ public class Db {
      * @param params
      * @return List<T>
      */
-    public <T> List<T> selectByExample(T example, ExampleOptions params){
+    public <T> List<T> selectByExample(T example, ExampleOptions params) {
+    	QueryWhere<T> select = getExampleQuery(example, params);
+    	if (null == select)
+    		// this means that the child entity was not flagged out, and nothing was found to match the example
+			// therefore we must conclude that there is no match for our search.
+    		return new ArrayList<T>();
+    	return select.select();
+    }
+    
+    /**
+     * Prepare the select object for running the query.
+     * @param example
+     * @param params
+     * @return QueryWhere<T>
+     */
+    private <T> QueryWhere<T> getExampleQuery(T example, ExampleOptions params){
     	@SuppressWarnings("unchecked")
 		Class<T> clazz = (Class<T>)example.getClass();
     	T desc = Utils.newObject(clazz);
@@ -434,7 +484,7 @@ public class Db {
 							else {
 								// this means that the child entity was not flagged out, and nothing was found to match the example
 								// therefore we must conclude that there is no match for our search.
-								return new ArrayList<T>();
+								return null;
 							}
 						}
 						else {
@@ -445,10 +495,10 @@ public class Db {
 			}
 		}
 		catch (Exception e) {
-			// we cant process this example
+			// we can't process this example
 			throw new JaquError(e, e.getMessage());
 		}
-    	return select.select();
+    	return select;
     }
 
     /**
