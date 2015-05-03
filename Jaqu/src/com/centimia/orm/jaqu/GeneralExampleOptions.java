@@ -42,6 +42,7 @@ public class GeneralExampleOptions implements ExampleOptions {
 	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeProps(java.util.Map)
 	 */
 	public ExampleOptions setExcludeProps(Map<String, String> excludeProps) {
+		this.map = new Hashtable<String, String>(excludeProps);
 		return this;
 	}
 
@@ -122,10 +123,12 @@ public class GeneralExampleOptions implements ExampleOptions {
 		return this.likeMode;
 	}
 	
-	private Hashtable<String, String> toMap(String[] fields){
+	protected Hashtable<String, String> toMap(String[] fields){
 		Hashtable<String, String> toMap = new Hashtable<String, String>();
-		for (String field: fields) {
-			toMap.put(field, field);
+		if (null != fields && 0 < fields.length) {
+			for (String field: fields) {
+				toMap.put(field, field);
+			}
 		}
 		return toMap;
 	}
