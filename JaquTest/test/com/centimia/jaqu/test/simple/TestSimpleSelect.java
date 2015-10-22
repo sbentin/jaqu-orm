@@ -20,7 +20,6 @@ import java.util.List;
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
-import com.centimia.orm.jaqu.Function;
 import com.centimia.orm.jaqu.HavingFunctions;
 import com.centimia.orm.jaqu.LikeMode;
 
