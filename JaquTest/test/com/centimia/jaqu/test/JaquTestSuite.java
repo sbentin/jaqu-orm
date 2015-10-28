@@ -35,7 +35,6 @@ import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
 import com.centimia.jaqu.test.entity.RelationWitVarcharPrimaryTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
-import com.centimia.jaqu.test.entity.TestMultiRef;
 import com.centimia.jaqu.test.inheritance.TestDiscriminator;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
@@ -113,7 +112,7 @@ public class JaquTestSuite {
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
 		suite.addTest(new RelationWitVarcharPrimaryTest());
-		suite.addTest(new TestMultiRef());
+		//suite.addTest(new TestMultiRef());
 		
 		// general test (work both on entites and pojos
 		suite.addTest(new TestQueryByExample());

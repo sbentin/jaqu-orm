@@ -64,7 +64,7 @@ public class TestQueryByExample extends JaquTest {
 			// parent.setFirstName("Einat");
 			p.setParent(parent);
 			
-			List<Person> people = db.selectByExample(p);
+			List<Person> people = db.selectByExample(p, new GeneralExampleOptions(null));
 			assertEquals(2, people.size());
 			
 			tearDown();
