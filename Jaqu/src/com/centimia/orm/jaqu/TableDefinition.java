@@ -179,7 +179,7 @@ class TableDefinition<T> {
 								if (!result.isEmpty()) {
 									o = result.get(0);
 									// db.prepareRentrant(o); // TODO this puts the FK onto a memory cache. problem is that it is remembered between calls. 
-									// One option is to clean the cache between calls. this would mean that each call will have differet instances
+									// One option is to clean the cache between calls. this would mean that each call will have different instances
 								}
 								else
 									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
@@ -804,17 +804,13 @@ class TableDefinition<T> {
 		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
 		buff.append(tableName).append('(');
 		if (InheritedType.DISCRIMINATOR == this.inheritedType) {
-			// the inheritense is based on a single table with a discriminator
+			// the inheritance is based on a single table with a discriminator
 			fieldTypes.appendExceptFirst(", ");
 			fieldTypes.append(this.discriminatorColumn);
 			valueTypes.appendExceptFirst(", ");
 			valueTypes.append("'" + this.discriminatorValue + "'");
 		}
 		for (FieldDefinition field : fields) {
-			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
-				// skip identity types because these are auto incremented
-        		continue;
-			
 			if (field.isSilent)
 				// skip silent fields because they don't really exist.
         		continue;
@@ -835,10 +831,6 @@ class TableDefinition<T> {
 		for (Object o: objs) {
 			// add the parameters
 			for (FieldDefinition field : fields) {
-				if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
-					// skip identity types because these are auto incremented
-	        		continue;
-				
 				if (field.isSilent)
 					// skip silent fields because they don't really exist.
 	        		continue;
@@ -872,17 +864,20 @@ class TableDefinition<T> {
 			valueTypes.appendExceptFirst(", ");
 			valueTypes.append("'" + this.discriminatorValue + "'");
 		}
+		boolean nullIdentityField = false;
 		for (FieldDefinition field : fields) {
-			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType)
+			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType && null == field.getValue(obj)) {
 				// skip identity types because these are auto incremented
-        		continue;
-			
+        		nullIdentityField = true;
+				continue;
+			}
 			if (field.isSilent)
 				// skip silent fields because they don't really exist.
         		continue;
         	
         	if (field.fieldType != FieldType.NORMAL)
         		// skip everything which is not a plain field (i.e any type of relationship)
+        		// its value will be handled in the following update statement
         		continue;
         	
         	fieldTypes.appendExceptFirst(", ");
@@ -898,15 +893,16 @@ class TableDefinition<T> {
 			StatementLogger.insert(stat.logSQL());
 		
 		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
-			if (GeneratorType.IDENTITY == genType)
+			if (nullIdentityField && GeneratorType.IDENTITY == genType)
 				// we insert first basically to get the generated primary key on Identity fields
-				// note that unlike Idnetity, Sequence is generated in 'handleValue'
+				// note that unlike Identity, Sequence is generated in 'handleValue'
 				updateWithId(obj, stat);
 			else
 				stat.executeUpdate();
 			update(db, obj);
 		}
 		else {
+			// an object with no primary key fields can not have relationships or silent fields so we can just execute the simple db update
 			stat.executeUpdate();
 		}		
 	}

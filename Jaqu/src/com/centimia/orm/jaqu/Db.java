@@ -396,7 +396,7 @@ public class Db {
      * Select by example using a builder object result type mapping. The example is built based on the given example options.
      * 
      * @see GeneralExampleOptions
-     * @see FullExampleOptions
+     * @see BasicExampleOptions
      * @param example
      * @param result
      * @param params
