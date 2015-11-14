@@ -10,6 +10,6 @@
 	<classpathentry kind="lib" path="lib/slf4j-api-1.5.2.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-jdk14-1.5.2.jar"/>
 	<classpathentry kind="lib" path="test/mysql-connector-java-5.1.13-bin.jar"/>
-	<classpathentry kind="con" path="com.centimia.orm.jaqu.plugin.nature.JAQU"/>
+	<classpathentry kind="lib" path="lib/Jaqu.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
