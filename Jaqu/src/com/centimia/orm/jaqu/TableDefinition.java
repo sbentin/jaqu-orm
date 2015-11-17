@@ -40,6 +40,7 @@ import com.centimia.orm.jaqu.annotation.JaquIgnore;
 import com.centimia.orm.jaqu.annotation.Many2Many;
 import com.centimia.orm.jaqu.annotation.Many2One;
 import com.centimia.orm.jaqu.annotation.MappedSuperclass;
+import com.centimia.orm.jaqu.annotation.NoUpdateOnSave;
 import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
 import com.centimia.orm.jaqu.util.ClassUtils;
@@ -71,6 +72,7 @@ class TableDefinition<T> {
 		FieldType fieldType = FieldType.NORMAL;
 		RelationDefinition relationDefinition;
 		public boolean isSilent = false;
+		boolean noUpdateField = false;
 		Types type;
 		Method getter;
 		public boolean unique;
@@ -523,6 +525,9 @@ class TableDefinition<T> {
 			fieldDef.columnName = f.getName();
 			fields.add(fieldDef);
 			fieldMap.put(f.getName(), fieldDef);
+			if (null != fieldDef.field.getAnnotation(NoUpdateOnSave.class))
+				// if this field is marked as NoUpdateOnSave we mark it here 
+				fieldDef.noUpdateField = true;
 			
 			if (java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
@@ -998,9 +1003,11 @@ class TableDefinition<T> {
 				// value is a table
 				if (value != null) {
 					// if this object exists it updates if not it is inserted. ForeignKeys are always table
-					db.prepareRentrant(obj);
-					db.merge(value);
-					db.removeReentrant(obj);
+					if (!field.noUpdateField) {
+						db.prepareRentrant(obj);
+						db.merge(value);
+						db.removeReentrant(obj);
+					}
 					stat.addParameter(db.factory.getPrimaryKey(value));
 				}
 				else
@@ -1014,7 +1021,8 @@ class TableDefinition<T> {
 					// value is a Collection type
 					for (Object table : (Collection<?>) value) {
 						db.prepareRentrant(obj);
-						db.merge(table);
+						if(!field.noUpdateField)
+							db.merge(table);
 						db.updateRelationship(field, table, obj); // here object can only be a entity
 						db.removeReentrant(obj);
 					}
@@ -1025,7 +1033,8 @@ class TableDefinition<T> {
 				// this is the many side of a join table managed O2M relationship.
 				if (value != null) {
 					db.prepareRentrant(obj);
-					db.merge(value);
+					if(!field.noUpdateField)
+						db.merge(value);
 					db.updateRelationship(field, obj, value); // the parent is still the one side as 'obj' is the many side
 					db.removeReentrant(obj);
 				}
@@ -1111,7 +1120,6 @@ class TableDefinition<T> {
 		Object alias = Utils.newObject(obj.getClass());
 		Query<Object> query = Query.from(db, alias);
 		String as = query.getSelectTable().getAs();
-		StatementBuilder innerDelete = new StatementBuilder();
 		
 		boolean firstCondition = true;
 		for (FieldDefinition field : primaryKeyColumnNames) {
@@ -1127,7 +1135,7 @@ class TableDefinition<T> {
 			firstCondition = false;
 			query.addConditionToken(new Condition<Object>(aliasValue, value, CompareType.EQUAL));
 		}
-		StatementBuilder buff = DIALECT.wrapDeleteQuery(innerDelete, tableName, as);
+		StatementBuilder buff = DIALECT.wrapDeleteQuery(null, tableName, as);
 		stat.setSQL(buff.toString());
 		query.appendWhere(stat);
 		if (db.factory.isShowSQL())

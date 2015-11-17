@@ -121,6 +121,9 @@ public class Query<T> implements FullQueryInterface<T> {
 
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectFirst(Z)
+	 * 
+	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
+	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
 	 */
     @SuppressWarnings("unchecked")
     public <X, Z> X selectFirst(Z x) {
@@ -332,7 +335,10 @@ public class Query<T> implements FullQueryInterface<T> {
 
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinct(Z)
-	 */
+	 * 
+	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
+	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
+ 	 */
     @SuppressWarnings("unchecked")
 	public <X, Z> List<X> selectDistinct(Z x) {
         return select((X)x, true);
@@ -340,6 +346,9 @@ public class Query<T> implements FullQueryInterface<T> {
 
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#select(Z)
+	 * 
+	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
+	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
 	 */
     @SuppressWarnings("unchecked")
 	public <X, Z> List<X> select(Z x) {

@@ -240,7 +240,7 @@ public class Db {
     	if (tdef.isAggregateParent) {
     		// we have aggregate children
     		for (FieldDefinition fdef: tdef.getFields()) {
-    			if (fdef.fieldType.ordinal() > 1) { // more then a one to one relation.
+    			if (fdef.fieldType.ordinal() > 1) { // either O2M or M2M relationship
     				deleteParentRelation(fdef, t); // if it has relations it must be a Table type by design
     			}
     		}
@@ -1110,8 +1110,10 @@ public class Db {
 	 * @param obj - the object Parent to update the child with
 	 */
 	void updateRelationship(FieldDefinition field, Object table, Object obj) {
-		String primaryKey = (factory.getPrimaryKey(table) instanceof String) ? "'" + factory.getPrimaryKey(table) + "'" : factory.getPrimaryKey(table).toString();
-		String relationPK = (factory.getPrimaryKey(obj) instanceof String) ? "'" + factory.getPrimaryKey(obj) + "'" : factory.getPrimaryKey(obj).toString();
+		Object pKey = factory.getPrimaryKey(table);
+		Object rPk = factory.getPrimaryKey(obj);
+		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
+		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
 		switch (field.fieldType) {
 			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
 			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
@@ -1183,7 +1185,7 @@ public class Db {
 	}
 
 	/**
-	 * Create a relation if it does not exist between a One side and the many. Information comming from the mNY side.
+	 * Create a relation if it does not exist between a One side and the many. Information coming from the many side.
 	 * @param field - the field holding the relationship
 	 * @param table - the parent (one side) object
 	 * @param obj - the child object (many side) 

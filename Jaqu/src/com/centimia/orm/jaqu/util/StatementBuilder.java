@@ -73,7 +73,9 @@ public class StatementBuilder {
      * @return itself
      */
     public StatementBuilder append(StatementBuilder s) {
-        builder.append(s.builder);
+        if (null != s)
+        	// there could be a case when this is null (Delete for example)
+        	builder.append(s.builder);
         return this;
     }
 
