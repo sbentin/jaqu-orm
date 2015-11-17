@@ -19,6 +19,7 @@ Created		   Feb 12, 2014			shai
 */
 package com.centimia.jaqu.test.simple;
 
+import java.sql.PreparedStatement;
 import java.util.List;
 
 import junit.framework.Assert;
@@ -45,7 +46,7 @@ public class TestPojoUtils extends JaquTest {
 		result.startTest(this);
 		try {
 			setUp();
-			List<TestTable1> tables =TestTable1.getSomeData2();
+			List<TestTable1> tables = TestTable1.getSomeData2();
 			for (TestTable1 table: tables) {
 				db.pojoUtils().addBatch(table, StatementType.INSERT);
 			}
@@ -79,6 +80,14 @@ public class TestPojoUtils extends JaquTest {
 			db.commit();
 			tables = db.from(table1).where(table1.getName()).is("changed").select();
 			Assert.assertEquals(0, tables.size());
+			
+			String stmnt = "select * from testtable3 where id = ?";
+			PreparedStatement s = db.pojoUtils().getPreparedStatement(stmnt);
+			s.setLong(1, 1L);
+			
+			List<TestTable3> results = db.pojoUtils().executeStatement(s, TestTable3.class);
+			assertTrue(results.size() == 1);
+			assertTrue("valueFromTestTable1".equals(results.get(0).getValue()));
 		}
 		catch (Throwable e) {
 			db.rollback();

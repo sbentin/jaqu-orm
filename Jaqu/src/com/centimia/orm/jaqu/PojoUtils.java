@@ -20,6 +20,7 @@ Created		   Feb 12, 2014		shai
 package com.centimia.orm.jaqu;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.TableDefinition.FieldType;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.constant.StatementType;
+import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 import com.centimia.orm.jaqu.util.Utils;
 
@@ -69,7 +71,7 @@ public class PojoUtils {
     }
     
     /**
-     * returns a PreparedStatement  backed up by the current Db session. It is the developers responibility to populate, execute, and close this statement.
+     * returns a PreparedStatement backed up by the current Db session. It is the developers responsibility to populate, execute, and close this statement.
      * @param statement
      * @return {@link PreparedStatement}
      */
@@ -78,7 +80,37 @@ public class PojoUtils {
     }
     
     /**
-     * Returns a preparedStatement for the pojo given based on the statement type (UPDATE, INSERT, DELETE).
+     * This function executes a 'SELECT' preparedStatement and returns a list of resultClass type.
+     * Matching between returned columns and existing type is done in the JaQu way. 
+     * 
+     * @param stmnt
+     * @param resultClazz
+     * @return List<T>
+     */
+    public <T> List<T> executeStatement(PreparedStatement stmnt, Class<T> resultClazz) {
+        List<T> result = Utils.newArrayList();
+        TableDefinition<T> def = JaquSessionFactory.define(resultClazz, db);
+        ResultSet rs = null;
+        try {
+        	rs = stmnt.executeQuery();
+        	while (rs.next()) {
+                T item = Utils.newObject(resultClazz);
+                def.readRow(item, rs, db);
+                db.addSession(item);
+                result.add(item);
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }        
+        return result;
+    }
+    
+    /**
+     * Returns a preparedStatement for the "pojo" given based on the statement type (UPDATE, INSERT, DELETE).
      * This method always returns the same {@link PreparedStatement} object when running in the same db session.
      * 
      * @param clazz
