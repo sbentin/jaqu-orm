@@ -30,6 +30,7 @@ import com.centimia.jaqu.test.entity.AutoCommitTest;
 import com.centimia.jaqu.test.entity.EntityDeleteTest;
 import com.centimia.jaqu.test.entity.EntityInsertTest;
 import com.centimia.jaqu.test.entity.EntityMergeTetst;
+import com.centimia.jaqu.test.entity.EntityNoUpdateFieldTest;
 import com.centimia.jaqu.test.entity.EntitySequenceIdentityTest;
 import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
@@ -108,6 +109,7 @@ public class JaquTestSuite {
 		suite.addTest(new EntityUpdateTest());
 		suite.addTest(new EntityDeleteTest());
 		suite.addTest(new EntityMergeTetst());
+		suite.addTest(new EntityNoUpdateFieldTest());
 		suite.addTest(new EntitySessionTests());
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
