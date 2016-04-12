@@ -14,6 +14,7 @@ package com.centimia.orm.jaqu;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -678,6 +679,69 @@ public class Db {
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         }
+    }
+    
+    /**
+     * A utility method that executes the String query and returns the result class
+     * @param sql
+     * @param clazz
+     * @return List<T>
+     */
+    public <T> List<T> executeQuery(String sql, Class<T> clazz) {
+    	ResultSet rs = executeQuery(sql);
+    	if (null != rs) {
+    		return selectByResultSet(rs, clazz);    		
+    	}
+    	return null;
+    }
+    
+    /**
+     * A utility that builds a prepared statement out of the given string, sets the arguments calls the statement and returns the object values.
+     * 
+     * @param preparedStmnt
+     * @param clazz
+     * @param args
+     * @return List<T>
+     */
+    public <T> List<T> executeStatement(String preparedStmnt, Class<T> clazz, Object ... args) {
+    	PreparedStatement stmnt = this.prepare(preparedStmnt);
+    	try {
+    		if (null != args && 0 < args.length) {	    		
+				for (int i = 0; i < args.length; i++){
+					stmnt.setObject(i, args[i]);
+				}	    		
+	    	}
+	    	ResultSet rs = stmnt.executeQuery();
+			return selectByResultSet(rs, clazz);
+    	}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+    /**
+     * A utility that builds a callable statement out of the given string, sets the arguments calls the statement and returns the object values.
+     * Note that callable statements should look like '{call doCallable (?, ?)}'
+     * 
+     * @param preparedStmnt
+     * @param clazz
+     * @param args
+     * @return List<T>
+     */
+    public <T> List<T> executeCallable(String callableStmnt, Class<T> clazz, Object ... args) {
+    	try {
+    		CallableStatement stmnt = this.conn.prepareCall(callableStmnt);
+    		if (null != args && 0 < args.length) {	    		
+				for (int i = 0; i < args.length; i++) {
+					stmnt.setObject(i, args[i]);
+				}
+	    	}
+	    	ResultSet rs = stmnt.executeQuery();
+			return selectByResultSet(rs, clazz);
+    	}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
     }
     
     /**
