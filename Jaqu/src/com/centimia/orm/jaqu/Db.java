@@ -708,7 +708,7 @@ public class Db {
     	try {
     		if (null != args && 0 < args.length) {	    		
 				for (int i = 0; i < args.length; i++){
-					stmnt.setObject(i, args[i]);
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
 				}	    		
 	    	}
 	    	ResultSet rs = stmnt.executeQuery();
@@ -733,7 +733,7 @@ public class Db {
     		CallableStatement stmnt = this.conn.prepareCall(callableStmnt);
     		if (null != args && 0 < args.length) {	    		
 				for (int i = 0; i < args.length; i++) {
-					stmnt.setObject(i, args[i]);
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
 				}
 	    	}
 	    	ResultSet rs = stmnt.executeQuery();
