@@ -863,7 +863,7 @@ class TableDefinition<T> {
 		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
 		buff.append(tableName).append('(');
 		if (InheritedType.DISCRIMINATOR == this.inheritedType) {
-			// the inheritense is based on a single table with a discriminator
+			// the inheritance is based on a single table with a discriminator
 			fieldTypes.appendExceptFirst(", ");
 			fieldTypes.append(this.discriminatorColumn);
 			valueTypes.appendExceptFirst(", ");
