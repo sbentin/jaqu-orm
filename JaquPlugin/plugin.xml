@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="com.centimia.orm.jaqu.plugin.builder.jaquBuilder"
+         name="Jaqu Builder"
+         point="org.eclipse.core.resources.builders">
+      <builder hasNature="true">
+         <run class="com.centimia.orm.jaqu.plugin.builder.JaquBuilder">
+         </run>
+      </builder>
+   </extension>
+   <extension
+         id="com.centimia.orm.jaqu.plugin.nature.jaquNature"
+         name="Jaqu Nature"
+         point="org.eclipse.core.resources.natures">
+      <runtime>
+         <run
+               class="com.centimia.orm.jaqu.plugin.nature.JaquNature">
+         </run>
+      </runtime>
+      <builder
+            id="com.centimia.orm.jaqu.plugin.builder.jaquBuilder">
+      </builder>
+   </extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            objectClass="org.eclipse.core.resources.IProject"
+            nameFilter="*"
+            id="com.centimia.orm.jaqu.plugin.addJaquNature">
+         <action
+               class="com.centimia.orm.jaqu.plugin.ToggleNatureAction"
+               enablesFor="+"
+               icon="icons/jaqu-entity.png"
+               id="com.centimia.orm.jaqu.plugin.addRemoveNatureAction"
+               label="Add/Remove Jaqu Nature"
+               menubarPath="additions">
+         </action>
+      </objectContribution>
+   </extension>
+	<extension point="org.eclipse.ui.decorators">
+<decorator
+      adaptable="true"
+      class="com.centimia.orm.jaqu.plugin.decorator.ResourceDecorator"
+      icon="icons/jaqu-entity.png"
+      id="com.centimia.orm.jaqu.plugin.ResourceDecorator"
+      label="Jaqu Resource Decorator"
+      lightweight="true"
+      location="TOP_LEFT"
+      state="true">
+  <enablement>
+    <and>
+      <objectClass name="org.eclipse.core.resources.IResource"></objectClass>
+       <or>
+         <objectClass name="org.eclipse.core.resources.IFile"></objectClass>
+       </or>
+      </and>
+  </enablement>
+</decorator>
+</extension>
+ <extension
+       point="org.eclipse.jdt.core.classpathContainerInitializer">
+    <classpathContainerInitializer
+          class="com.centimia.orm.jaqu.plugin.nature.ClassPathInitializer"
+          id="com.centimia.orm.jaqu.plugin.nature.JAQU">
+    </classpathContainerInitializer>
+ </extension>
+</plugin>
