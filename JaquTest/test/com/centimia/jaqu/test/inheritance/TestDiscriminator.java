@@ -97,9 +97,25 @@ public class TestDiscriminator extends JaquTest {
 			db.update(superTwo);
 			db.update(superOne);
 			db.commit();
-			
+			// because when in session we have object cache we have a problem which the developer should be aware of. The
+			// inherited objects are in cache, therefore although the DB has the correct data setup after commit, and the
+			// parent object holds the children correctly, the child object, if it has the parent reference as M2O, will not 
+			// have the parent.
 			// lets see if fetch  is working correctly
 			SuperClass superClass = new SuperClass();
+			superClass = db.from(superClass).primaryKey().is(4L).selectFirst();
+			
+			assertEquals(superClass.getPartner().getId(), superTwo.getId());
+			assertTrue(superClass.getChildren().size() == 2);
+			
+			for (InherittedClass child: superClass.getChildren()) {
+				assertNull(child.getSuperClass());
+			}
+			db.close();
+			
+			db = sessionFactory.getSession(); // start a new session to make sure Db is setup correctly.
+			// lets see if fetch  is working correctly
+			superClass = new SuperClass();
 			superClass = db.from(superClass).primaryKey().is(4L).selectFirst();
 			
 			assertEquals(superClass.getPartner().getId(), superTwo.getId());

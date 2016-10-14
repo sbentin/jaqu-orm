@@ -21,10 +21,8 @@
 package com.centimia.jaqu.test;
 
 import java.util.Enumeration;
-
-import junit.framework.TestCase;
-import junit.framework.TestFailure;
-import junit.framework.TestResult;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.centimia.jaqu.test.entity.AutoCommitTest;
 import com.centimia.jaqu.test.entity.EntityDeleteTest;
@@ -36,21 +34,29 @@ import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
 import com.centimia.jaqu.test.entity.RelationWitVarcharPrimaryTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
+import com.centimia.jaqu.test.entity.TestMultiRef;
 import com.centimia.jaqu.test.inheritance.TestDiscriminator;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
 import com.centimia.jaqu.test.simple.TestFunctions;
 import com.centimia.jaqu.test.simple.TestPojoUtils;
 import com.centimia.jaqu.test.simple.TestQueryByExample;
+import com.centimia.jaqu.test.simple.TestSelectAsMap;
 import com.centimia.jaqu.test.simple.TestSimpleDelete;
 import com.centimia.jaqu.test.simple.TestSimpleHaving;
 import com.centimia.jaqu.test.simple.TestSimpleInnerJoin;
 import com.centimia.jaqu.test.simple.TestSimpleInsert;
 import com.centimia.jaqu.test.simple.TestSimpleObjectUpdate;
 import com.centimia.jaqu.test.simple.TestSimpleOuterJoin;
+import com.centimia.jaqu.test.simple.TestSimpleRightHandOuterJoin;
 import com.centimia.jaqu.test.simple.TestSimpleSelect;
+import com.centimia.jaqu.test.simple.TestUnificationMethods;
 import com.centimia.jaqu.test.transaction.TransactionTests;
 import com.centimia.orm.jaqu.StatementLogger;
+
+import junit.framework.TestCase;
+import junit.framework.TestFailure;
+import junit.framework.TestResult;
 
 /**
  * 
@@ -63,6 +69,9 @@ public class JaquTestSuite {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		Logger logger = Logger.getGlobal();
+		logger.setLevel(Level.FINEST);
+		
 		junit.framework.TestSuite suite = suite();
 		TestResult result = new TestResult();
 		suite.run(result);
@@ -91,12 +100,14 @@ public class JaquTestSuite {
 		suite.addTest(new TestSimpleObjectUpdate());
 		suite.addTest(new TestSimpleDelete());
 		suite.addTest(new TestSimpleInnerJoin());
-		suite.addTest(new TestSimpleOuterJoin());
+		suite.addTest(new TestSimpleRightHandOuterJoin());
+		suite.addTest(new TestSimpleOuterJoin());		
 		suite.addTest(new TestSimpleHaving());
 		suite.addTest(new TestEnumType());
 		suite.addTest(new TestFunctions());
 		suite.addTest(new TestSimpleSelect());
-		// suite.addTest(new TestUnificationMethods());
+		suite.addTest(new TestUnificationMethods());
+		suite.addTest(new TestSelectAsMap());
 		suite.addTest(new TestPojoUtils());
 		
 		// Test with entity objects.
@@ -114,9 +125,9 @@ public class JaquTestSuite {
 		suite.addTest(new EntitySequenceIdentityTest());
 		suite.addTest(new TestInsertNoId());
 		suite.addTest(new RelationWitVarcharPrimaryTest());
-		//suite.addTest(new TestMultiRef());
+		suite.addTest(new TestMultiRef());
 		
-		// general test (work both on entites and pojos
+		// general test (work both on entities and pojos
 		suite.addTest(new TestQueryByExample());
 		
 		// Inheritance Tests

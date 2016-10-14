@@ -94,8 +94,7 @@ public class PojoUtils {
         try {
         	rs = stmnt.executeQuery();
         	while (rs.next()) {
-                T item = Utils.newObject(resultClazz);
-                def.readRow(item, rs, db);
+                T item =  def.readRow(rs, db);
                 db.addSession(item);
                 result.add(item);
             }

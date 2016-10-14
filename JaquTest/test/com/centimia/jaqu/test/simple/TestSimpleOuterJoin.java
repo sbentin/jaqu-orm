@@ -45,7 +45,7 @@ public class TestSimpleOuterJoin extends JaquTest {
 			final TestTable2 t2Desc = new TestTable2();
 			// the following returns a list of the left hand side of join. (TestTable1)
 			System.out.println(db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).getSQL());
-			List<?> t1Results = db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).select();			
+			List<TestTable1> t1Results = db.from(t1Desc).leftOuterJoin(t2Desc).on(t1Desc.getId()).is(t2Desc.getId()).select();			
 			// we have 5 entries here, 2 that were not in the inner join because these don't have a match in TestTable2.
 			assertEquals(2, t1Results.size());
 			

@@ -74,7 +74,10 @@ public class EntityNoUpdateFieldTest extends JaquTest {
 			// save the object to the Db
 			db.update(me);
 			db.commit();
+			// we need to close in order to clear the cache.
+			db.close();
 			
+			db = sessionFactory.getSession();
 			cFromDb = db.from(new TableC()).primaryKey().is(noUpdateField.getId()).selectFirst();
 			assertNotNull(cFromDb);
 			

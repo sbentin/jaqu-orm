@@ -43,8 +43,4 @@ class SelectColumn<T> {
     SelectTable<T> getSelectTable() {
         return selectTable;
     }
-
-    Object getCurrentValue() {
-        return fieldDef.getValue(selectTable.getCurrent());
-    }
 }

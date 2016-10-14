@@ -36,14 +36,25 @@ public interface FullQueryInterface<T> extends QueryInterface<T> {
 	public abstract List<T> selectDistinct();
 	
 	/**
-	 * In a join query return distinct results from the right hand side of the join only
-	 * 
-	 * @param <U> - the right hand join type.
-	 * @param tableClass the right hand descriptor instance.
-	 * @return List<U>
-	 */
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
 	public abstract <U> List<U> selectDistinctRightHandJoin(U tableClass);
 
+	/**
+     * A convenience method to a field of the object representing the right hand side of the join relationship only. Based on a single field only
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
+	public <U, Z> List<Z> selectDistinctRightHandJoin(U tableClass, Z x);
+	
 	/**
 	 * Perform the update requested by the specific where clause
 	 * 
