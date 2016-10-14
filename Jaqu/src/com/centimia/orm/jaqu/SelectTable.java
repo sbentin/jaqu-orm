@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.ClassUtils;
 import com.centimia.orm.jaqu.util.Utils;
 
@@ -29,7 +30,6 @@ class SelectTable<T> implements ISelectTable<T> {
     private static int asCounter;
     private Query<T> query;
     private Class<T> clazz;
-    private T current;
     private String as;
     private TableDefinition<T> aliasDef;
     private JOIN_TYPE joinType;
@@ -65,7 +65,7 @@ class SelectTable<T> implements ISelectTable<T> {
     }
 
     void appendSQLAsJoin(SQLStatement stat, Query<T> q) {
-        stat.appendSQL(" " + joinType.type +" ");
+        stat.appendSQL(" " + joinType.type + " ");
         appendSQL(stat);
         if (!joinConditions.isEmpty()) {
             stat.appendSQL(" ON ");
@@ -76,6 +76,21 @@ class SelectTable<T> implements ISelectTable<T> {
         }
     }
 
+    /*
+     * find the column from the value
+     */
+    void appendSqlColumnFromField(SQLStatement stat, Object descValue) {
+    	for (FieldDefinition def: aliasDef.getFields()) {
+    		if (def.isSilent)
+				continue;
+    		if (descValue.equals(def.getValue(alias))){
+    			// this is the field we're looking for
+    			stat.appendSQL(as + "." + def.columnName);
+    			return;
+    		}
+    	}
+    }
+    
     Query<T> getQuery() {
         return query;
     }
@@ -84,14 +99,6 @@ class SelectTable<T> implements ISelectTable<T> {
         joinConditions.add(condition);
     }
 
-    T getCurrent() {
-        return current;
-    }
-
-    void setCurrent(T current) {
-        this.current = current;
-    }
-    
     /*
      * (non-Javadoc)
      * @see com.centimia.orm.jaqu.ISelectTable#getJoins()

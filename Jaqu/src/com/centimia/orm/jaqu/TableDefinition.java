@@ -151,7 +151,7 @@ class TableDefinition<T> {
 					case M2O: {
 						if (null != db) {
 							// here we need to fetch the parent object based on the id which is in the relationTable
-							// this is the same as an FK field acccept for the fact that we have no value in the DB, i.e. 'tmp' == null an 'o' == null
+							// this is the same as an FK field accept for the fact that we have no value in the DB, i.e. 'tmp' == null an 'o' == null
 							// get the primary key...
 							o = Utils.newObject(relationDefinition.dataType); // create the object to hold the data (I could use field.getType() but this way we can find mistakes												
 							String query = "select " + relationDefinition.relationColumnName + " from " + relationDefinition.relationTableName + " where " + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(obj);
@@ -171,23 +171,21 @@ class TableDefinition<T> {
 					case FK: {
 						o = Utils.convert(o, field.getType());
 						if (o != null && o.getClass().getAnnotation(Entity.class) != null && !tmp.getClass().isAssignableFrom(field.getType())) {
-							Object reEntrant = db.checkReEntrant(o.getClass(), tmp);
+							Object reEntrant = db.reEntrantCache.checkReEntrent(o.getClass(), tmp);
 							if (reEntrant != null) {
 								o = reEntrant;
 							}
 							else {
-								db.prepareRentrant(obj);
+								db.reEntrantCache.prepareReEntrent(obj);
 								List<?> result = db.from(o).primaryKey().is(tmp.toString()).select();
 								if (!result.isEmpty()) {
 									o = result.get(0);
-									// db.prepareRentrant(o); // TODO this puts the FK onto a memory cache. problem is that it is remembered between calls. 
-									// One option is to clean the cache between calls. this would mean that each call will have different instances
 								}
 								else
 									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
 													+ " with value %s in table %s" 
 													+ "\nmissing in table %s", field.getName(), tmp, obj.getClass().getName(), o.getClass().getName());
-								db.removeReentrant(obj);
+								db.reEntrantCache.removeReEntrent(obj);
 							}
 						}
 						field.set(obj, o);
@@ -195,7 +193,7 @@ class TableDefinition<T> {
 					}
 					case O2M: {
 						if (relationDefinition.eagerLoad && db != null) {
-							db.prepareRentrant(obj);
+							db.reEntrantCache.prepareReEntrent(obj);
 							if (relationDefinition.relationTableName != null) {
 								List<?> resultList = db.getRelationByRelationTable(this, db.factory.getPrimaryKey(obj),	relationDefinition.dataType);
 								if (!resultList.isEmpty()) {
@@ -249,7 +247,7 @@ class TableDefinition<T> {
 										o = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(obj));
 								}
 							}
-							db.removeReentrant(obj);
+							db.reEntrantCache.removeReEntrent(obj);
 						}
 						else {
 							// instrument this instance of the class
@@ -856,7 +854,7 @@ class TableDefinition<T> {
 	}
 	
 	void insert(Db db, Object obj) {
-		if (db.checkReEntrant(obj))
+		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
@@ -898,10 +896,13 @@ class TableDefinition<T> {
 			StatementLogger.insert(stat.logSQL());
 		
 		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
-			if (nullIdentityField && GeneratorType.IDENTITY == genType)
+			if (nullIdentityField && GeneratorType.IDENTITY == genType) {
 				// we insert first basically to get the generated primary key on Identity fields
 				// note that unlike Identity, Sequence is generated in 'handleValue'
 				updateWithId(obj, stat);
+				// put object in multicall cache.
+				db.multiCallCache.prepareReEntrent(obj);
+			}
 			else
 				stat.executeUpdate();
 			update(db, obj);
@@ -913,7 +914,7 @@ class TableDefinition<T> {
 	}
 
 	void merge(Db db, Object obj) {
-		if (db.checkReEntrant(obj))
+		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - no merge possible", obj.getClass());
@@ -959,7 +960,7 @@ class TableDefinition<T> {
 		Object value = field.getValue(obj);
 		// Deal with null primary keys (if object is sequence do a sequence query and update object... if identity you need to query the
 		// object on the way out).
-		if (field.isPrimaryKey && value == null) {
+		if (field.isPrimaryKey && null == value) {
 			 if (genType == GeneratorType.SEQUENCE) {
 				ResultSet rs = null;
 				try {
@@ -1004,9 +1005,9 @@ class TableDefinition<T> {
 				if (value != null) {
 					// if this object exists it updates if not it is inserted. ForeignKeys are always table
 					if (!field.noUpdateField) {
-						db.prepareRentrant(obj);
+						db.reEntrantCache.prepareReEntrent(obj);
 						db.merge(value);
-						db.removeReentrant(obj);
+						db.reEntrantCache.removeReEntrent(obj);
 					}
 					stat.addParameter(db.factory.getPrimaryKey(value));
 				}
@@ -1020,11 +1021,11 @@ class TableDefinition<T> {
 				if (value != null && !((Collection<?>) value).isEmpty()) {
 					// value is a Collection type
 					for (Object table : (Collection<?>) value) {
-						db.prepareRentrant(obj);
+						db.reEntrantCache.prepareReEntrent(obj);
 						if(!field.noUpdateField)
 							db.merge(table);
 						db.updateRelationship(field, table, obj); // here object can only be a entity
-						db.removeReentrant(obj);
+						db.reEntrantCache.removeReEntrent(obj);
 					}
 				}
 				break;
@@ -1032,11 +1033,11 @@ class TableDefinition<T> {
 			case M2O: {
 				// this is the many side of a join table managed O2M relationship.
 				if (value != null) {
-					db.prepareRentrant(obj);
+					db.reEntrantCache.prepareReEntrent(obj);
 					if(!field.noUpdateField)
 						db.merge(value);
 					db.updateRelationship(field, obj, value); // the parent is still the one side as 'obj' is the many side
-					db.removeReentrant(obj);
+					db.reEntrantCache.removeReEntrent(obj);
 				}
 				break;
 			}
@@ -1044,9 +1045,9 @@ class TableDefinition<T> {
 	}
 
 	void update(Db db, Object obj) {
-		if (db.checkReEntrant(obj))
+		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
-		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
+		if (null == primaryKeyColumnNames || primaryKeyColumnNames.isEmpty()) {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - can't locate row", obj.getClass());
 		}
 		SQLStatement stat = new SQLStatement(db);
@@ -1087,7 +1088,10 @@ class TableDefinition<T> {
 			query.appendWhere(stat);
 			if (db.factory.isShowSQL())
 				StatementLogger.update(stat.logSQL());
+			
 			stat.executeUpdate();
+			// store in multi call cache
+			db.multiCallCache.prepareReEntrent(obj);
 		}
 
 		// if the object inserted successfully and is a Table add the session to it.
@@ -1232,7 +1236,25 @@ class TableDefinition<T> {
 		}
 	}
 
-	void readRow(Object item, ResultSet rs, Db db) {
+	@SuppressWarnings("unchecked")
+	T readRow(ResultSet rs, Db db) {
+		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()){
+			// this class has a primary key
+			// 1. get the primaryKey value, 2. check if we have an object with such value in cache, 3. if so return it
+			// if not continue.
+			for (FieldDefinition def: primaryKeyColumnNames){				
+				Object o = db.multiCallCache.checkReEntrent(clazz, def.read(rs, DIALECT));
+				if (null != o) {
+					try {
+						return (T)o;
+					}
+					catch (ClassCastException cce) {
+						// This error should not happen. For now we just ignore it.
+					}
+				}
+			}			
+		}
+		T item = Utils.newObject(clazz);
 		for (FieldDefinition def: fields) {
 			if (StatementLogger.isDebugEnabled())
 				StatementLogger.debug("Working on Field: " + def.field.getName());
@@ -1244,6 +1266,7 @@ class TableDefinition<T> {
 				// probably a relation is loaded
 				def.setValue(item, null, db);
 		}
+		return item;
 	}
 
 	SQLStatement getSelectList(Db db, String as) {

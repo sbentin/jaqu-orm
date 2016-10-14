@@ -50,13 +50,20 @@ public class Db {
     protected JaquSessionFactory factory;
     
     /* 
-     * A list of objects this thread has already visited. Keeps a different list per thread.
+     * A list of objects this specific DB call has already visited. This list is cleared after each call.
+     * Keeps a different list per thread.
      * 
      * Key - The object reEntrant
      * Value - Last Parent who holds this object 
      */
-    ThreadLocal<Map<Class<?>, Map<String, Object>>> reEntrantList = new ThreadLocal<Map<Class<?>, Map<String, Object>>>();
-
+    final CacheManager reEntrantCache;
+    
+    /*
+     * A list of objects this specific Db already fetched from the DB. This list survives multi calls to the same DB
+     * but is cleared when the Db is closed. Keeps a different list per thread.
+     */
+    final CacheManager multiCallCache;
+    
     // determines if the Db connection is closed. This gets value of true only when the underlying connection is closed on invalid
 	private volatile boolean closed = true;
 
@@ -65,6 +72,8 @@ public class Db {
     Db(Connection conn, JaquSessionFactory factory) {
         this.conn = conn;
         this.factory = factory;
+        this.reEntrantCache = new CacheManager(factory);
+        this.multiCallCache = new CacheManager(factory);
         this.closed = false;
     }
 
@@ -382,14 +391,14 @@ public class Db {
      * 
      * @param example
      * @param result
-     * @return List<X>
+     * @return List<Z>
      */
-    public <T, Z, X> List<X> selectByExample(T example, Z result) {
+    public <T, Z> List<Z> selectByExample(T example, Z result) {
     	QueryWhere<T> select = getExampleQuery(example, new BasicExampleOptions(example, this));
     	if (null == select)
     		// this means that the child entity was not flagged out, and nothing was found to match the example
 			// therefore we must conclude that there is no match for our search.
-    		return new ArrayList<X>();
+    		return new ArrayList<Z>();
     	return select.select(result);
     }
     
@@ -401,14 +410,14 @@ public class Db {
      * @param example
      * @param result
      * @param params
-     * @return List<X>
+     * @return List<Z>
      */
-    public <T, Z, X> List<X> selectByExample(T example, Z result, ExampleOptions params) {
+    public <T, Z> List<Z> selectByExample(T example, Z result, ExampleOptions params) {
     	QueryWhere<T> select = getExampleQuery(example, params);
     	if (null == select)
     		// this means that the child entity was not flagged out, and nothing was found to match the example
 			// therefore we must conclude that there is no match for our search.
-    		return new ArrayList<X>();
+    		return new ArrayList<Z>();
     	return select.select(result);
     }
     
@@ -530,8 +539,8 @@ public class Db {
     	List<T> result = Utils.newArrayList();
     	try {
             while (rs.next()) {
-                T item = Utils.newObject(clazz);
-                def.readRow(item, rs, this);
+                Utils.newObject(clazz);
+                T item = def.readRow(rs, this);
                 this.addSession(item);
                 result.add(item);
             }
@@ -845,6 +854,13 @@ public class Db {
 		catch (Exception e) {
 			throw new JaquError(e, "PK Not accessible!!!");
 		}
+		// make sure this object is synchronized with the cache
+		if (null != pk) {
+			Object o = multiCallCache.checkReEntrent(t.getClass(), pk);
+			if (null != o && o != t)
+				// we have the object in cache but it is not the same instance. Something is wrong.
+				throw new JaquError("Object %s with PrimaryKey %s already exists in this session's cache, but is a different instance. Use the cached instance to perform changes within the same session!!", t.getClass(), pk.toString());
+		}
     	for (FieldDefinition fdef: tdef.getFields()) {
     		try {
 				switch (fdef.fieldType) {
@@ -971,42 +987,7 @@ public class Db {
     <T> TableDefinition<T> define(Class<T> clazz){
     	return JaquSessionFactory.define(clazz, this);
     }
-     
-    /**
-     * Prepares the reentrant list with the object that should no be reentered into.
-     * 
-     * @param obj
-     */
-    void prepareRentrant(Object obj) {
-		if (this.reEntrantList.get() == null) {
-			Map<Class<?>, Map<String, Object>> map = Utils.newHashMap();
-			Map<String, Object> innerMap = Utils.newHashMap();
-			innerMap.put(factory.getPrimaryKey(obj).toString(), obj);
-			map.put(obj.getClass(), innerMap);
-			this.reEntrantList.set(map);
-		}
-		else {
-			Map<Class<?>, Map<String, Object>> map = this.reEntrantList.get();
-			Map<String, Object> innerMap = map.get(obj.getClass());
-			if (innerMap == null) {
-				innerMap = Utils.newHashMap();
-				innerMap.put(factory.getPrimaryKey(obj).toString(), obj);
-				map.put(obj.getClass(), innerMap);
-			}
-			innerMap.put(factory.getPrimaryKey(obj).toString(), obj);
-		}
-	}
-    
-    void removeReentrant(Object obj) {
-    	if (this.reEntrantList.get() != null) {
-    		Map<Class<?>, Map<String, Object>> map = this.reEntrantList.get();
-    		Map<String, Object> innerMap = map.get(obj.getClass());
-    		innerMap.remove(factory.getPrimaryKey(obj).toString());
-    		if (innerMap.isEmpty())
-    			map.remove(obj.getClass());
-    	}
-    }
-    
+	
 	<T> List<T> getRelationByRelationTable(FieldDefinition def, Object myPrimaryKey, Class<T> type){
 		TableDefinition<T> targetDef = define(type);
 		// for String primary keys do the following
@@ -1023,8 +1004,7 @@ public class Db {
 			
         	rs = prepare(builder.toString()).executeQuery();
             while (rs.next()) {
-                T item = Utils.newObject(type);
-                targetDef.readRow(item, rs, this);
+                T item = targetDef.readRow(rs, this);
                 result.add(item);
             }
         } 
@@ -1035,25 +1015,6 @@ public class Db {
             JdbcUtils.closeSilently(rs);
         }
         return result;
-	}
-    
-	boolean checkReEntrant(Object obj) {
-		if (obj.getClass().getAnnotation(Entity.class) != null)
-			return checkReEntrant(obj.getClass(), factory.getPrimaryKey(obj)) != null;
-		return false;
-	}
-	
-	Object checkReEntrant(Class<?> clazz, Object key) {
-		if (key != null){
-			key = key.toString();
-			if (reEntrantList.get() != null) {
-				Map<String, ?> innerMap = reEntrantList.get().get(clazz);
-				if (innerMap != null) {
-					return innerMap.get(key);
-				}
-			}
-		}
-		return null;
 	}
 
 	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws Exception {
@@ -1154,19 +1115,10 @@ public class Db {
 		this.closed = true;
 		this.conn = null;		
 		this.factory = null;
-		clearReentrent();
-		this.reEntrantList.remove();
+		reEntrantCache.clearReEntrent();
+		multiCallCache.clearReEntrent();
 	}
 
-	/**
-	 * Clears the reEntrent cache
-	 */
-	void clearReentrent() {
-		Map<Class<?>, Map<String, Object>> reEntrents = this.reEntrantList.get();
-		if (null != reEntrents)
-			reEntrents.clear();
-	}
-	
 	/**
 	 * 
 	 * @param field - the definition of the field on the parent

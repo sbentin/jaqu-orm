@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.centimia.orm.jaqu.ISelectTable.JOIN_TYPE;
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
@@ -77,26 +78,94 @@ public class Query<T> implements FullQueryInterface<T> {
      * (non-Javadoc)
      * @see com.centimia.orm.jaqu.QueryInterface#union(java.lang.String)
      */
-	public List<T> union(String unionQuery) {
-    	// add the interesct Token to the query
-    	this.addConditionToken(new UnificationToken(unionQuery, UnificationToken.UNIFICATION_MODE.UNION));
-    	
-    	// execute the select
-    	return select();
+	public <U> List<T> union(Query<U> unionQuery) {
+		return union(unionQuery, false);
     }
     
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#intersect(java.lang.String)
-     */
-	public List<T> intersect(String intersectQuery) {
-    	// add the interesct Token to the query
-    	this.addConditionToken(new UnificationToken(intersectQuery, UnificationToken.UNIFICATION_MODE.INTERESCT));
-    	
-    	// execute the select
-    	return select();
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#unionDistinct(com.centimia.orm.jaqu.Query)
+	 */
+	@Override
+	public <U> List<T> unionDistinct(Query<U> unionQuery) {
+		return union(unionQuery, true);
     }
-    
+	
+	@Override
+	public <U, X> List<X> union(Query<U> unionQuery, X x) {
+		return union(unionQuery, x, false);
+    }
+	
+	@Override
+	public <U, X> List<X> unionDistinct(Query<U> unionQuery, X x) {
+		return union(unionQuery, x, true);
+    }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#union(com.centimia.orm.jaqu.QueryWhere)
+	 */
+	@Override
+	public <U> List<T> union(QueryWhere<U> unionQuery) {
+		return union(unionQuery.query, false);
+	}
+
+	@Override
+	public <U> List<T> unionDistinct(QueryWhere<U> unionQuery) {
+		return union(unionQuery.query, true);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public <U, X, Z> List<X> union(QueryWhere<U> unionQuery, Z x) {
+		return union(unionQuery.query, (X)x, false);
+    }
+	
+	@Override
+	public <U, X> List<X> unionDistinct(QueryWhere<U> unionQuery, X x) {
+		return union(unionQuery.query, x, true);
+    }
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#union(com.centimia.orm.jaqu.QueryJoinWhere)
+	 */
+	@Override
+	public <U> List<T> union(QueryJoinWhere<U> unionQuery) {
+		return union(unionQuery.query, false);
+	}
+	
+	@Override
+	public <U> List<T> unionDistinct(QueryJoinWhere<U> unionQuery) {
+		return union(unionQuery.query, true);
+	}
+	
+	@Override
+	public <U, X> List<X> union(QueryJoinWhere<U> unionQuery, X x) {
+		return union(unionQuery.query, x, false);
+    }
+	
+	@Override
+	public <U, X> List<X> unionDistinct(QueryJoinWhere<U> unionQuery, X x) {
+		return union(unionQuery.query, x, true);
+    }
+	    
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#selectAsMap(java.lang.Object, java.lang.Object)
+	 */
+	public <K, V> Map<K, V> selectAsMap(K key, V value){
+		return selectSimpleAsMap(key, value, false);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#selectDistinctAsMap(java.lang.Object, java.lang.Object)
+	 */
+	public <K, V> Map<K, V> selectDistinctAsMap(K key, V value){
+		return selectSimpleAsMap(key, value, true);
+	}
+
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#select()
 	 */
@@ -162,115 +231,78 @@ public class Query<T> implements FullQueryInterface<T> {
     	return getSQL(z, false);
     }
     
-    private String getSQL(boolean distinct) {
-    	TableDefinition<T> def = from.getAliasDefinition();
-        SQLStatement selectList = def.getSelectList(db, from.getAs());
-        return prepare(selectList, false).logSQL().trim();
-    }
-
-    @SuppressWarnings("unchecked")
-	private <X> String getSQL(X x, boolean distinct) {
-    	Class<X> clazz = (Class<X>) x.getClass();
-    	TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
-        SQLStatement selectList = def.getSelectList(this, x);
-        return prepare(selectList, false).logSQL().trim();
-    }
-    
-    private List<T> select(boolean distinct) {
-    	List<T> result = Utils.newArrayList();
-        TableDefinition<T> def = from.getAliasDefinition();
-        SQLStatement selectList = def.getSelectList(db, from.getAs());
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        try {
-            while (rs.next()) {
-                T item = from.newObject();
-                from.getAliasDefinition().readRow(item, rs, db);
-                db.addSession(item);
-                result.add(item);
-            }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
-        
-        return result;
-    }
-    
-   /**
-    * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
-    * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
-    * 
-    * @param tableClass - the object descriptor of the type needed on return
-    * @throws JaquError - when not in join query
+	/*
+    * (non-Javadoc)
+    * @see com.centimia.orm.jaqu.QueryInterface#selectRightHandJoin(java.lang.Object)
     */
-    @SuppressWarnings("unchecked")
 	public <U> List<U> selectRightHandJoin(U tableClass){
-    	Class<U> clazz = (Class<U>) tableClass.getClass();
-    	return selectRightHandJoin(clazz, false);
+    	return selectRightHandJoin(tableClass, false);
     }
     
-    /**
-     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
-     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
-     * 
-     * @param tableClass - the object descriptor of the type needed on return
-     * @throws JaquError - when not in join query
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#selectRightHandJoin(java.lang.Object, java.lang.Object)
+	 */
+    public <U, Z> List<Z> selectRightHandJoin(U tableClass, Z x){
+    	return selectRightHandJoin(tableClass, false, x);
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinctRightHandJoin(java.lang.Object)
      */
-    @SuppressWarnings("unchecked")
 	public <U> List<U> selectDistinctRightHandJoin(U tableClass){
-    	Class<U> clazz = (Class<U>) tableClass.getClass();
-    	return selectRightHandJoin(clazz, true);
+    	return selectRightHandJoin(tableClass, true, null);
     }
     
-    /**
-     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
-     * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
-     * 
-     * @param tableClass - the object descriptor of the type needed on return
-     * @throws JaquError - when not in join query
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinctRightHandJoin(java.lang.Object, java.lang.Object)
+	 */
+	public <U, Z> List<Z> selectDistinctRightHandJoin(U tableClass, Z x){
+    	return selectRightHandJoin(tableClass, true, x);
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#selectFirstRightHandJoin(java.lang.Object)
      */
-    @SuppressWarnings("unchecked")
 	public <U> U selectFirstRightHandJoin(U tableClass){
-    	Class<U> clazz = (Class<U>) tableClass.getClass();
-    	List<U> list = selectRightHandJoin(clazz, false);
+    	List<U> list = selectRightHandJoin(tableClass, false, null);
     	return list.isEmpty() ? null : list.get(0);
     }
     
-    private <U> List<U> selectRightHandJoin(Class<U> tableClass, boolean distinct) {
-    	if (tableClass.isAnonymousClass())
-    		throw new JaquError("To get a subset of the fields or a a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
-    	if (this.joins == null || this.joins.isEmpty())
-    		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getName());
-    	
-    	String as = null;
-    	for (SelectTable<?> selectTable: joins) {
-    		if (selectTable.getAlias().getClass().isAssignableFrom(tableClass))
-    			as = selectTable.getAs();
-    	}
-    	List<U> result = Utils.newArrayList();
-        TableDefinition<U> def = db.define(tableClass);
-        SQLStatement selectList = def.getSelectList(db, as);
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        try {
-            while (rs.next()) {
-                U item = tableClass.newInstance();
-                def.readRow(item, rs, db);
-                db.addSession(item);
-                result.add(item);
-            }
-        } 
-        catch (Exception e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
-        return result;
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.QueryInterface#selectFirstRightHandJoin(java.lang.Object, java.lang.Object)
+     */
+    public <U, Z> Z selectFirstRightHandJoin(U tableClass, Z x){
+    	List<Z> list = selectRightHandJoin(tableClass, false, x);
+    	return list.isEmpty() ? null : list.get(0);
+    }    
+	
+    /* (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinct(Z)
+	 * 
+	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
+	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
+ 	 */
+    @SuppressWarnings("unchecked")
+	public <X, Z> List<X> selectDistinct(Z x) {
+        return select((X)x, true);
     }
 
+    /* (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.FullQueryInterface#select(Z)
+	 * 
+	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
+	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
+	 */
+    @SuppressWarnings("unchecked")
+	public <X, Z> List<X> select(Z x) {
+        return select((X)x, false);
+    }
+    
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#delete()
 	 */
@@ -287,8 +319,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	        ResultSet rs = stat.executeQuery();
 	        try {
 	            while (rs.next()) {
-	                T item = from.newObject();
-	                from.getAliasDefinition().readRow(item, rs, db);
+	                T item = from.getAliasDefinition().readRow(rs, db);
 	                for (FieldDefinition fdef: def.getFields()) {
 	                	if (fdef.fieldType.ordinal() > 1) {
 	                		// this is a relation
@@ -332,100 +363,8 @@ public class Query<T> implements FullQueryInterface<T> {
         	StatementLogger.update(stat.logSQL());
         return stat.executeUpdate();
     }
-
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinct(Z)
-	 * 
-	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
-	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
- 	 */
-    @SuppressWarnings("unchecked")
-	public <X, Z> List<X> selectDistinct(Z x) {
-        return select((X)x, true);
-    }
-
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#select(Z)
-	 * 
-	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
-	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
-	 */
-    @SuppressWarnings("unchecked")
-	public <X, Z> List<X> select(Z x) {
-        return select((X)x, false);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <Z> List<Z> select(Z x, boolean distinct) {
-        Class< ? > clazz = x.getClass();
-        if (Utils.isSimpleType(clazz) || clazz.isEnum()) {
-            return getSimple(x, distinct);
-        }
-        if (!Object.class.equals(clazz.getSuperclass()))
-        	clazz = clazz.getSuperclass();
-        return select((Class<Z>) clazz,  x, distinct);
-    }
-
-    private <X> List<X> select(Class<X> clazz, X x, boolean distinct) {
-        List<X> result = Utils.newArrayList();
-        TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
-        SQLStatement selectList = def.getSelectList(this, x);
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        try {
-            while (rs.next()) {
-                X row = Utils.newObject(clazz);
-                def.readRow(row, rs, db);
-                result.add(row);
-            }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
-        return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private <X> List<X> getSimple(X x, boolean distinct) {
-        SQLStatement selectList = new SQLStatement(db);
-        appendSQL(selectList, x, false, null);
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        List<X> result = Utils.newArrayList();
-        try {
-            while (rs.next()) {
-                try {
-                	X value = null;
-                	if (x.getClass().isEnum())
-                		value = (X)handleAsEnum(x.getClass(), rs.getObject(1));
-                	else
-                    	value = (X) rs.getObject(1);
-                    result.add(value);
-                } 
-                catch (Exception e) {
-                    throw new JaquError(e, e.getMessage());
-                }
-            }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
-        return result;
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-	private Object handleAsEnum(Class enumClass, Object object) {
-    	if (null == object || object.getClass().isEnum())
-    		return object;
-		if (String.class.isAssignableFrom(object.getClass()))
-			return Enum.valueOf(enumClass, (String) object);
-		// it must be an int type
-		return Utils.newEnum(enumClass, (Integer)object);
-	}
+    
+    
 
 	public <A> QueryWhere<T> where(final StringFilter whereCondition){
     	Token conditionCode = new Token() {
@@ -652,10 +591,34 @@ public class Query<T> implements FullQueryInterface<T> {
     }
 
     /* (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.FullQueryInterface#innerJoin(U)
+	 */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public <U> QueryJoin innerJoin(U alias) {
+        TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
+        SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.INNER_JOIN);
+        def.initSelectObject(join, alias, aliasMap);
+        joins.add(join);
+        return new QueryJoin(this, join);
+    }
+    
+    /* (non-Javadoc)
+     * @see com.centimia.orm.jaqu.FullQueryInterface#leftOuterJoin(U)
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public <U> QueryJoin leftOuterJoin(U alias) {
+        TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
+        SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.LEFT_OUTER_JOIN);
+        def.initSelectObject(join, alias, aliasMap);
+        joins.add(join);
+        return new QueryJoin(this, join);
+    }
+    
+    /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#appendSQL(com.centimia.orm.jaqu.SQLStatement, java.lang.Object)
 	 */
-    public void appendSQL(SQLStatement stat, Object x, boolean isEnum, Class<?> enumClass) {
-        if (x == Function.count()) {
+    void appendSQL(SQLStatement stat, Object x, boolean isEnum, Class<?> enumClass) {
+    	if (x == Function.count()) {
             stat.appendSQL("COUNT(*)");
             return;
         }
@@ -706,7 +669,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 stat.appendSQL(" ");
                 // FIXME Here is the specific use of the PkConditions. When inheritance is done base on a discriminator it may be the situation
                 // where the object that needs to be mapped declares a parent (in a relationship O2O or O2M) but the actual data represents an
-                // inherited child. Since this is internally fetched by Jaqu, and since this is based on a definite and known primary key
+                // inherited child. Since this is internally fetched by JaQu, and since this is based on a definite and known primary key
                 // we can omit the discriminator in the query. This opens the discussion to potential problems as the object type returned is not
                 // the inherited child but the parent type. For one it will be impossible to cast it to the child and get the other fields since they will not
                 // exist. It could also be a problem saving it as updating may override the type of object. 
@@ -786,30 +749,6 @@ public class Query<T> implements FullQueryInterface<T> {
         return stat;
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#innerJoin(U)
-	 */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public <U> QueryJoin innerJoin(U alias) {
-        TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
-        SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.INNER_JOIN);
-        def.initSelectObject(join, alias, aliasMap);
-        joins.add(join);
-        return new QueryJoin(this, join);
-    }
-    
-    /* (non-Javadoc)
-     * @see com.centimia.orm.jaqu.FullQueryInterface#leftOuterJoin(U)
-     */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public <U> QueryJoin leftOuterJoin(U alias) {
-        TableDefinition<T> def = (TableDefinition<T>) db.define(alias.getClass());
-        SelectTable<T> join = new SelectTable(this, alias, JOIN_TYPE.LEFT_OUTER_JOIN);
-        def.initSelectObject(join, alias, aliasMap);
-        joins.add(join);
-        return new QueryJoin(this, join);
-    }
-
     Db getDb() {
         return db;
     }
@@ -833,4 +772,291 @@ public class Query<T> implements FullQueryInterface<T> {
     List<SelectTable<?>> getJoins(){
     	return joins;
     }
+    
+    private String getSQL(boolean distinct) {
+    	TableDefinition<T> def = from.getAliasDefinition();
+        SQLStatement selectList = def.getSelectList(db, from.getAs());
+        return prepare(selectList, false).logSQL().trim();
+    }
+
+    @SuppressWarnings("unchecked")
+	private <X> String getSQL(X x, boolean distinct) {
+    	Class<X> clazz = (Class<X>) x.getClass();
+    	TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
+        SQLStatement selectList = def.getSelectList(this, x);
+        return prepare(selectList, false).logSQL().trim();
+    }
+    
+    private List<T> select(boolean distinct) {
+    	List<T> result = Utils.newArrayList();
+        TableDefinition<T> def = from.getAliasDefinition();
+        SQLStatement selectList = def.getSelectList(db, from.getAs());
+        ResultSet rs = prepare(selectList, distinct).executeQuery();
+        try {
+            while (rs.next()) {
+                T item = from.getAliasDefinition().readRow(rs, db);
+                db.addSession(item);
+                result.add(item);
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }
+        
+        return result;
+    }
+   
+    private <U> List<T> union(Query<U> unionQuery, boolean distinct){
+    	if (null == unionQuery)
+			return this.select();
+    	
+    	List<T> result = Utils.newArrayList();
+    	TableDefinition<T> def = from.getAliasDefinition();
+    	SQLStatement selectList = def.getSelectList(db, from.getAs());
+    	
+    	TableDefinition<U> unionDef = unionQuery.from.getAliasDefinition();
+    	SQLStatement unuionSelectList = unionDef.getSelectList(db, unionQuery.from.getAs());
+    	
+    	selectList = prepare(selectList, distinct);
+    	ResultSet rs = selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct));    	
+    	try {
+            while (rs.next()) {
+                T item = from.getAliasDefinition().readRow(rs, db);
+                db.addSession(item);
+                result.add(item);
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }
+    	return result;
+    }
+    
+    private <U, X> List<X> union(Query<U> unionQuery, X x, boolean distinct) {
+    	if (null != x){
+			@SuppressWarnings("unchecked")
+			Class<?> clazz = (Class<X>) x.getClass();
+			if (!Utils.isSimpleType(clazz) && !clazz.isEnum()) {
+				if (null == unionQuery)
+					return this.select(x);
+				
+				if (!Object.class.equals(clazz.getSuperclass()))
+		        	clazz = clazz.getSuperclass();
+				List<X> result = Utils.newArrayList();
+		    	@SuppressWarnings("unchecked")
+				TableDefinition<X> def = JaquSessionFactory.define((Class<X>)clazz, db, false);
+		    	SQLStatement selectList = def.getSelectList(db, from.getAs());    	
+		    	SQLStatement unuionSelectList = def.getSelectList(db, unionQuery.from.getAs());
+		    	
+		    	selectList = prepare(selectList, distinct);
+		    	ResultSet rs = selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct));    	
+		    	try {
+		            while (rs.next()) {
+		                X item = def.readRow(rs, db);
+		                result.add(item);
+		            }
+		        } 
+		        catch (SQLException e) {
+		            throw new JaquError(e, e.getMessage());
+		        } 
+		        finally {
+		            JdbcUtils.closeSilently(rs);
+		        }
+		    	return result;
+			}
+		}
+		return new ArrayList<>();    	
+    }
+    
+	@SuppressWarnings("unchecked")
+	private <U> List<U> selectRightHandJoin(U tableClass, boolean distinct) {
+    	if (tableClass.getClass().isAnonymousClass())
+    		throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+    	if (this.joins == null || this.joins.isEmpty())
+    		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getClass().getName());
+    	
+    	TableDefinition<U> def = null;
+    	String as = null;
+    	for (SelectTable<?> selectTable: joins) {
+    		if (selectTable.getAlias() == tableClass) {
+    			as = selectTable.getAs();
+    			def = (TableDefinition<U>) selectTable.getAliasDefinition();
+    		}
+    	}
+    	SQLStatement selectList = def.getSelectList(db, as);
+    	List<U> result = Utils.newArrayList();
+        ResultSet rs = prepare(selectList, distinct).executeQuery();
+        try {
+            while (rs.next()) {
+                U item = def.readRow(rs, db);
+                db.addSession(item);
+                result.add(item);
+            }
+        } 
+        catch (Exception e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }
+        return result;
+    }
+
+	@SuppressWarnings("unchecked")
+	private <U, Z> List<Z> selectRightHandJoin(U tableClass, boolean distinct, Z x) {
+    	if (tableClass.getClass().isAnonymousClass())
+    		throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+    	if (this.joins == null || this.joins.isEmpty())
+    		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getClass().getName());
+    	
+    	List<Z> result = Utils.newArrayList();
+    	if (null != x) {
+    		// we want a specific list of a single value from the joined tables
+    		Class< ? > clazz = x.getClass();
+    		if (Utils.isSimpleType(clazz) || clazz.isEnum()) {
+		    	SQLStatement selectList = new SQLStatement(db);
+		    	for (SelectTable<?> selectTable: joins) {
+		    		if (selectTable.getAlias() == tableClass) {
+		    			selectTable.appendSqlColumnFromField(selectList, x);
+		    		}
+		    	}
+	        
+	        	ResultSet rs = prepare(selectList, distinct).executeQuery();
+	        	try {
+                	while (rs.next()) {
+		        		Z value = null;
+	                	if (x.getClass().isEnum())
+	                		value = (Z)handleAsEnum(x.getClass(), rs.getObject(1));
+	                	else
+	                    	value = (Z) rs.getObject(1);
+	                    result.add(value);
+                	}
+                } 
+                catch (Exception e) {
+                    throw new JaquError(e, e.getMessage());
+                }
+	        	finally {
+	                JdbcUtils.closeSilently(rs);
+	            }
+	        }
+	        else
+	        	throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+    	}
+    	return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <Z> List<Z> select(Z x, boolean distinct) {
+        Class< ? > clazz = x.getClass();
+        if (Utils.isSimpleType(clazz) || clazz.isEnum()) {
+            return getSimple(x, distinct);
+        }
+        if (!Object.class.equals(clazz.getSuperclass()))
+        	clazz = clazz.getSuperclass();
+        return select((Class<Z>) clazz,  x, distinct);
+    }
+
+    @SuppressWarnings("unchecked")
+	private <K, V> Map<K, V> selectSimpleAsMap(K key, V value, boolean distinct) {
+    	SQLStatement selectList = new SQLStatement(db);
+        appendSQL(selectList, key, false, null);
+        selectList.appendSQL(", ");
+        appendSQL(selectList, value, false, null);
+        ResultSet rs = prepare(selectList, distinct).executeQuery();
+        Map<K, V> result = Utils.newHashMap();
+        try {
+            while (rs.next()) {
+                try {
+                	K theKey = null;
+                	V theValue = null;
+                	if (key.getClass().isEnum())
+                		theKey = (K)handleAsEnum(key.getClass(), rs.getObject(1));
+                	else
+                		theKey = (K) rs.getObject(1);
+                	
+                	if (value.getClass().isEnum())
+                		theValue = (V)handleAsEnum(value.getClass(), rs.getObject(2));
+                	else
+                		theValue = (V) rs.getObject(2);
+                    result.put(theKey, theValue);
+                } 
+                catch (Exception e) {
+                    throw new JaquError(e, e.getMessage());
+                }
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }
+        return result;
+    }
+    
+    private <X> List<X> select(Class<X> clazz, X x, boolean distinct) {
+        List<X> result = Utils.newArrayList();
+        TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
+        SQLStatement selectList = def.getSelectList(this, x);
+        ResultSet rs = prepare(selectList, distinct).executeQuery();
+        try {
+            while (rs.next()) {
+                X row = def.readRow(rs, db);
+                result.add(row);
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <X> List<X> getSimple(X x, boolean distinct) {
+        SQLStatement selectList = new SQLStatement(db);
+        appendSQL(selectList, x, false, null);
+        ResultSet rs = prepare(selectList, distinct).executeQuery();
+        List<X> result = Utils.newArrayList();
+        try {
+            while (rs.next()) {
+                try {
+                	X value = null;
+                	if (x.getClass().isEnum())
+                		value = (X)handleAsEnum(x.getClass(), rs.getObject(1));
+                	else
+                    	value = (X) rs.getObject(1);
+                    result.add(value);
+                } 
+                catch (Exception e) {
+                    throw new JaquError(e, e.getMessage());
+                }
+            }
+        } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        } 
+        finally {
+            JdbcUtils.closeSilently(rs);
+        }
+        return result;
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private Object handleAsEnum(Class enumClass, Object object) {
+    	if (null == object || object.getClass().isEnum())
+    		return object;
+		if (String.class.isAssignableFrom(object.getClass()))
+			return Enum.valueOf(enumClass, (String) object);
+		// it must be an int type
+		return Utils.newEnum(enumClass, (Integer)object);
+	}
 }

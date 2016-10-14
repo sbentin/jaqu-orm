@@ -135,6 +135,14 @@ public class SQLStatement {
         }
 	}
 
+	ResultSet executeUnion(SQLStatement unionStatement){
+		if (null != unionStatement) {		
+			this.buff.append(" union ").append(unionStatement.buff);
+			this.params.addAll(unionStatement.params);
+		}
+		return this.executeQuery();
+	}
+	
     private Long getGeneratedKeys(ResultSet generatedKeys, int size) {
 		try {
 			if (generatedKeys.next()){

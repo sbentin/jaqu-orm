@@ -21,6 +21,7 @@
 package com.centimia.orm.jaqu;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The use of query interfaces is to divide different query abilities in different stages of the query.
@@ -53,10 +54,9 @@ public interface QueryInterface<T> {
 	 * Returns the first result of a select for type Z. 
 	 * Type Z can be any defined type with mappings from the result.
 	 * 
-	 * @param <X>
 	 * @param <Z>
 	 * @param x
-	 * @return X
+	 * @return Z
 	 */
 	public abstract <X, Z> X selectFirst(Z x);
 
@@ -76,29 +76,51 @@ public interface QueryInterface<T> {
 
 	/**
 	 * Returns the result of a select for object of type Z from Table T. 
-	 * @param <X>
+	 * 
 	 * @param <Z>
 	 * @param x
-	 * @return List<X> results
+	 * @return List<Z> results
 	 */
 	public abstract <X, Z> List<X> select(Z x);
 	
 	/**
-	 * enables the select of the object representing the right hand side of an inner or outer join.
-	 * @param <U>
-	 * @param tableClass
-	 * @return List<U>
-	 */
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
 	public abstract <U> List<U> selectRightHandJoin(U tableClass);
 	
 	/**
-	 * Utility method to return the first result of a right hand side of an inner or outer join.
-	 * @param <U>
-	 * @param tableClass
-	 * @return U
-	 */
+     * A convenience method get a field result from an object representing the right hand side of the join relationship only. This is for a single field only
+     * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<Z>
+     */
+	public abstract <U, Z> List<Z> selectRightHandJoin(U tableClass, Z x);
+	
+	/**
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     */
 	public abstract <U> U selectFirstRightHandJoin(U tableClass);
 
+	/**
+     * A convenience method to get a field result from an object representing the right hand side of the join relationship only. This is for a single field only
+     * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     * 
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     */
+	public abstract <U, Z> Z selectFirstRightHandJoin(U tableClass, Z x);
+	
 	/**
 	 * Start a where clause on the SQL query.
 	 * 
@@ -234,8 +256,142 @@ public interface QueryInterface<T> {
 	 * @return QueryCondition<T, Long>
 	 */
 	public <A> QueryCondition<T, Long> having(HavingFunctions function, A x);
-	
-	public abstract List<T> union(String unionQuery);
 
-	public abstract List<T> intersect(String intersectQuery);
+	/**
+	 * Returns a map of all the query's results where key is one field in the select and value is another.<br>
+	 * It is also available in join queries. You can have a key from any table within the join and a value from any table as well.<br>
+	 * <b>Note:</b> If keys are not unique they will override.<br>
+	 * example:
+	 * <pre>
+	 * Db sb = [new session];
+	 * Table t = [tableDescriptor]
+	 * Map<Long, String> results = db.from(t).where(t.[getSomeField()]).is)[someValue]....selectAsMap(t.getA(), t.getB());
+	 * </pre>
+	 * 
+	 * @param key
+	 * @param value
+	 * @return Map<K, V>
+	 */
+	public <K, V> Map<K, V> selectAsMap(K key, V value);
+	
+	/**
+	 * same as {@link #selectAsMap(Object, Object)} but returns only distinct results.
+	 * 
+	 * @see #selectAsMap(Object, Object)
+	 * @param key
+	 * @param value
+	 * @return Map<K, V>
+	 */
+	public <K, V> Map<K, V> selectDistinctAsMap(K key, V value);
+	
+	/**
+	 * Returns a List of the main "from" type based on a Union between the two queries.<br>
+	 * this query is runs a union query of the two queries.<br>
+	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U> List<T> union(Query<U> unionQuery);
+
+	/**
+	 * Returns a List of the main "from" type based on a Union between the two queries.<br>
+	 * this query is runs a union query of the two queries.<br>
+	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U> List<T> union(QueryWhere<U> unionQuery);
+
+	/**
+	 * Returns a List of the main "from" type based on a Union between the two queries.<br>
+	 * this query is runs a union query of the two queries.<br>
+	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U> List<T> union(QueryJoinWhere<U> unionQuery);
+	
+	/**
+	 * same as {@link #union(QueryJoinWhere)} but returns distinct results of both queries.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U> List<T> unionDistinct(QueryJoinWhere<U> unionQuery);
+	
+	/**
+	 * same as {@link #union(QueryWhere)} but returns distinct results of both queries.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U> List<T> unionDistinct(QueryWhere<U> unionQuery);
+	
+	/**
+	 * same as {@link #union(Query)} but returns distinct results of both queries.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U> List<T> unionDistinct(Query<U> unionQuery);
+	
+	/**
+	 * same as {@link #union(QueryJoinWhere, Object)} but returns distinct results of both queries.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U, X> List<X> unionDistinct(QueryJoinWhere<U> unionQuery, X x);
+	
+	/**
+     * Returns a list of the given type (x). The type must be a new type, not one of the table's fields.
+     * this query is runs a union query of the two queries.<br>
+	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
+	 * 
+	 * @param unionQuery
+	 * @param x - the type to return
+	 * @return List<X>
+	 */
+	public <U, X> List<X> union(QueryJoinWhere<U> unionQuery, X x);	
+
+	/**
+	 * same as {@link #union(QueryWhere, Object)} but returns distinct results of both queries.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U, X> List<X> unionDistinct(QueryWhere<U> unionQuery, X x);
+
+	/**
+     * Returns a list of the given type (x). The type must be a new type, not one of the table's fields.
+     * this query is runs a union query of the two queries.<br>
+	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
+	 * 
+	 * @param unionQuery
+	 * @param x - the type to return
+	 * @return List<X>
+	 */
+	public <U, X, Z> List<X> union(QueryWhere<U> unionQuery, Z x);	
+
+	/**
+	 * same as {@link #union(Query, Object)} but returns distinct results of both queries.
+	 * 
+	 * @param unionQuery
+	 * @return List<T>
+	 */
+	public <U, X> List<X> unionDistinct(Query<U> unionQuery, X x);
+
+	/**
+     * Returns a list of the given type (x). The type must be a new type, not one of the table's fields.
+     * this query is runs a union query of the two queries.<br>
+	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
+	 * 
+	 * @param unionQuery
+	 * @param x - the type to return
+	 * @return List<X>
+	 */
+	public <U, X> List<X> union(Query<U> unionQuery, X x);
 }
