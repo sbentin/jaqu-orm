@@ -18,6 +18,7 @@ package com.centimia.jaqu.test.simple;
 import java.util.Map;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.Function;
 
 import junit.framework.TestResult;
 
@@ -48,6 +49,14 @@ public class TestSelectAsMap extends JaquTest {
 			
 			assertEquals(2, results.size());
 			assertEquals("value3", results.get("name3"));
+			
+			TestTable2 table2 = new TestTable2();
+			results = db.from(table1).leftOuterJoin(table2).on(table1.getId()).is(table2.getId()).selectAsMap(table1.getName(), Function.ifNull(table2.getDescription(), table1.getValue(), true)); //
+			
+			assertEquals(2, results.size());
+			assertEquals("value2", results.get("name2"));
+			assertEquals("Description of 3", results.get("name3"));
+			tearDown();
 		}
 		catch (Throwable e){
 			db.rollback();
