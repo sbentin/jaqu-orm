@@ -1,0 +1,171 @@
+/*
+ * Copyright (c) 2008-2012 Shai Bentin & Centimia Inc..
+ * All rights reserved.  Unpublished -- rights reserved
+ *
+ * Use of a copyright notice is precautionary only, and does
+ * not imply publication or disclosure.
+ *
+ * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE
+ * SECRETS OF Shai Bentin USE, DISCLOSURE, OR
+ * REPRODUCTION IS PROHIBITED WITHOUT THE PRIOR EXPRESS
+ * WRITTEN PERMISSION OF Shai Bentin & CENTIMIA, INC.
+ */
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+group = 'com.centimia'
+
+buildscript {
+	dependencies {
+		classpath "org.jfrog.buildinfo:build-info-extractor-gradle:+"
+	}
+	
+	repositories {
+        maven {
+            url 'http://www.centimia.com:8081/artifactory/jcenter'
+            credentials {
+                username = "${artifactory_user}"
+                password = "${artifactory_password}"
+            }
+        } 
+        maven {
+            url 'http://www.centimia.com:8081/artifactory/plugins-release'
+            credentials {
+                username = "${artifactory_user}"
+                password = "${artifactory_password}"
+            }
+        } 
+        maven {
+            url 'http://www.centimia.com:8081/artifactory/plugins-release-local'
+            credentials {
+                username = "${artifactory_user}"
+                password = "${artifactory_password}"
+            }
+        }        
+    }
+}
+
+dependencies {
+	compile 'javax.transaction:jta:1.1'
+	
+	compileOnly 'org.ow2.asm:asm:5.0.3'
+	compileOnly 'org.ow2.asm:asm-commons:5.0.3'
+	compileOnly 'org.apache.ant:ant:1.9.7'
+	
+	compileOnly gradleApi()
+    compileOnly localGroovy()
+	
+}
+
+publishing {		
+	task binJar(type: Jar) {
+		from sourceSets.main.output		
+		exclude "com/centimia/orm/jaqu/ext*"
+		exclude "META-INF*"
+	}
+	
+	task extJar(type: Jar) {
+		from sourceSets.main.output
+		include "com/centimia/orm/jaqu/ext/**"
+		include "META-INF/**"
+	}
+	
+	task sourceJar(type: Jar) {
+		classifier "source"
+		from sourceSets.main.allJava
+	}
+	publications {
+		source(MavenPublication) {
+			artifactId = "Jaqu"
+			version = "${mainJarVersion}"
+			pom.withXml {
+		    	asNode().appendNode('description', '![CDATA[Jaqu is an O/R Mapping tool and a JDBC wrapping framework. Multiple-Licensed under the H2 License, Version 1.0, and under the Eclipse Public License, Version 1.0 (http://h2database.com/html/license.html). Initial Developer: H2 Group, Centimia Inc.]]')
+		    	
+		    	def dependenciesNode = asNode().appendNode('dependencies')
+
+			    // Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
+			    configurations.compile.allDependencies.each {
+			        def dependencyNode = dependenciesNode.appendNode('dependency')
+			        dependencyNode.appendNode('groupId', it.group)
+			        dependencyNode.appendNode('artifactId', it.name)
+			        dependencyNode.appendNode('version', it.version)
+			    }
+		    }
+			artifact sourceJar
+		}
+		binary(MavenPublication) {			
+			artifactId = "Jaqu"
+			version = "${mainJarVersion}"
+			pom.withXml {
+		    	asNode().appendNode('description', '![CDATA[Jaqu is an O/R Mapping tool and a JDBC wrapping framework. Multiple-Licensed under the H2 License, Version 1.0, and under the Eclipse Public License, Version 1.0 (http://h2database.com/html/license.html). Initial Developer: H2 Group, Centimia Inc.]]')
+		    	
+		    	def dependenciesNode = asNode().appendNode('dependencies')
+
+			    // Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
+			    configurations.compile.allDependencies.each {
+			        def dependencyNode = dependenciesNode.appendNode('dependency')
+			        dependencyNode.appendNode('groupId', it.group)
+			        dependencyNode.appendNode('artifactId', it.name)
+			        dependencyNode.appendNode('version', it.version)
+			    }
+		    }	
+			artifact binJar
+		}
+		extension(MavenPublication) {
+			artifactId = "Jaqu-ext"
+			version = "${extJarVersion}"
+			pom.withXml {
+		    	asNode().appendNode('description', '![CDATA[Library for jaqu entity post compilation byte code builders. Includes builders for ant and gradle]]')
+		    	
+		    	def dependenciesNode = asNode().appendNode('dependencies')
+
+			    // Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
+			    configurations.compileOnly.allDependencies.each {
+			        if (it.name != 'unspecified' && it.name != '') {
+				        def dependencyNode = dependenciesNode.appendNode('dependency')
+				        dependencyNode.appendNode('groupId', it.group)
+				        dependencyNode.appendNode('artifactId', it.name)
+				        dependencyNode.appendNode('version', it.version)
+				    }
+			    }
+		    }
+			artifact extJar
+		}
+	}
+	
+	repositories {
+        maven {
+            url "http://www.centimia.com:8081/artifactory/libs-release-local"
+            credentials {
+                username = "${artifactory_user}"
+                password = "${artifactory_password}"
+            }
+        }
+    }
+}
+
+artifactory {
+    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
+    publish {
+        repository {
+            repoKey = 'libs-release-local'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+            maven = true           
+        }
+    }
+    resolve {
+        repository {
+            repoKey = 'libs-release'
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+            maven = true            
+        }
+    }
+}
