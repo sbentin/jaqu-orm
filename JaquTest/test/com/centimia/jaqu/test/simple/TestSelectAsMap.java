@@ -58,7 +58,7 @@ public class TestSelectAsMap extends JaquTest {
 			assertEquals("Description of 3", results.get("name3"));
 			tearDown();
 		}
-		catch (Throwable e){
+		catch (Throwable e) {
 			db.rollback();
 			result.addError(this, e);
 		}
