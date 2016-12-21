@@ -42,7 +42,7 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
 /**
  * This class represents a connection to an underlying data store which supports JDBC.
  */
-public class Db {
+public class Db implements AutoCloseable {
 
     private static final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
     

@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import javax.sql.CommonDataSource;
 import javax.transaction.RollbackException;
 import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
@@ -100,11 +101,11 @@ public final class JaquSessionFactory {
 	 * 
 	 * @param ds - the datasource. expected either javax.sql.Datasource or javax.sql.XADatasource
 	 */
-	public JaquSessionFactory(Object ds) {
+	public JaquSessionFactory(CommonDataSource ds) {
     	if (null == ds)
     		throw new JaquError("IllegalState - Missing valid datasource!!!");
     	this.dataSource = new DatasourceWrapper(ds);
-    	// This map is synchronized on put operations. The reason is that this map can be updated by more then one thread and
+    	// This map is synchronized on put operations, within the @link{#define} process. The reason is that this map can be updated by more then one thread and
     	// I don't want a situation where two threads update it at the same time with the same definition.
     	classMap = Utils.newHashMap();
     	
@@ -120,7 +121,7 @@ public final class JaquSessionFactory {
 	 * @param autoCommit
 	 * @param transactionIsolation
 	 */
-	public JaquSessionFactory(Object ds, boolean autoCommit, int transactionIsolation) {
+	public JaquSessionFactory(CommonDataSource ds, boolean autoCommit, int transactionIsolation) {
 		this(ds);
 		this.acidConfig = ACID_CONFIG.INTERNAL;
 		this.autoCommit = autoCommit;
@@ -209,7 +210,7 @@ public final class JaquSessionFactory {
 	private Db createConnection() throws Exception {
 		Connection conn = null;
 		try {			
-			// if I'm an XADatasource i know that I'm in a transaction so don't play with autocommit.
+			// if I'm an XADatasource I know that I'm in a transaction so don't play with autoCommit.
 			if (dataSource.isXA()) {
 				conn = dataSource.getXAConnection().getConnection();
 			}

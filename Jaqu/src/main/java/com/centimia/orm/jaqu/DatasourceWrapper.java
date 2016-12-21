@@ -41,13 +41,13 @@ class DatasourceWrapper implements DataSource, XADataSource {
 	private final CommonDataSource datasource;
 	private final boolean isXA;
 	
-	public DatasourceWrapper(Object datasource) {
+	public DatasourceWrapper(CommonDataSource datasource) {
 		if (DataSource.class.isAssignableFrom(datasource.getClass())) {
-			this.datasource = (CommonDataSource)datasource;
+			this.datasource = datasource;
 			this.isXA = false;
 		}
 		else if (XADataSource.class.isAssignableFrom(datasource.getClass())) {
-			this.datasource = (CommonDataSource)datasource;
+			this.datasource = datasource;
 			this.isXA = true;
 		}
 		else
@@ -76,28 +76,28 @@ class DatasourceWrapper implements DataSource, XADataSource {
 	 * @see javax.sql.CommonDataSource#getLogWriter()
 	 */
 	public PrintWriter getLogWriter() throws SQLException {
-		return ((CommonDataSource)datasource).getLogWriter();
+		return datasource.getLogWriter();
 	}
 
 	/* (non-Javadoc)
 	 * @see javax.sql.CommonDataSource#setLogWriter(java.io.PrintWriter)
 	 */
 	public void setLogWriter(PrintWriter out) throws SQLException {
-		((CommonDataSource)datasource).setLogWriter(out);		
+		datasource.setLogWriter(out);		
 	}
 
 	/* (non-Javadoc)
 	 * @see javax.sql.CommonDataSource#setLoginTimeout(int)
 	 */
 	public void setLoginTimeout(int seconds) throws SQLException {
-		((CommonDataSource)datasource).setLoginTimeout(seconds);		
+		datasource.setLoginTimeout(seconds);		
 	}
 
 	/* (non-Javadoc)
 	 * @see javax.sql.CommonDataSource#getLoginTimeout()
 	 */
 	public int getLoginTimeout() throws SQLException {
-		return ((CommonDataSource)datasource).getLoginTimeout();
+		return datasource.getLoginTimeout();
 	}
 
 	/* (non-Javadoc)
@@ -110,7 +110,7 @@ class DatasourceWrapper implements DataSource, XADataSource {
 	/* (non-Javadoc)
 	 * @see java.sql.Wrapper#isWrapperFor(java.lang.Class)
 	 */
-	public boolean isWrapperFor(Class<?> iface) throws SQLException {
+	public boolean isWrapperFor(Class<?> iface) throws SQLException, ClassCastException {
 		return ((Wrapper)datasource).isWrapperFor(iface);
 	}
 
