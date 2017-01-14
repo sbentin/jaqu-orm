@@ -28,6 +28,6 @@ Export-Package: com.centimia.orm.jaqu.plugin,
  org.objectweb.asm.signature
 Bundle-ClassPath: lib/asm-5.0.3.jar,
  lib/asm-commons-5.0.3.jar,
- lib/Jaqu.jar,
- lib/Jaqu-ext.jar,
+ lib/jaqu.jar,
+ lib/jaqu-ext.jar,
  .
