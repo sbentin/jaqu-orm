@@ -23,10 +23,10 @@ import org.objectweb.asm.util.TraceClassVisitor;
  * A helper to generate ASM style byte code building
  * @author shai
  */
-public class ClassReaderTest {
+public class AsmBytecodeHelper {
 
     public static void main(String[] args) throws Exception {
-    	InputStream in = ClassReaderTest.class.getResourceAsStream("TestASM.class");
+    	InputStream in = AsmBytecodeHelper.class.getResourceAsStream("TestASM.class");
         ClassReader reader = new ClassReader(in);
         int flags = ClassReader.SKIP_DEBUG;
         reader.accept(new TraceClassVisitor(null, new ASMifier(), new PrintWriter(System.out)), flags);
