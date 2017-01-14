@@ -43,7 +43,7 @@ public class TransactionTests extends JaquTest {
 	 * @see com.centimia.jaqu.test.JaquTest#tearDown()
 	 */
 	@Override
-	protected void tearDown() throws Exception {
+	protected void tearDown() {
 		System.out.println(String.format("Ending %s --> session opened for: %s milliseconds. Connection closed!!!", getName(), (System.currentTimeMillis() - time)));
 	}
 

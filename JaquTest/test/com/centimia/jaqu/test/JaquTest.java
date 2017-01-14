@@ -73,7 +73,7 @@ public abstract class JaquTest extends TestCase {
 	 * @see junit.framework.TestCase#tearDown()
 	 */
 	@Override
-	protected void tearDown() throws Exception {
+	protected void tearDown() {
 		db.close();
 		db = null;
 		System.out.println(String.format("Ending %s --> session opened for: %s milliseconds. Connection closed!!!", getName(), (System.currentTimeMillis() - time)));

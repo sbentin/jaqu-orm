@@ -50,11 +50,6 @@ public class EntitySequenceIdentityTest extends JaquTest {
 		}
 	}
 	
-	@Override
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
-	
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#run(junit.framework.TestResult)
 	 */

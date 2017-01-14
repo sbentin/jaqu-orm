@@ -46,6 +46,7 @@ public class DropAll extends JaquTest {
 			"drop table tablea",
 			"drop table tableb",
 			"drop table tablec",
+			"drop table tabled",
 			"drop sequence MY_SEQ"
 	};
 

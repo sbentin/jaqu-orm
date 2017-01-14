@@ -43,6 +43,10 @@ public class TableC implements Serializable{
 		
 	}
 
+	public TableC(String name){
+		this.name = name;
+	}
+	
 	/**
 	 * @return the id
 	 */

@@ -32,6 +32,7 @@ import com.centimia.jaqu.test.entity.EntityNoUpdateFieldTest;
 import com.centimia.jaqu.test.entity.EntitySequenceIdentityTest;
 import com.centimia.jaqu.test.entity.EntitySessionTests;
 import com.centimia.jaqu.test.entity.EntityUpdateTest;
+import com.centimia.jaqu.test.entity.O2OLazyLoadingTest;
 import com.centimia.jaqu.test.entity.RelationWitVarcharPrimaryTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
 import com.centimia.jaqu.test.entity.TestMultiRef;
@@ -126,6 +127,7 @@ public class JaquTestSuite {
 		suite.addTest(new TestInsertNoId());
 		suite.addTest(new RelationWitVarcharPrimaryTest());
 		suite.addTest(new TestMultiRef());
+		suite.addTest(new O2OLazyLoadingTest());
 		
 		// general test (work both on entities and pojos
 		suite.addTest(new TestQueryByExample());
