@@ -338,10 +338,13 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 *				throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 	 *			
 	 *			[parentType] parent = this.getClass().newInstance();
+	 *			[entityType] desc = TestB.class.newInstance();
+	 *			
 	 *			// get the primary key
 	 *			Object pk = db.getPrimaryKey(this);
+	 *			
 	 *			// get the object
-	 *			[field] = db.from(parent).primaryKey().is(pk).selectFirst(parent.numB);
+	 *			[entityValue] = db.from(desc).innerJoin(parent).on(parent.[entityValue]).is(desc).where(db.getPrimaryKey(parent)).is(pk).selectFirst();
 	 *		}
 	 *		catch (Exception e) {
 	 *			if (e instanceof RuntimeException)
