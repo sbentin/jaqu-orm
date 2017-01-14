@@ -56,10 +56,10 @@ public @interface One2Many {
 	 */
 	String relationColumnName() default "";
 	/**
-	 * The name of the field in the many side object holding the other side of the relationship.<br>
-	 * If null 'this' tableName will be used!<p>
+	 * The name of the field in the many side object holding the other side of the relationship.<br> 
+	 * If left empty jaqu will assume that either there is a field on the other object which has a name identical to 'this' tableName or there is a column in the Db with 'this' tableName<p>
 	 * <b>Note:</b> <ol><li>When using a relation table this is the name of the column representing the parent object in the relation table.</li>
-	 * <li>In a single sided relationship, When not using a relationship table, a column FK must exist in the child table,<br>even if it does not exist in the object</li>
+	 * <li>In a single sided relationship, When not using a relationship table, a column FK must exist in the child table,<br>even if it does not exist in the object. In such a case instead of a field name one can write the column-name.</li>
 	 * </ol></p> 
 	 */
 	String relationFieldName() default "";

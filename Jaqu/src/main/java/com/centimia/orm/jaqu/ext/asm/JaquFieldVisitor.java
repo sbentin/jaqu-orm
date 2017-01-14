@@ -24,12 +24,14 @@ import org.objectweb.asm.FieldVisitor;
 public class JaquFieldVisitor extends FieldVisitor {
 
 	private final HashSet<String> relationFields;
+	private final HashSet<String> lazyLoadFields;
 	private final String name;
 	
-	public JaquFieldVisitor(int api, FieldVisitor fv, String name, HashSet<String> relationFields) {
+	public JaquFieldVisitor(int api, FieldVisitor fv, String name, HashSet<String> relationFields, HashSet<String> lazyLoadFields) {
 		super(api, fv);
 		this.name = name;
 		this.relationFields = relationFields;
+		this.lazyLoadFields = lazyLoadFields;
 	}
 
 	/* (non-Javadoc)
@@ -37,8 +39,13 @@ public class JaquFieldVisitor extends FieldVisitor {
 	 */
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-		if (desc != null && desc.indexOf("com/centimia/orm/jaqu/annotation/JaquIgnore") != -1){
-			this.relationFields.remove(name);
+		if (desc != null) {
+			if (desc.indexOf("com/centimia/orm/jaqu/annotation/JaquIgnore") != -1) {
+				this.relationFields.remove(name);
+			}
+			else if (desc.indexOf("com/centimia/orm/jaqu/annotation/Lazy") != -1) {
+				this.lazyLoadFields.add(name);
+			}
 		}
 		return super.visitAnnotation(desc, visible);
 	}

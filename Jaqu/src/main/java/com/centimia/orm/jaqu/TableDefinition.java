@@ -37,6 +37,7 @@ import com.centimia.orm.jaqu.annotation.Indices;
 import com.centimia.orm.jaqu.annotation.Inherited;
 import com.centimia.orm.jaqu.annotation.Interceptor;
 import com.centimia.orm.jaqu.annotation.JaquIgnore;
+import com.centimia.orm.jaqu.annotation.Lazy;
 import com.centimia.orm.jaqu.annotation.Many2Many;
 import com.centimia.orm.jaqu.annotation.Many2One;
 import com.centimia.orm.jaqu.annotation.MappedSuperclass;
@@ -118,6 +119,18 @@ class TableDefinition<T> {
 				setValue(obj, sUUID, null);
 				return sUUID;
 			}
+			else if (Types.FK == type) {
+				// this is a O2O relation. Must be an entity and thus must have an empty constructor.
+				Object o = Utils.newObject(field.getType());
+				try {
+					field.set(obj, o);
+				} 
+				catch (IllegalArgumentException | IllegalAccessException e) {
+					// No reason for this to happen, we set it as null which would cause a null pointer exception
+					o = null;
+				}
+				return o;
+			}				
 			else {
 				Object o = Utils.newObject(field.getType());
 				setValue(obj, o, null);
@@ -169,26 +182,28 @@ class TableDefinition<T> {
 							break;
 					}
 					case FK: {
-						o = Utils.convert(o, field.getType());
-						if (o != null && o.getClass().getAnnotation(Entity.class) != null && !tmp.getClass().isAssignableFrom(field.getType())) {
-							Object reEntrant = db.reEntrantCache.checkReEntrent(o.getClass(), tmp);
-							if (reEntrant != null) {
-								o = reEntrant;
-							}
-							else {
-								db.reEntrantCache.prepareReEntrent(obj);
-								List<?> result = db.from(o).primaryKey().is(tmp.toString()).select();
-								if (!result.isEmpty()) {
-									o = result.get(0);
+						if (null == field.getAnnotation(Lazy.class)) {
+							o = Utils.convert(o, field.getType());
+							if (o != null && o.getClass().getAnnotation(Entity.class) != null && !tmp.getClass().isAssignableFrom(field.getType())) {
+								Object reEntrant = db.reEntrantCache.checkReEntrent(o.getClass(), tmp);
+								if (reEntrant != null) {
+									o = reEntrant;
 								}
-								else
-									throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
-													+ " with value %s in table %s" 
-													+ "\nmissing in table %s", field.getName(), tmp, obj.getClass().getName(), o.getClass().getName());
-								db.reEntrantCache.removeReEntrent(obj);
+								else {
+									db.reEntrantCache.prepareReEntrent(obj);
+									List<?> result = db.from(o).primaryKey().is(tmp.toString()).select();
+									if (!result.isEmpty()) {
+										o = result.get(0);
+									}
+									else
+										throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
+														+ " with value %s in table %s" 
+														+ "\nmissing in table %s", field.getName(), tmp, obj.getClass().getName(), o.getClass().getName());
+									db.reEntrantCache.removeReEntrent(obj);
+								}
 							}
+							field.set(obj, o);
 						}
-						field.set(obj, o);
 						break;
 					}
 					case O2M: {
