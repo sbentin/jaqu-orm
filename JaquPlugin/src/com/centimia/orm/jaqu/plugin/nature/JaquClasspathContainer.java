@@ -91,7 +91,7 @@ public class JaquClasspathContainer implements IClasspathContainer {
 	
 	private IClasspathEntry[] createJaquLibraryEntries(IJavaProject project) {
     	// only one jar is included here
-		URL pathToJaquJar = Activator.getDefault().getBundle().getEntry("/lib/Jaqu.jar"); // $NON-NLS-1$
+		URL pathToJaquJar = Activator.getDefault().getBundle().getEntry("/lib/jaqu.jar"); // $NON-NLS-1$
 		URL jarURL = null;
 		try {
 			jarURL = FileLocator.resolve(pathToJaquJar);		
