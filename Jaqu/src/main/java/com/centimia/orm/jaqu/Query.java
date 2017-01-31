@@ -268,7 +268,7 @@ public class Query<T> implements FullQueryInterface<T> {
      * @see com.centimia.orm.jaqu.QueryInterface#selectFirstRightHandJoin(java.lang.Object)
      */
 	public <U> U selectFirstRightHandJoin(U tableClass){
-    	List<U> list = selectRightHandJoin(tableClass, false, null);
+    	List<U> list = selectRightHandJoin(tableClass, false);
     	return list.isEmpty() ? null : list.get(0);
     }
     
@@ -809,7 +809,7 @@ public class Query<T> implements FullQueryInterface<T> {
         return result;
     }
    
-    private <U> List<T> union(Query<U> unionQuery, boolean distinct){
+    private <U> List<T> union(Query<U> unionQuery, boolean distinct) {
     	if (null == unionQuery)
 			return this.select();
     	
