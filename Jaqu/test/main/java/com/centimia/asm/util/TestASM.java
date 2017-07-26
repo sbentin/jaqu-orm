@@ -1,5 +1,9 @@
 package com.centimia.asm.util;
 
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.List;
+
 import com.centimia.orm.jaqu.Db;
 
 public class TestASM {
@@ -7,7 +11,11 @@ public class TestASM {
 	
 	private TestB numB;
 	
+	private List<TestB> children;
+	
 	Db db;
+	
+	public boolean isLazy;
 	
 	public TestASM() {
 		
@@ -26,9 +34,9 @@ public class TestASM {
 	}
 	
 	public TestB getNumB() {
-		if (numB == null) {
+		if (numB != null && numB.isLazy) {
 			try {
-				if (null == db)
+				if (null == db || db.isClosed())
 					throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 				
 				TestASM parent = this.getClass().newInstance();
@@ -49,6 +57,31 @@ public class TestASM {
 		return $orig_getNumB();
 	}
 	
+	public List<TestB> getChildren() {
+		if (children == null) {
+			try {
+				if (null == db || db.isClosed())
+					throw new RuntimeException(
+							"Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+				Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);
+				method.setAccessible(true);
+				children = (List<TestB>) method.invoke(db, children, this, TestB.class);
+				method.setAccessible(false);
+			} 
+			catch (Exception e) {
+				if (e instanceof RuntimeException)
+					throw (RuntimeException) e;
+				throw new RuntimeException(e.getMessage(), e);
+			}
+		}
+		return $orig_getChildren();
+	}
+	
+	
+	private List<TestB> $orig_getChildren() {
+		return children;
+	}
+
 	public TestB $orig_getNumB() {
 		return numB;
 	}

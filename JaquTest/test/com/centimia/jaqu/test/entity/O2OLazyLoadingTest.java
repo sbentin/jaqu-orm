@@ -12,6 +12,7 @@
  */
 package com.centimia.jaqu.test.entity;
 
+import java.lang.reflect.Field;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,7 +52,7 @@ public class O2OLazyLoadingTest extends JaquTest {
 			db.insert(tableC);
 			assertNotNull(tableC.getId());
 			
-			TableD tableD = new TableD("Test Lazy Parent", tableC);
+			TableD tableD = new TableD("Test Lazy Parent", null);
 			db.insert(tableD);
 			assertNotNull(tableD.getId());
 			db.commit();
@@ -64,7 +65,33 @@ public class O2OLazyLoadingTest extends JaquTest {
 			TableD desc = new TableD();
 			desc = db.from(desc).primaryKey().is(tableD.getId()).selectFirst();
 			assertNotNull(desc);
-			assertNull(desc.tableC);
+			assertNotNull(desc.tableC);
+			
+			Field isLazyField = desc.tableC.getClass().getDeclaredField("isLazy");
+			boolean isLazy = isLazyField.getBoolean(desc.tableC);
+			assertTrue(isLazy);
+			db.close();
+			
+			try {
+				desc.getTableC();
+				fail();
+			}
+			catch (Exception e) {
+				// if we're  here everything is fine.
+				System.err.println(e.getMessage());
+			}
+			db = sessionFactory.getSession();
+			desc.setTableC(tableC);
+			db.update(desc);
+			db.commit();
+			db.close();
+			
+			db = sessionFactory.getSession();
+			desc = db.from(desc).primaryKey().is(tableD.getId()).selectFirst();
+			assertNotNull(desc.tableC);
+			isLazyField = desc.tableC.getClass().getDeclaredField("isLazy");
+			isLazy = isLazyField.getBoolean(desc.tableC);
+			assertTrue(isLazy);
 			
 			TableC c = desc.getTableC();
 			assertNotNull(c);

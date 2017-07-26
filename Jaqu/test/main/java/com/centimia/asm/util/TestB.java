@@ -19,6 +19,8 @@ package com.centimia.asm.util;
 public class TestB {
 	private String name;
 	
+	public boolean isLazy;
+	
 	public TestB() {
 		
 	}
