@@ -147,7 +147,9 @@ public class Db implements AutoCloseable {
 	 * @param t
 	 * @return X
 	 */
-	public <T, X> X getPrimaryKey(T t){
+	public <T, X> X getPrimaryKey(T t) {
+		if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
 		return factory.getPrimaryKey(t);
 	}
 	
@@ -237,7 +239,6 @@ public class Db implements AutoCloseable {
      * @param <T>
      * @param t
      */
-    @SuppressWarnings("unchecked")
 	public <T> void delete(T t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
@@ -247,17 +248,6 @@ public class Db implements AutoCloseable {
     	checkSession(t);
     	Class<?> clazz = t.getClass();
     	TableDefinition<?> tdef = define(clazz);
-    	if (tdef.isAggregateParent) {
-    		// we have aggregate children
-    		for (FieldDefinition fdef: tdef.getFields()) {
-    			if (fdef.fieldType.ordinal() > 1) { // either O2M or M2M relationship
-    				deleteParentRelation(fdef, t); // if it has relations it must be a Table type by design
-    			}
-    		}
-    	}
-        if (null != tdef.getInterceptor())
-        	tdef.getInterceptor().onDelete(t);
-    	// after dealing with the children we delete the object
     	tdef.delete(this, t);
     }
     
@@ -302,6 +292,9 @@ public class Db implements AutoCloseable {
      * Deletes all elements from the table.
      * <b>Note></b> this utility method simply executes "delete from [TableName]". It runs without a session on the connection. 
 	 * the method is not compliant with cascade and will throw an exception when unable to delete due to constraints.
+     * <p>
+     * <b>Note - this utility method does not clear related fields. This may leave foreign keys in related objects, pointing
+     * to non existing objects.</b>
      * 
      * @param clazz<T>
      * @return int - num of elements deleted
@@ -658,6 +651,13 @@ public class Db implements AutoCloseable {
         }
     }
 
+    /**
+     * true if this connection had been closed
+     * @return boolean
+     */
+    public boolean isClosed() {
+		return this.closed;
+	}
     
     /* (non-Javadoc)
 	 * @see java.lang.Object#finalize()
@@ -867,6 +867,9 @@ public class Db implements AutoCloseable {
 					case M2O:	
 					case NORMAL: continue;
 					case FK: {
+						// if lazy and field is null then we need to get the object from db if exists so we do not delete it by accident
+						// if lazy and field is not null we need to compare
+						
 						Object o = fdef.field.get(t);
 						if (o != null)
 							checkSession(o);
@@ -932,7 +935,7 @@ public class Db implements AutoCloseable {
      */
 	<T> Collection<T> getRelationFromDb(String fieldName, Object myObject, Class<T> type) {
 		if (closed)
-			throw new JaquError("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+			throw new JaquError("Cannot initialize a 'Relation' outside an open session!!!. Try initializing the field directly within the class.");
 		TableDefinition<?> def = define(myObject.getClass());
 		FieldDefinition definition = def.getDefinitionForField(fieldName);
 		
@@ -1248,8 +1251,8 @@ public class Db implements AutoCloseable {
 	}
 
 	/*
-	 * Removes the relationship between all children of the given parent to the parent because the parent is being deleted from the underlying persistence layer.
-	 * If cascade type is delete the children are also removed from DB.
+	 * Removes the relationship between all children of the given parent to the parent because the parent is being deleted 
+	 * from the underlying persistence layer. If cascade type is delete the children are also removed from DB.
 	 * 
 	 */
 	@SuppressWarnings("unchecked")

@@ -27,8 +27,7 @@ package com.centimia.orm.jaqu.constant;
  */
 public class Constants {
 
-	public static final String BUILD_ID = "3.0.8";
 	public static final int IO_BUFFER_SIZE = 4 * 1024;
 	public static final String UTF8 = "UTF8";
-
+	public static final String IS_LAZY = "isLazy";
 }

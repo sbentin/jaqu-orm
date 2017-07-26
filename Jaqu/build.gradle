@@ -61,7 +61,6 @@ dependencies {
 	
 	compileOnly gradleApi()
     compileOnly localGroovy()
-	
 }
 
 publishing {		

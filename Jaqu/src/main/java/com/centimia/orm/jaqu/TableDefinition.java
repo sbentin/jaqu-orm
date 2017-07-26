@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import com.centimia.orm.jaqu.annotation.Cascade;
 import com.centimia.orm.jaqu.annotation.Column;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
@@ -44,6 +45,7 @@ import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.annotation.NoUpdateOnSave;
 import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.constant.Constants;
 import com.centimia.orm.jaqu.util.ClassUtils;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
@@ -139,35 +141,35 @@ class TableDefinition<T> {
 		}
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		void setValue(final Object obj, Object o, final Db db) {
+		void setValue(final Object objToSet, Object fieldValueFronDb, final Db db) {
 			try {
-				Object tmp = o;
+				Object tmp = fieldValueFronDb;
 				switch (fieldType) {
 					case NORMAL:
 						// if 'o' equals null then setting the 'enum' will cause a nullPointerException
-						if ((Types.ENUM_INT == type || Types.ENUM == type) && null != o) {
+						if ((Types.ENUM_INT == type || Types.ENUM == type) && null != fieldValueFronDb) {
 							Class enumClass = field.getType();
 							if (Types.ENUM_INT == type) {
-								field.set(obj, enumClass.getEnumConstants()[(Integer)o]);
+								field.set(objToSet, enumClass.getEnumConstants()[(Integer)fieldValueFronDb]);
 							}
 							else {
-								field.set(obj, Enum.valueOf(enumClass, (String)o));
+								field.set(objToSet, Enum.valueOf(enumClass, (String)fieldValueFronDb));
 							}
 						}
-						else if (Types.UUID == type && null != o) {
+						else if (Types.UUID == type && null != fieldValueFronDb) {
 							// object from DB should be a String by mapping
-							field.set(obj, UUID.fromString((String)o));
+							field.set(objToSet, UUID.fromString((String)fieldValueFronDb));
 						}
 						else
-							field.set(obj, o);
+							field.set(objToSet, fieldValueFronDb);
 						break;
 					case M2O: {
 						if (null != db) {
 							// here we need to fetch the parent object based on the id which is in the relationTable
 							// this is the same as an FK field accept for the fact that we have no value in the DB, i.e. 'tmp' == null an 'o' == null
 							// get the primary key...
-							o = Utils.newObject(relationDefinition.dataType); // create the object to hold the data (I could use field.getType() but this way we can find mistakes												
-							String query = "select " + relationDefinition.relationColumnName + " from " + relationDefinition.relationTableName + " where " + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(obj);
+							fieldValueFronDb = Utils.newObject(relationDefinition.dataType); // create the object to hold the data (I could use field.getType() but this way we can find mistakes												
+							String query = "select " + relationDefinition.relationColumnName + " from " + relationDefinition.relationTableName + " where " + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(objToSet);
 							ResultSet rs = db.executeQuery(query);
 							if (rs.next()) {
 								tmp = db.factory.getDialect().getValueByType(type, rs, relationDefinition.relationColumnName);
@@ -183,50 +185,59 @@ class TableDefinition<T> {
 					}
 					case FK: {
 						if (null == field.getAnnotation(Lazy.class)) {
-							o = Utils.convert(o, field.getType());
-							if (o != null && o.getClass().getAnnotation(Entity.class) != null && !tmp.getClass().isAssignableFrom(field.getType())) {
-								Object reEntrant = db.reEntrantCache.checkReEntrent(o.getClass(), tmp);
+							fieldValueFronDb = Utils.convert(fieldValueFronDb, field.getType());
+							if (fieldValueFronDb != null && fieldValueFronDb.getClass().getAnnotation(Entity.class) != null && !tmp.getClass().isAssignableFrom(field.getType())) {
+								Object reEntrant = db.reEntrantCache.checkReEntrent(fieldValueFronDb.getClass(), tmp);
 								if (reEntrant != null) {
-									o = reEntrant;
+									fieldValueFronDb = reEntrant;
 								}
 								else {
-									db.reEntrantCache.prepareReEntrent(obj);
-									List<?> result = db.from(o).primaryKey().is(tmp.toString()).select();
+									db.reEntrantCache.prepareReEntrent(objToSet);
+									List<?> result = db.from(fieldValueFronDb).primaryKey().is(tmp.toString()).select();
 									if (!result.isEmpty()) {
-										o = result.get(0);
+										fieldValueFronDb = result.get(0);
 									}
 									else
 										throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
 														+ " with value %s in table %s" 
-														+ "\nmissing in table %s", field.getName(), tmp, obj.getClass().getName(), o.getClass().getName());
-									db.reEntrantCache.removeReEntrent(obj);
+														+ "\nmissing in table %s", field.getName(), tmp, objToSet.getClass().getName(), fieldValueFronDb.getClass().getName());
+									db.reEntrantCache.removeReEntrent(objToSet);
 								}
 							}
-							field.set(obj, o);
+							field.set(objToSet, fieldValueFronDb);
+						}
+						else {
+							// should be marked as lazy loaded
+							if (field.getType().getAnnotation(Entity.class) != null) {
+								Field lazyfield = field.getType().getDeclaredField(Constants.IS_LAZY);
+								fieldValueFronDb = field.getType().newInstance();
+					 			lazyfield.setBoolean(fieldValueFronDb, true);
+								field.set(objToSet, fieldValueFronDb);
+							}
 						}
 						break;
 					}
 					case O2M: {
 						if (relationDefinition.eagerLoad && db != null) {
-							db.reEntrantCache.prepareReEntrent(obj);
+							db.reEntrantCache.prepareReEntrent(objToSet);
 							if (relationDefinition.relationTableName != null) {
-								List<?> resultList = db.getRelationByRelationTable(this, db.factory.getPrimaryKey(obj),	relationDefinition.dataType);
+								List<?> resultList = db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet),	relationDefinition.dataType);
 								if (!resultList.isEmpty()) {
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										o = new JaquList(resultList, db, this, db.factory.getPrimaryKey(obj));
+										fieldValueFronDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));
 									else {
 										// only when the type is a Set type we will be here
 										HashSet set = Utils.newHashSet();
 										set.addAll(resultList);
-										o = new JaquSet(set, db, this, db.factory.getPrimaryKey(obj));
+										fieldValueFronDb = new JaquSet(set, db, this, db.factory.getPrimaryKey(objToSet));
 									}
 								}
 								else {
 									// on eager loading if no result exists we set to an empty collection;
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										o = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(obj)) ;
+										fieldValueFronDb = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(objToSet)) ;
 									else
-										o = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(obj));
+										fieldValueFronDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
 								}
 							}
 							else {
@@ -235,7 +246,7 @@ class TableDefinition<T> {
 									
 									public String getConditionString(ISelectTable<?> st) {
 										FieldDefinition fdef = ((SelectTable)st).getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
-										Object myPrimaryKey = db.factory.getPrimaryKey(obj);
+										Object myPrimaryKey = db.factory.getPrimaryKey(objToSet);
 										String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
 										if (null != fdef)
 											// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
@@ -247,41 +258,41 @@ class TableDefinition<T> {
 								}).select();
 								if (!resultList.isEmpty())
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										o = new JaquList(resultList, db, this, db.factory.getPrimaryKey(obj));
+										fieldValueFronDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));
 									else {
 										// only when the type is a Set type we will be here
 										HashSet set = Utils.newHashSet();
 										set.addAll(resultList);
-										o = new JaquSet(set, db, this, db.factory.getPrimaryKey(obj));
+										fieldValueFronDb = new JaquSet(set, db, this, db.factory.getPrimaryKey(objToSet));
 									}
 								else {
 									// on eager loading if no result exists we set to an empty collection;
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										o = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(obj)) ;
+										fieldValueFronDb = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(objToSet)) ;
 									else
-										o = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(obj));
+										fieldValueFronDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
 								}
 							}
-							db.reEntrantCache.removeReEntrent(obj);
+							db.reEntrantCache.removeReEntrent(objToSet);
 						}
 						else {
 							// instrument this instance of the class
-							Field dbField = obj.getClass().getField("db");
+							Field dbField = objToSet.getClass().getField("db");
 							// put the open connection on the object. As long as the connection is open calling the getter method on the
 							// 'obj' will produce the relation
-							dbField.set(obj, db);
-							o = null;
+							dbField.set(objToSet, db);
+							fieldValueFronDb = null;
 						}
-						field.set(obj, o);
+						field.set(objToSet, fieldValueFronDb);
 						break;
 					}
 					case M2M: {
 						// instrument this instance of the class
-						Field dbField = obj.getClass().getField("db");
+						Field dbField = objToSet.getClass().getField("db");
 						// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj'
 						// will produce the relation
-						dbField.set(obj, db);
-						o = null;
+						dbField.set(objToSet, db);
+						fieldValueFronDb = null;
 						break;
 					}
 					default:
@@ -289,8 +300,8 @@ class TableDefinition<T> {
 				}
 			}
 			catch (Exception e) {
-				String objectString = (obj == null) ? "null" : obj.getClass().getName();
-				String valueString = (o == null) ? null : o.toString();
+				String objectString = (objToSet == null) ? "null" : objToSet.getClass().getName();
+				String valueString = (fieldValueFronDb == null) ? null : fieldValueFronDb.toString();
 				String msg = String.format("[Object: %s], [value: %s]\t", objectString, valueString);
 				throw new JaquError(e, msg + e.getMessage());
 			}
@@ -528,6 +539,10 @@ class TableDefinition<T> {
 			if (Modifier.isStatic(f.getModifiers()))
 				continue;
 			
+			if (Constants.IS_LAZY.equals(f.getName()))
+				// we ignore this specially generated field for marking lazy O2O relations;
+				continue;
+			
 			// don't persist ignored fields.
 			if (f.getAnnotation(JaquIgnore.class) != null)
 				continue;
@@ -639,7 +654,7 @@ class TableDefinition<T> {
 					if (null == many2one) {
 						// its a foreign key											
 						fieldDef.fieldType = FieldType.FK;
-						if (this.oneToOneRelations == null)
+						if (null == this.oneToOneRelations)
 							this.oneToOneRelations = Utils.newArrayList();
 						this.oneToOneRelations.add(fieldDef);
 					}
@@ -657,10 +672,7 @@ class TableDefinition<T> {
 						try {
 							otherSideAnnotation = otherSide.getDeclaredField(many2one.relationFieldName()).getAnnotation(One2Many.class);
 						}
-						catch (SecurityException e) {
-							throw new JaquError("Field {%s} in class {%s} is anntoated with M2O and declares a parent field {%s} which does not exist!!!", f.getName(), clazz, many2one.relationFieldName());
-						}
-						catch (NoSuchFieldException e) {
+						catch (SecurityException | NoSuchFieldException e) {
 							throw new JaquError("Field {%s} in class {%s} is anntoated with M2O and declares a parent field {%s} which does not exist!!!", f.getName(), clazz, many2one.relationFieldName());
 						}
 						def.relationTableName = otherSideAnnotation.joinTableName();
@@ -1018,6 +1030,18 @@ class TableDefinition<T> {
 			case FK: {
 				// value is a table
 				if (value != null) {
+					// if this field is lazy loaded we need to check the status
+					if (null != field.field.getAnnotation(Entity.class)) {
+						try {
+							Field lazyField = value.getClass().getDeclaredField(Constants.IS_LAZY);
+							boolean isLazy = lazyField.getBoolean(value);
+							if (isLazy)
+								break;
+						} 
+						catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+							StatementLogger.log("Unable to interrogate Lazy relation " + field.columnName + " " + e.getMessage());							
+						}
+					}
 					// if this object exists it updates if not it is inserted. ForeignKeys are always table
 					if (!field.noUpdateField) {
 						db.reEntrantCache.prepareReEntrent(obj);
@@ -1131,7 +1155,36 @@ class TableDefinition<T> {
 		}
 	}
 
-	void delete(Db db, Object obj) {
+	@SuppressWarnings("unchecked")
+	void  delete(Db db, Object obj) {
+		if (this.isAggregateParent) {
+    		// we have aggregate children
+    		for (FieldDefinition fdef: this.getFields()) {
+    			if (fdef.fieldType.ordinal() > 1) { // either O2M or M2M relationship
+    				db.deleteParentRelation(fdef, obj); // if it has relations it must be a Table type by design
+    			}
+    		}
+    	}
+		if (null != this.oneToOneRelations && !this.oneToOneRelations.isEmpty()) {
+			// check for cascade delete on o2o relations
+			for (FieldDefinition fdef: this.oneToOneRelations) {
+				if (fdef.field.getAnnotation(Cascade.class) != null) {
+					// this relation should be delted as well
+					fdef.field.setAccessible(true);
+					try {
+						db.delete(fdef.field.get(obj));
+					} 
+					catch (IllegalArgumentException | IllegalAccessException e) {
+						StatementLogger.log("Unable to delete child relation --> " + fdef.field.getName());
+					}
+					fdef.field.setAccessible(false);
+				}
+			}
+		}
+        if (null != this.getInterceptor())
+        	this.getInterceptor().onDelete(obj);
+        
+        // after dealing with the children we delete the object
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
 			throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", obj.getClass());
 		}

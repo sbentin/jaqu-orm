@@ -143,6 +143,9 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		if (isEntityAnnotationPresent) {
 			FieldVisitor fv = cv.visitField(ACC_PUBLIC+ACC_TRANSIENT, "db", "Lcom/centimia/orm/jaqu/Db;", null, null);
 			fv.visitEnd();
+			
+			fv = cv.visitField(ACC_PUBLIC, "isLazy", "Z", null, null);
+			fv.visitEnd();
 		}
 
 		super.visitEnd();
@@ -165,8 +168,8 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * public [CollectionType] [getterName]() {
 	 * 	if ([fieldName] == null){
 	 * 		try {
-	 * 			if (null == db)
-	 * 				throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+	 * 			if (null == db || db.isClosed())
+	 * 				throw new RuntimeException("Cannot initialize a 'Relation' outside an open session!!!. Try initializing the field directly within the class.");
 	 * 			Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);
 	 * 			method.setAccessible(true);
 	 * 			children = (Collection<TestTable>)method.invoke(db, [fieldName], this, TestTable.class);
@@ -202,29 +205,28 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		Label l1 = new Label();
 		Label l2 = new Label();
 		mv.visitTryCatchBlock(l0, l1, l2, "java/lang/Exception");
-		Label l3 = new Label();
-		mv.visitLabel(l3);
-		mv.visitLineNumber(61, l3);
-		mv.visitVarInsn(ALOAD, 0);		
+		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, fieldName, fieldSignature);
-		Label l4 = new Label();
-		mv.visitJumpInsn(IFNONNULL, l4);
+		Label l3 = new Label();
+		mv.visitJumpInsn(IFNONNULL, l3);
 		mv.visitLabel(l0);
-		mv.visitLineNumber(63, l0);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
+		Label l4 = new Label();
+		mv.visitJumpInsn(IFNULL, l4);
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/Db", "isClosed", "()Z", false);
 		Label l5 = new Label();
-		mv.visitJumpInsn(IFNONNULL, l5);
-		Label l6 = new Label();
-		mv.visitLabel(l6);
-		mv.visitLineNumber(64, l6);
+		mv.visitJumpInsn(IFEQ, l5);
+		mv.visitLabel(l4);
+		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
 		mv.visitInsn(DUP);
-		mv.visitLdcInsn("Cannot initialize a 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+		mv.visitLdcInsn("Cannot initialize a 'Relation' outside an open session!!!. Try initializing the field directly within the class.");
 		mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V", false);
 		mv.visitInsn(ATHROW);
 		mv.visitLabel(l5);
-		mv.visitLineNumber(65, l5);
 		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
@@ -246,15 +248,9 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitInsn(AASTORE);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
 		mv.visitVarInsn(ASTORE, 1);
-		Label l7 = new Label();
-		mv.visitLabel(l7);
-		mv.visitLineNumber(66, l7);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitInsn(ICONST_1);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "setAccessible", "(Z)V", false);
-		Label l8 = new Label();
-		mv.visitLabel(l8);
-		mv.visitLineNumber(67, l8);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitVarInsn(ALOAD, 0);
@@ -263,46 +259,36 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_0);
-		mv.visitLdcInsn(fieldName);
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitFieldInsn(GETFIELD, className, fieldName, fieldSignature);
 		mv.visitInsn(AASTORE);
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_1);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitInsn(AASTORE);
 		mv.visitInsn(DUP);
-		mv.visitInsn(ICONST_2);		
+		mv.visitInsn(ICONST_2);
 		mv.visitLdcInsn(Type.getType(type));
 		mv.visitInsn(AASTORE);
-		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);		
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
 		mv.visitTypeInsn(CHECKCAST, cast);
 		mv.visitFieldInsn(PUTFIELD, className, fieldName, fieldSignature);
-		Label l9 = new Label();
-		mv.visitLabel(l9);
-		mv.visitLineNumber(68, l9);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitInsn(ICONST_0);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "setAccessible", "(Z)V", false);
 		mv.visitLabel(l1);
-		mv.visitJumpInsn(GOTO, l4);
+		mv.visitJumpInsn(GOTO, l3);
 		mv.visitLabel(l2);
-		mv.visitLineNumber(70, l2);
 		mv.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Exception"});
 		mv.visitVarInsn(ASTORE, 1);
-		Label l10 = new Label();
-		mv.visitLabel(l10);
-		mv.visitLineNumber(71, l10);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
-		Label l11 = new Label();
-		mv.visitJumpInsn(IFEQ, l11);
-		Label l12 = new Label();
-		mv.visitLabel(l12);
-		mv.visitLineNumber(72, l12);
+		Label l6 = new Label();
+		mv.visitJumpInsn(IFEQ, l6);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitTypeInsn(CHECKCAST, "java/lang/RuntimeException");
 		mv.visitInsn(ATHROW);
-		mv.visitLabel(l11);
-		mv.visitLineNumber(73, l11);
+		mv.visitLabel(l6);
 		mv.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Exception"}, 0, null);
 		mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
 		mv.visitInsn(DUP);
@@ -311,21 +297,15 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;Ljava/lang/Throwable;)V", false);
 		mv.visitInsn(ATHROW);
-		mv.visitLabel(l4);
-		mv.visitLineNumber(76, l4);
+		mv.visitLabel(l3);
 		mv.visitFrame(Opcodes.F_CHOP,1, null, 0, null);
 		mv.visitVarInsn(ALOAD, 0);
-		mv.visitMethodInsn(INVOKEVIRTUAL, className, newName, desc, false);
+		mv.visitMethodInsn(INVOKESPECIAL, className, newName, desc, false);
 		mv.visitInsn(ARETURN);
-		Label l13 = new Label();
-		mv.visitLabel(l13);
-		mv.visitLocalVariable("this", "L"+className+";", null, l3, l13, 0);
-		mv.visitLocalVariable("method", "Ljava/lang/reflect/Method;", null, l7, l2, 1);
-		mv.visitLocalVariable("e", "Ljava/lang/Exception;", null, l10, l4, 1);
 		mv.visitMaxs(7, 2);
 		mv.visitEnd();
 	}
-
+		
 	/**
 	 * Generates the new method body, copy the old to a new method and connect them.
 	 * the structure of the new method is:<br>
@@ -364,7 +344,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * @param newName - new method name (the orig...)
 	 * @param fieldName
 	 */
-	private void generateLazyRelation(int access, String desc, String[] exceptions, String name, String newName, String fieldName) {
+	public void generateLazyRelation(int access, String desc, String[] exceptions, String name, String newName, String fieldName) {
 		MethodVisitor mv = cv.visitMethod(access, name, desc, null, exceptions);
 		String fieldSignature = desc.substring(desc.indexOf(')') + 1);
 		String fieldClassName = desc.substring(desc.indexOf(')') + 2, desc.length() - 1);
@@ -377,18 +357,29 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, fieldName, fieldSignature);
 		Label l3 = new Label();
-		mv.visitJumpInsn(IFNONNULL, l3);
+		mv.visitJumpInsn(IFNULL, l3);
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitFieldInsn(GETFIELD, className, fieldName, fieldSignature);
+		mv.visitFieldInsn(GETFIELD, fieldClassName, "isLazy", "Z");
+		mv.visitJumpInsn(IFEQ, l3);
 		mv.visitLabel(l0);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
 		Label l4 = new Label();
-		mv.visitJumpInsn(IFNONNULL, l4);
+		mv.visitJumpInsn(IFNULL, l4);
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/Db", "isClosed", "()Z", false);
+		Label l5 = new Label();
+		mv.visitJumpInsn(IFEQ, l5);
+		mv.visitLabel(l4);
+		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
 		mv.visitInsn(DUP);
 		mv.visitLdcInsn("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 		mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V", false);
 		mv.visitInsn(ATHROW);
-		mv.visitLabel(l4);
+		mv.visitLabel(l5);
 		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
@@ -433,12 +424,12 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitVarInsn(ASTORE, 1);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
-		Label l5 = new Label();
-		mv.visitJumpInsn(IFEQ, l5);
+		Label l6 = new Label();
+		mv.visitJumpInsn(IFEQ, l6);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitTypeInsn(CHECKCAST, "java/lang/RuntimeException");
 		mv.visitInsn(ATHROW);
-		mv.visitLabel(l5);
+		mv.visitLabel(l6);
 		mv.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Exception"}, 0, null);
 		mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
 		mv.visitInsn(DUP);

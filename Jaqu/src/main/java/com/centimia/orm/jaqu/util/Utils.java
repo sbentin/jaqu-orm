@@ -18,6 +18,7 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Clob;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -184,11 +185,21 @@ public class Utils {
 		throw new RuntimeException(clazz.getName() + ": is not an enum type"); 
 	}
 	
+	/**
+	 * returns true when the object represents a DB simple type and could be held in a column.
+	 * This method is called for selectable fields, however because of the way blobs work it will not work for
+	 * Objects that are stored as blobs, clobs
+	 * 
+	 * @param clazz
+	 * @return boolean
+	 */
 	public static <T> boolean isSimpleType(Class<T> clazz) {
-		if (Number.class.isAssignableFrom(clazz)) {
-			return true;
-		}
-		else if (clazz == String.class) {
+		if (Number.class.isAssignableFrom(clazz) || 
+			String.class.isAssignableFrom(clazz) || 
+			Date.class.isAssignableFrom(clazz) ||
+			Boolean.class.isAssignableFrom(clazz) ||
+			Character.class.isAssignableFrom(clazz))  {
+			
 			return true;
 		}
 		return false;

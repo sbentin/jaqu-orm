@@ -322,7 +322,7 @@ public class QueryWhere<T> {
 	 * @return Map<K, V>
 	 */
 	public <K, V> Map<K, V> selectAsMap(K key, V value){
-		return selectAsMap(key, value);
+		return query.selectAsMap(key, value);
 	}
 	
 	/**
