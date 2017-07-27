@@ -145,6 +145,9 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 			fv.visitEnd();
 			
 			fv = cv.visitField(ACC_PUBLIC, "isLazy", "Z", null, null);
+			// add the jaquIgnore annotaion to the lazy field because we need to carry this field around the network but not persist it
+			AnnotationVisitor av = fv.visitAnnotation("Lcom/centimia/orm/jaqu/annotation/JaquIgnore;", true);
+			av.visitEnd();
 			fv.visitEnd();
 		}
 
@@ -259,8 +262,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_0);
-		mv.visitVarInsn(ALOAD, 0);
-		mv.visitFieldInsn(GETFIELD, className, fieldName, fieldSignature);
+		mv.visitLdcInsn(fieldName);
 		mv.visitInsn(AASTORE);
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_1);

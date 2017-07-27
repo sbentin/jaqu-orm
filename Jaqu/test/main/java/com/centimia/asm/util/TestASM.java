@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.centimia.orm.jaqu.Db;
+import com.centimia.orm.jaqu.annotation.JaquIgnore;
 
 public class TestASM {
 	private Double num;
@@ -15,6 +16,7 @@ public class TestASM {
 	
 	Db db;
 	
+	@JaquIgnore
 	public boolean isLazy;
 	
 	public TestASM() {
@@ -65,7 +67,7 @@ public class TestASM {
 							"Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 				Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);
 				method.setAccessible(true);
-				children = (List<TestB>) method.invoke(db, children, this, TestB.class);
+				children = (List<TestB>) method.invoke(db, "children", this, TestB.class);
 				method.setAccessible(false);
 			} 
 			catch (Exception e) {

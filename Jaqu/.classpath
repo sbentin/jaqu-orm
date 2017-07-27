@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry path="bin" kind="output"/>
 	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="test/main/java"/>
 	<classpathentry kind="src" path="src/main/resources"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7/"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/javax.transaction/jta/1.1/d5dad66d06246bd2e1e369cebff27faa9beb065a/jta-1.1-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/javax.transaction/jta/1.1/2ca09f0b36ca7d71b762e14ea2ff09d5eac57558/jta-1.1.jar"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-5.0.3-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/5.0.3/dcc2193db20e19e1feca8b1240dbbc4e190824fa/asm-5.0.3.jar"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-commons/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-commons-5.0.3-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-commons/5.0.3/a7111830132c7f87d08fe48cb0ca07630f8cb91c/asm-commons-5.0.3.jar"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-util/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-util-5.0.3-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-util/5.0.3/1512e5571325854b05fb1efce1db75fcced54389/asm-util-5.0.3.jar"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant/1.9.7/c8c6f25c99bc5fcb1acb13f09f11d0045bedc256/ant-1.9.7-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant/1.9.7/3b2a10512ee6537d3852c9b693a0284dcab5de68/ant-1.9.7.jar"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-tree/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-tree-5.0.3-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-tree/5.0.3/287749b48ba7162fb67c93a026d690b29f410bed/asm-tree-5.0.3.jar"/>
-	<classpathentry sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant-launcher/1.9.7/74cef5ca08d158fa5dc0d31a40a75c893ca00e6e/ant-launcher-1.9.7-sources.jar" kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant-launcher/1.9.7/224857a490283e72da13ffe3082dea62c558ec76/ant-launcher-1.9.7.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/javax.transaction/jta/1.1/2ca09f0b36ca7d71b762e14ea2ff09d5eac57558/jta-1.1.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/javax.transaction/jta/1.1/d5dad66d06246bd2e1e369cebff27faa9beb065a/jta-1.1-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/5.0.3/dcc2193db20e19e1feca8b1240dbbc4e190824fa/asm-5.0.3.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-5.0.3-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-commons/5.0.3/a7111830132c7f87d08fe48cb0ca07630f8cb91c/asm-commons-5.0.3.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-commons/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-commons-5.0.3-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-util/5.0.3/1512e5571325854b05fb1efce1db75fcced54389/asm-util-5.0.3.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-util/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-util-5.0.3-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant/1.9.7/3b2a10512ee6537d3852c9b693a0284dcab5de68/ant-1.9.7.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant/1.9.7/c8c6f25c99bc5fcb1acb13f09f11d0045bedc256/ant-1.9.7-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-tree/5.0.3/287749b48ba7162fb67c93a026d690b29f410bed/asm-tree-5.0.3.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.ow2.asm/asm-tree/5.0.3/f0f24f6666c1a15c7e202e91610476bd4ce59368/asm-tree-5.0.3-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant-launcher/1.9.7/224857a490283e72da13ffe3082dea62c558ec76/ant-launcher-1.9.7.jar" sourcepath="C:/Users/shai/.gradle/caches/modules-2/files-2.1/org.apache.ant/ant-launcher/1.9.7/74cef5ca08d158fa5dc0d31a40a75c893ca00e6e/ant-launcher-1.9.7-sources.jar"/>
 	<classpathentry kind="lib" path="C:/Users/shai/.gradle/caches/3.3/generated-gradle-jars/gradle-api-3.3.jar"/>
 	<classpathentry kind="lib" path="C:/opt/gradle-3.3/lib/groovy-all-2.4.7.jar"/>
 	<classpathentry kind="lib" path="C:/opt/gradle-3.3/lib/gradle-installation-beacon-3.3.jar"/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>
