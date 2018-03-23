@@ -35,6 +35,4 @@ To make things simpler to start, you can check out the JaquTest Project from thi
 
 You will have to define a database. For the tests you will need a database user and password and the appropriate drivers. See the JaquTest class for connection configuration. There are two classes where you will need to fix your connection settings; JaquTest and EntitySessionTests.
 
-Issues can be posted here on googlecode. I also welcome suggestions and ideas for improvements.
-
-callcenter Wobicc123 10.4.2.15
+Issues can be posted here on git. I also welcome suggestions and ideas for improvements.
