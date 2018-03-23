@@ -9,7 +9,7 @@ Here are some of the features:
 <p><ul>
 <li>Support for H2, MYSQL, POSTGRESQL, ORACLE, SQL SERVER, DB/2 databases.</li>
 <li>Support One2One, One2Many, Many2Many relationships (But only with single primary keys for now), in select, insert, update & delete.</li>
-<li>(O2M, M2M require the jaqu plugin for development, or use the supplied ant task. they also have a development time <li>dependency on asm.jar)</li>
+<li>(O2M, M2M require the jaqu plugin for development, or use the supplied ant task. they also have a development time dependency on asm.jar)</li>
 <li>Supports transient fields (i.e field you don't want to work with persistence)</li>
 <li>Lazy loading of o2m, m2m relationships</li>
 <li>Supports cascade deletes on relationships</li>
@@ -35,6 +35,4 @@ To make things simpler to start, you can check out the JaquTest Project from thi
 
 You will have to define a database. For the tests you will need a database user and password and the appropriate drivers. See the JaquTest class for connection configuration. There are two classes where you will need to fix your connection settings; JaquTest and EntitySessionTests.
 
-Issues can be posted here on googlecode. I also welcome suggestions and ideas for improvements.
-
-callcenter Wobicc123 10.4.2.15
+Issues can be posted here on git. I also welcome suggestions and ideas for improvements.
