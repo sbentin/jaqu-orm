@@ -20,6 +20,7 @@ import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -316,13 +317,13 @@ class TableDefinition<T> {
 			}
 		}
 
+		/**
+		 * for sorting. sort by fieldType ascending unless same coloumnName is used.
+		 */
 		public int compareTo(FieldDefinition o) {
 			if (columnName.equals(o.columnName))
 				return 0;
-			if (fieldType.ordinal() >= o.fieldType.ordinal())
-				return 6;
-			else
-				return -6;
+			return fieldType.compareTo(o.fieldType);
 		}
 	}
 
