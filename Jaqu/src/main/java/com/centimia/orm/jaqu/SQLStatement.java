@@ -80,7 +80,8 @@ public class SQLStatement {
             return prepare().executeQuery();
         } 
         catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
+        	db.factory.dialect.dialect.handleDeadlockException(e);
+        	return null;
         }
     }
 
@@ -109,7 +110,8 @@ public class SQLStatement {
 			return result;
 		}
 		catch (SQLException e) {
-			throw new JaquError(e, e.getMessage());
+			db.factory.dialect.dialect.handleDeadlockException(e);
+        	return null;
 		}
     }
     
@@ -118,7 +120,8 @@ public class SQLStatement {
         	return prepare().executeUpdate();
         } 
         catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
+        	db.factory.dialect.dialect.handleDeadlockException(e);
+        	return -1;
         }
     }
 	

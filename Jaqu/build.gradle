@@ -16,8 +16,8 @@ apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 group = 'com.centimia'
 
@@ -59,6 +59,7 @@ dependencies {
 	compileOnly 'org.ow2.asm:asm-util:5.0.3'
 	compileOnly 'org.apache.ant:ant:1.9.7'
 	
+	compileOnly (group: 'com.centimia', name: 'ccoreException', version: '1.0.0')
 	compileOnly gradleApi()
     compileOnly localGroovy()
 }

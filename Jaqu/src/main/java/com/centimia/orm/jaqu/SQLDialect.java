@@ -124,4 +124,12 @@ public interface SQLDialect {
 	 * @return StatementBuilder
 	 */
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as);
+	
+	/**
+	 * Allows a dialect to handle a deadlock exception. Default behavior is to rethrow it as a Jaqu Error
+	 * @param e
+	 */
+	default void handleDeadlockException(SQLException e) {
+		throw new JaquError(e, e.getMessage());
+	}
 }

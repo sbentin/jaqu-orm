@@ -22,7 +22,10 @@ package com.centimia.orm.jaqu.dialect;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
+import com.centimia.core.ExceptionMessages;
+import com.centimia.core.exception.ResourceDeadLockException;
 import com.centimia.orm.jaqu.Db;
 import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
@@ -37,6 +40,18 @@ import com.centimia.orm.jaqu.util.StatementBuilder;
  */
 public class MySqlDialect implements SQLDialect {
 
+	private boolean isCcoreDeadlockHandlered;
+	
+	public MySqlDialect() {
+		try {
+			MySqlDialect.class.getClassLoader().loadClass("com.mysql.jdbc.exceptions.DeadlockTimeoutRollbackMarker");
+			isCcoreDeadlockHandlered = true;
+		} 
+		catch (ClassNotFoundException e) {
+			isCcoreDeadlockHandlered = false;
+		}
+	}
+	
 	/**
 	 * @see com.centimia.orm.jaqu.SQLDialect#checkTableExists(java.lang.String, com.centimia.orm.jaqu.Db)
 	 */
@@ -219,5 +234,19 @@ public class MySqlDialect implements SQLDialect {
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
 		StatementBuilder buff = new StatementBuilder("DELETE " + as + " FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 		return buff;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.SQLDialect#handleDeadlockException(java.lang.Throwable)
+	 */
+	@Override
+	public void handleDeadlockException(SQLException e) {
+		if (isCcoreDeadlockHandlered) {
+			Class<?>[] iFaces = e.getClass().getInterfaces();
+			if (Arrays.stream(iFaces).anyMatch(iFace -> "DeadlockTimeoutRollbackMarker".equals(iFace.getSimpleName())))
+				throw new ResourceDeadLockException(ExceptionMessages.DEADLOCK,(Exception)e);
+		}
+		SQLDialect.super.handleDeadlockException(e);
 	}
 }
