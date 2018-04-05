@@ -33,7 +33,7 @@ import com.centimia.orm.jaqu.annotation.PrimaryKey;
  *
  */
 @Entity
-public class Person implements Serializable{
+public class Person implements Serializable {
 
 	private static final long serialVersionUID = -3092309534462507642L;
 	
