@@ -6,7 +6,7 @@
  * not imply publication or disclosure.
  *  
  * Multiple-Licensed under the H2 License,
- * Version 1.0, and under the Eclipse Public License, Version 1.0
+ * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
  * Initial Developer: H2 Group, Centimia Inc.
  */
@@ -45,6 +45,7 @@ import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.annotation.NoUpdateOnSave;
 import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.annotation.Transient;
 import com.centimia.orm.jaqu.constant.Constants;
 import com.centimia.orm.jaqu.util.ClassUtils;
 import com.centimia.orm.jaqu.util.JdbcUtils;
@@ -544,7 +545,7 @@ class TableDefinition<T> {
 				continue;
 			
 			// don't persist ignored fields.
-			if (f.getAnnotation(JaquIgnore.class) != null)
+			if (f.getAnnotation(Transient.class) != null || f.getAnnotation(JaquIgnore.class) != null)
 				continue;
 			Class<?> classType = f.getType();
 			f.setAccessible(true);

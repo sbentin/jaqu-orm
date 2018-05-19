@@ -16,7 +16,7 @@
  * 
  *  Date			User				Comment
  * ------			-------				--------
- * 23/02/2010		Shai Bentin			 create
+ * 08/06/2010		shai				 create
  */
 package com.centimia.orm.jaqu.annotation;
 
@@ -26,11 +26,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Use this to mark a Jaqu Entity. Jaqu supports persistence on regular pojos. However, if you want Jaqu to support relationship between 
- * objects you need to annotate the classes with entity. An annotate the relationships.
+ * This annotation should be used on object fields which Jaqu persistence should ignore, but regular serialization should not.
+ * If both regular serialization and Jaqu should ignore simply use the 'transient' modifier.
  * 
- * @author Shai Bentin
+ * @author shai
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface Entity {}
+@Target(ElementType.FIELD)
+public @interface Transient {}
