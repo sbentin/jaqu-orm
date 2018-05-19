@@ -148,7 +148,8 @@ public class SQLStatement {
 	
     private Long getGeneratedKeys(ResultSet generatedKeys, int size) {
 		try {
-			if (generatedKeys.next()){
+			if (generatedKeys.next()) {
+				// identity fields and sequences are only BigInt numbers so we can safely assume to get a long type here
 				return generatedKeys.getLong(1);
 			}
 		}
