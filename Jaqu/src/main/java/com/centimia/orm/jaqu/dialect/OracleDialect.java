@@ -60,6 +60,18 @@ public class OracleDialect implements SQLDialect {
 		else if (fieldClass == java.sql.Date.class) {
 			return "DATE";
 		}
+		else if (fieldClass == java.time.LocalDate.class) {
+			return "DATE";
+		}
+		else if (fieldClass == java.time.LocalDateTime.class) {
+			return "TIMESTAMP(6)";
+		}
+		else if (fieldClass == java.time.ZonedDateTime.class) {
+			return "TIMESTAMP(6)";
+		}
+		else if (fieldClass == java.time.LocalTime.class) {
+			return "DATE";
+		}
 		else if (fieldClass == java.sql.Time.class) {
 			return "DATE";
 		}
@@ -156,6 +168,10 @@ public class OracleDialect implements SQLDialect {
     		case TIMESTAMP: return rs.getTimestamp(columnName);
     		case SQL_DATE: return rs.getDate(columnName);
     		case UTIL_DATE: return rs.getTimestamp(columnName);
+    		case LOCALDATE: return rs.getDate(columnName).toLocalDate();
+    		case LOCALDATETIME: rs.getTimestamp(columnName).toLocalDateTime();
+    		case ZONEDDATETIME: rs.getTimestamp(columnName).toLocalDateTime(); // TODO this should be fixed
+    		case LOCALTIME: rs.getTime(columnName).toLocalTime();
     		case TIME: return rs.getTime(columnName);
     		case FK: {
     			Object o = rs.getObject(columnName); 

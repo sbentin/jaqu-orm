@@ -92,6 +92,18 @@ public class MySqlDialect implements SQLDialect {
 		else if (fieldClass == java.sql.Date.class) {
 			return "DATETIME";
 		}
+		else if (fieldClass == java.time.LocalDate.class) {
+			return "DATETIME";
+		}
+		else if (fieldClass == java.time.LocalDateTime.class) {
+			return "DATETIME";
+		}
+		else if (fieldClass == java.time.ZonedDateTime.class) {
+			return "DATETIME";
+		}
+		else if (fieldClass == java.time.LocalTime.class) {
+			return "TIME";
+		}
 		else if (fieldClass == java.sql.Time.class) {
 			return "TIME";
 		}
@@ -143,6 +155,10 @@ public class MySqlDialect implements SQLDialect {
 			case ENUM: return rs.getString(columnName);
 			case ENUM_INT: return rs.getInt(columnName);
 			case BIGDECIMAL: return rs.getBigDecimal(columnName);
+			case LOCALDATE: return rs.getDate(columnName).toLocalDate();
+    		case LOCALDATETIME: rs.getTimestamp(columnName).toLocalDateTime();
+    		case ZONEDDATETIME: rs.getTimestamp(columnName).toLocalDateTime(); // TODO this should be fixed
+    		case LOCALTIME: rs.getTime(columnName).toLocalTime();
 			default: return rs.getObject(columnName);
 		}
 	}
