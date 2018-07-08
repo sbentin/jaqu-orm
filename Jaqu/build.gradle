@@ -16,8 +16,8 @@ apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = '10'
+targetCompatibility = '10'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 group = 'com.centimia'
 
@@ -28,21 +28,21 @@ buildscript {
 	
 	repositories {
         maven {
-            url 'http://www.centimia.com:8081/artifactory/jcenter'
+            url "${artifactory_contextUrl}/jcenter"
             credentials {
                 username = "${artifactory_user}"
                 password = "${artifactory_password}"
             }
         } 
         maven {
-            url 'http://www.centimia.com:8081/artifactory/plugins-release'
+            url "${artifactory_contextUrl}/plugins-release"
             credentials {
                 username = "${artifactory_user}"
                 password = "${artifactory_password}"
             }
         } 
         maven {
-            url 'http://www.centimia.com:8081/artifactory/plugins-release-local'
+            url "${artifactory_contextUrl}/plugins-release-local"
             credentials {
                 username = "${artifactory_user}"
                 password = "${artifactory_password}"
@@ -54,9 +54,9 @@ buildscript {
 dependencies {
 	compile 'javax.transaction:jta:1.1'
 	
-	compileOnly 'org.ow2.asm:asm:5.0.3'
-	compileOnly 'org.ow2.asm:asm-commons:5.0.3'
-	compileOnly 'org.ow2.asm:asm-util:5.0.3'
+	compileOnly 'org.ow2.asm:asm:6.1.1'
+	compileOnly 'org.ow2.asm:asm-commons:6.1.1'
+	compileOnly 'org.ow2.asm:asm-util:6.1.1'
 	compileOnly 'org.apache.ant:ant:1.9.7'
 	
 	compileOnly (group: 'com.centimia', name: 'ccoreException', version: '1.0.0')
@@ -64,6 +64,11 @@ dependencies {
     compileOnly localGroovy()
 }
 
+javadoc {
+    options.addStringOption('encoding', 'UTF-8')
+    options.bottom = "Copyright (c) 2008-2012 Shai Bentin & Centimia Inc.."
+}
+	
 publishing {		
 	task binJar(type: Jar) {
 		from sourceSets.main.output		
@@ -78,9 +83,13 @@ publishing {
 	}
 	
 	task sourceJar(type: Jar) {
-		classifier "source"
+		classifier "sources"
 		from sourceSets.main.allJava
 	}
+	task javadocJar(type: Jar, dependsOn: javadoc) {
+      classifier = 'javadoc'
+      from javadoc.destinationDir
+    }
 	publications {
 		source(MavenPublication) {
 			artifactId = "jaqu"
@@ -138,11 +147,18 @@ publishing {
 		    }
 			artifact extJar
 		}
+		/*
+		javaDoc(MavenPublication) {
+			artifactId = "jaqu"
+			version = "${mainJarVersion}"
+			artifact javadocJar
+		}
+		*/
 	}
 	
 	repositories {
         maven {
-            url "http://www.centimia.com:8081/artifactory/libs-release-local"
+            url "${artifactory_contextUrl}/libs-release-local"
             credentials {
                 username = "${artifactory_user}"
                 password = "${artifactory_password}"

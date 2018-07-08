@@ -18,9 +18,15 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Clob;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -117,6 +123,18 @@ public class Utils {
 		}
 		else if (clazz == java.util.Date.class) {
 			return (T) new java.util.Date(COUNTER.incrementAndGet());
+		}
+		else if (clazz == LocalDate.class) {
+			return (T) LocalDate.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
+		}
+		else if (clazz == LocalDateTime.class) {
+			return (T) LocalDateTime.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
+		}
+		else if (clazz == ZonedDateTime.class) {
+			return (T) ZonedDateTime.of(LocalDateTime.MIN, ZoneId.systemDefault()).plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
+		}
+		else if (clazz == LocalTime.class) {
+			return (T) LocalTime.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
 		}
 		else if (clazz == List.class) {
 			return (T) new ArrayList();

@@ -168,10 +168,10 @@ public class OracleDialect implements SQLDialect {
     		case TIMESTAMP: return rs.getTimestamp(columnName);
     		case SQL_DATE: return rs.getDate(columnName);
     		case UTIL_DATE: return rs.getTimestamp(columnName);
-    		case LOCALDATE: return rs.getDate(columnName).toLocalDate();
-    		case LOCALDATETIME: rs.getTimestamp(columnName).toLocalDateTime();
-    		case ZONEDDATETIME: rs.getTimestamp(columnName).toLocalDateTime(); // TODO this should be fixed
-    		case LOCALTIME: rs.getTime(columnName).toLocalTime();
+    		case LOCALDATE: return null != rs.getDate(columnName) ? rs.getDate(columnName).toLocalDate() : null;
+    		case LOCALDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null;
+    		case ZONEDDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null; // TODO this should be fixed
+    		case LOCALTIME: return null != rs.getTime(columnName) ? null != rs.getTime(columnName).toLocalTime() : null;
     		case TIME: return rs.getTime(columnName);
     		case FK: {
     			Object o = rs.getObject(columnName); 

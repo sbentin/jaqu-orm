@@ -794,7 +794,7 @@ public class Query<T> implements FullQueryInterface<T> {
         ResultSet rs = prepare(selectList, distinct).executeQuery();
         try {
             while (rs.next()) {
-                T item = from.getAliasDefinition().readRow(rs, db);
+                T item = def.readRow(rs, db);
                 db.addSession(item);
                 result.add(item);
             }
@@ -824,7 +824,7 @@ public class Query<T> implements FullQueryInterface<T> {
     	ResultSet rs = selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct));    	
     	try {
             while (rs.next()) {
-                T item = from.getAliasDefinition().readRow(rs, db);
+                T item = def.readRow(rs, db);
                 db.addSession(item);
                 result.add(item);
             }

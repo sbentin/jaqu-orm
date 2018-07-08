@@ -133,7 +133,7 @@ class TableDefinition<T> {
 					o = null;
 				}
 				return o;
-			}				
+			}
 			else {
 				Object o = Utils.newObject(field.getType());
 				setValue(obj, o, null);
@@ -558,7 +558,7 @@ class TableDefinition<T> {
 				// if this field is marked as NoUpdateOnSave we mark it here 
 				fieldDef.noUpdateField = true;
 			
-			if (java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
+			if (java.time.temporal.Temporal.class.isAssignableFrom(classType) || java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
 					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType) 
 					|| UUID.class.isAssignableFrom(classType) || classType.isArray() || classType.isEnum() || classType.isPrimitive()) {				
