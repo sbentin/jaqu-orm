@@ -419,6 +419,15 @@ public class QueryWhere<T> {
 	}
 	
 	/**
+	 * adds a limit to the query
+	 * @param limitNum
+	 * @return QueryInterface<T>
+	 */
+	public QueryInterface<T> limit(int limitNum) {
+		return query.limit(limitNum);
+	}
+	
+	/**
 	 * Order by one or more columns in ascending order.
 	 * 
 	 * @param expressions the order by expressions

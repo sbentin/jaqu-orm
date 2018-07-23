@@ -22,6 +22,8 @@ package com.centimia.orm.jaqu.ext.gradle;
 import groovy.lang.Closure;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.gradle.api.Task;
 import org.gradle.api.logging.LogLevel;
@@ -46,29 +48,32 @@ public class PostCompileClosure extends Closure<String>{
 		Task postCompileTask = (Task)getOwner();
 		LocationExtension location = (LocationExtension) postCompileTask.getExtensions().getByName("location");
 		
-		File outputDir = null;
+		Set<File> outputDirs = null;
 		if (null == location.outputDir) {
 			JavaPluginConvention javaConvention = postCompileTask.getProject().getConvention().getPlugin(JavaPluginConvention.class);
-			outputDir = javaConvention.getSourceSets().findByName("main").getOutput().getClassesDir();
+			outputDirs = javaConvention.getSourceSets().findByName("main").getOutput().getClassesDirs().getFiles();
 		}
 		else {
-			outputDir = new File(location.outputDir);
+			outputDirs = new HashSet<>();
+			outputDirs.add(new File(location.outputDir));
 		}
-		if (!outputDir.exists()) {
-			postCompileTask.getLogger().error(String.format("Post Compile Failed - Output dir %s does not exist!!!", outputDir.getAbsolutePath()));
-			return "Failed";
-		}
-		StringBuilder report = new StringBuilder();
-		BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
-		boolean failed = stats.getFailure() > 0;
-		if (failed) {
-			postCompileTask.getLogger().lifecycle("POST COMPILE FAILED - converted " + stats.getSuccess() + " files, , ignored " + stats.getIgnored() + "files, failed to convert " + stats.getFailure() + " files");
-		}
-		else {
-			postCompileTask.getLogger().lifecycle("POST COMPILE SUCCESSFUL - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored());
-		}
-		if (postCompileTask.getLogger().isEnabled(LogLevel.DEBUG)) {
-			postCompileTask.getLogger().debug(report.toString());
+		for (File outputDir: outputDirs) {
+			if (!outputDir.exists()) {
+				postCompileTask.getLogger().error(String.format("Post Compile for Output dir %s failed directory does not exist!!!", outputDir.getAbsolutePath()));
+				continue;
+			}
+			StringBuilder report = new StringBuilder();
+			BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
+			boolean failed = stats.getFailure() > 0;
+			if (failed) {
+				postCompileTask.getLogger().lifecycle("POST COMPILE FAILED for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, , ignored " + stats.getIgnored() + "files, failed to convert " + stats.getFailure() + " files");
+			}
+			else {
+				postCompileTask.getLogger().lifecycle("POST COMPILE SUCCESSFUL for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored());
+			}
+			if (postCompileTask.getLogger().isEnabled(LogLevel.DEBUG)) {
+				postCompileTask.getLogger().debug(report.toString());
+			}
 		}
 		return "success";
 	}

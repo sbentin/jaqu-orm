@@ -16,8 +16,8 @@ apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
 
-sourceCompatibility = '10'
-targetCompatibility = '10'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 group = 'com.centimia'
 

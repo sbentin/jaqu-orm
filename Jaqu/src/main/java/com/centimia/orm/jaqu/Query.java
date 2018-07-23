@@ -590,6 +590,17 @@ public class Query<T> implements FullQueryInterface<T> {
         return this;
     }
 
+    /*
+	 * (non-Javadoc)
+	 * @see com.centimia.orm.jaqu.QueryInterface#limit(java.lang.Object)
+	 */
+    @Override
+	public Query<T> limit(int limitNum) {
+		LimitToken conditionCode = new LimitToken(limitNum);
+		conditions.add(conditionCode);
+		return this;
+	}
+	
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#innerJoin(U)
 	 */

@@ -394,4 +394,11 @@ public interface QueryInterface<T> {
 	 * @return List<X>
 	 */
 	public <U, X> List<X> union(Query<U> unionQuery, X x);
+	
+	/**
+	 * adds a limit to the query
+	 * @param limitNum
+	 * @return Query<T>
+	 */
+	public Query<T> limit(int limitNum);
 }
