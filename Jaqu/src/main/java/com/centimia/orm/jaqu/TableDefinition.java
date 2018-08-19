@@ -222,7 +222,7 @@ class TableDefinition<T> {
 						if (relationDefinition.eagerLoad && db != null) {
 							db.reEntrantCache.prepareReEntrent(objToSet);
 							if (relationDefinition.relationTableName != null) {
-								List<?> resultList = db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet),	relationDefinition.dataType);
+								List<?> resultList = db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet), relationDefinition.dataType);
 								if (!resultList.isEmpty()) {
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
 										fieldValueFronDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));

@@ -612,6 +612,17 @@ public class Db implements AutoCloseable {
 		if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
+			try {
+				// if we're in a running transaction it is up to the transaction manager to commit not me.
+				if (null != this.factory.tm && hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) 
+					return;
+			}
+			catch (SystemException e) {
+				StatementLogger.error("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
+			}
+			catch (NullPointerException npe) {
+				// this means that there is no transaction (getTransaction() was null)
+			}
 			this.conn.commit();
 		}
 		catch (SQLException e) {
@@ -625,8 +636,9 @@ public class Db implements AutoCloseable {
     public void close() {
         if (!closed){
         	try {
-        		// if we're in a transaction it is not up to me to close the connection
-				if (null != this.factory.tm && hasRunningTransaction(this.factory.tm.getTransaction().getStatus()))
+        		// if we're in a running transaction that has not been committed it is not up to me to close the connection
+        		int status = this.factory.tm.getTransaction().getStatus();
+				if (null != this.factory.tm && hasRunningTransaction(status) && status != Status.STATUS_COMMITTED)
 					return;
 			}
 			catch (SystemException e) {
