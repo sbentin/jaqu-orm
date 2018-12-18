@@ -59,7 +59,7 @@ dependencies {
 	compileOnly 'org.ow2.asm:asm-util:6.1.1'
 	compileOnly 'org.apache.ant:ant:1.9.7'
 	
-	compileOnly (group: 'com.centimia', name: 'ccoreException', version: '1.0.0')
+	compileOnly (group: 'com.centimia', name: 'ccoreException', version: '1.0.2')
 	compileOnly gradleApi()
     compileOnly localGroovy()
 }
