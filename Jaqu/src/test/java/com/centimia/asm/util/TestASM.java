@@ -48,7 +48,7 @@ public class TestASM {
 				Object pk = db.getPrimaryKey(this);
 				
 				// get the object
-				numB = db.from(desc).innerJoin(parent).on(parent.numB).is(desc).where(db.getPrimaryKey(parent)).is(pk).selectFirst();
+				numB = db.from(desc).innerJoin(parent).on(parent.numB).is(desc).where(db.getPrimaryKey(parent)).selectFirst();
 			}
 			catch (Exception e) {
 				if (e instanceof RuntimeException)

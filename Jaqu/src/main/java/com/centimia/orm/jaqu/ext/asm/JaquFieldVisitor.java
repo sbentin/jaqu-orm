@@ -43,6 +43,9 @@ public class JaquFieldVisitor extends FieldVisitor {
 			if (desc.indexOf("com/centimia/orm/jaqu/annotation/JaquIgnore") != -1) {
 				this.relationFields.remove(name);
 			}
+			if (desc.indexOf("com/centimia/orm/jaqu/annotation/Transient") != -1) {
+				this.relationFields.remove(name);
+			}
 			else if (desc.indexOf("com/centimia/orm/jaqu/annotation/Lazy") != -1) {
 				this.lazyLoadFields.add(name);
 			}
