@@ -20,7 +20,6 @@
  */
 package com.centimia.orm.jaqu;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
@@ -37,9 +36,5 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 
 	public JaquSet(Set<E> origSet, Db db, FieldDefinition definition, Object parentPk) {
 		super(origSet, db, definition, parentPk);		
-	}
-
-	public Iterator<E> iterator() {
-		return new JaquIterator<E>(originalList.iterator());
 	}
 }

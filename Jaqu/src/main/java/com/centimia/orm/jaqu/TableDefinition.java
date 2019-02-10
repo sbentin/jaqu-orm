@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 
 import com.centimia.orm.jaqu.annotation.Cascade;
 import com.centimia.orm.jaqu.annotation.Column;
+import com.centimia.orm.jaqu.annotation.Converter;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
 import com.centimia.orm.jaqu.annotation.Index;
@@ -48,6 +49,7 @@ import com.centimia.orm.jaqu.annotation.PrimaryKey;
 import com.centimia.orm.jaqu.annotation.Transient;
 import com.centimia.orm.jaqu.constant.Constants;
 import com.centimia.orm.jaqu.util.ClassUtils;
+import com.centimia.orm.jaqu.util.JaquConverter;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 import com.centimia.orm.jaqu.util.StringUtils;
@@ -59,6 +61,8 @@ import com.centimia.orm.jaqu.util.Utils;
  * @param <T> the table type
  */
 class TableDefinition<T> {
+
+	private static final String TO_DB = "toDb";
 
 	enum FieldType {
 		NORMAL, FK, M2M, O2M, M2O
@@ -548,6 +552,18 @@ class TableDefinition<T> {
 			if (f.getAnnotation(Transient.class) != null || f.getAnnotation(JaquIgnore.class) != null)
 				continue;
 			Class<?> classType = f.getType();
+			Converter converter = f.getAnnotation(Converter.class);
+			if (null != converter) {
+				Method[] methods = converter.value().getMethods();
+				if (0 < methods.length) {
+					for (Method m: methods) {
+						if (TableDefinition.TO_DB.equals(m.getName())) {
+							classType = m.getReturnType();
+							break;
+						}
+					}
+				}
+			}
 			f.setAccessible(true);
 			FieldDefinition fieldDef = new FieldDefinition();
 			fieldDef.field = f;
@@ -1026,6 +1042,14 @@ class TableDefinition<T> {
 		}
 		switch (field.fieldType) {
 			case NORMAL:
+				Converter converter = field.field.getAnnotation(Converter.class);
+				if (null != converter) {
+					@SuppressWarnings("rawtypes")
+					JaquConverter convert = Utils.newObject(converter.value());
+					value = convert.toDb(value);
+					stat.addParameter(value);
+					break;
+				}
 				stat.addParameter(value);
 				break;
 			case FK: {
@@ -1329,6 +1353,12 @@ class TableDefinition<T> {
 				StatementLogger.debug("Working on Field: " + def.field.getName());
 			if (!def.isSilent) {
 				Object o = def.read(rs, DIALECT);
+				Converter converter = def.field.getAnnotation(Converter.class);
+				if (null != converter) {
+					@SuppressWarnings("rawtypes")
+					JaquConverter convert = Utils.newObject(converter.value());				
+					o = convert.fromDb(o);
+				}
 				def.setValue(item, o, db);
 			}
 			else

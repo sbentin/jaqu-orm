@@ -203,14 +203,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		return new SubList(this, fromIndex, toIndex);
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#iterator()
-	 */
-	public Iterator<E> iterator() {
-		return new JaquIterator<E>(originalList.iterator());
-	}
-	
 	class JaquListIterator extends JaquIterator<E> implements ListIterator<E> {
 		// first index is 0
 		int lastIdx = -1;

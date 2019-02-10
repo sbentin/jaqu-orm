@@ -45,11 +45,13 @@ public @interface Many2Many {
 	 */
 	String joinTableName();
 	/**
-	 * The name of the column representing the other side of the relation. Must have value!
+	 * The name of the field in this object representing the other side of the relation. 
+	 * Must have value!. This will also expect (or create) a column with the same name in the relation table
 	 */
 	String relationColumnName();
 	/**
-	 * The name of the field in the target object holding the other side of the relationship. If null 'this' tableName will be used!
+	 * The name of the field in the target object holding the other side of the relationship. 
+	 * If null 'this' tableName will be used!. This will also expect (or create) a column with the same name in the relation table
 	 */
 	String relationFieldName();
 	/**

@@ -190,6 +190,14 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return originalList.toArray(a);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.util.Collection#iterator()
+	 */
+	public Iterator<E> iterator() {
+		return new JaquIterator<E>(originalList.iterator());
+	}
+	
 	protected boolean dbClosed() {
 		if (null == db)
 			// because db is transient, on the client side it may be null.
@@ -263,4 +271,24 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			db.get().checkSession(e);
 		}			
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	public String toString() {
+        Iterator<E> it = iterator();
+        if (!it.hasNext())
+            return "[]";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (;;) {
+            E e = it.next();
+            sb.append(e == this ? "(this Collection)" : e);
+            if (!it.hasNext())
+                return sb.append(']').toString();
+            sb.append(',').append(' ');
+        }
+    }
 }

@@ -62,7 +62,7 @@ public class Utils {
 	public static <A, B> SortedMap<A, B> newSortedHashMap() {
 		return new TreeMap<A, B>();
 	}
-	
+
 	public static <A, B> Map<A, B> newSynchronizedHashMap() {
 		HashMap<A, B> map = newHashMap();
 		return Collections.synchronizedMap(map);
@@ -146,7 +146,7 @@ public class Utils {
 			return newEnum(clazz, 0);
 		}
 		try {
-			return clazz.newInstance();
+			return clazz.getConstructor().newInstance();
 		}
 		catch (Throwable e) {
 			if (MAKE_ACCESSIBLE) {
