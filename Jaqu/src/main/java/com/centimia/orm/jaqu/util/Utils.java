@@ -80,7 +80,7 @@ public class Utils {
 	public static <T> T newObject(Class<T> clazz) {
 		// must create new instances
 		if (clazz == Integer.class) {
-			return (T) new Integer((int) COUNTER.incrementAndGet());
+			return (T) Integer.valueOf((int) COUNTER.incrementAndGet());
 		}
 		else if (clazz == String.class) {
 			return (T) ("" + COUNTER.incrementAndGet());
@@ -89,22 +89,22 @@ public class Utils {
 			return (T) ("" + COUNTER.incrementAndGet());
 		}
 		else if (clazz == Long.class) {
-			return (T) new Long(COUNTER.incrementAndGet());
+			return (T) Long.valueOf(COUNTER.incrementAndGet());
 		}
 		else if (clazz == Short.class) {
-			return (T) new Short((short) COUNTER.incrementAndGet());
+			return (T) Short.valueOf((short) COUNTER.incrementAndGet());
 		}
 		else if (clazz == Byte.class) {
-			return (T) new Byte((byte) COUNTER.incrementAndGet());
+			return (T) Byte.valueOf((byte) COUNTER.incrementAndGet());
 		}
 		else if (clazz == Float.class) {
-			return (T) new Float(COUNTER.incrementAndGet());
+			return (T) Float.valueOf(COUNTER.incrementAndGet());
 		}
 		else if (clazz == Double.class) {
-			return (T) new Double(COUNTER.incrementAndGet());
+			return (T) Double.valueOf(COUNTER.incrementAndGet());
 		}
 		else if (clazz == Boolean.class) {
-			return (T) new Boolean(false);
+			return (T) Boolean.valueOf(false);
 		}
 		else if (clazz == BigDecimal.class) {
 			return (T) new BigDecimal(COUNTER.incrementAndGet());
@@ -125,7 +125,7 @@ public class Utils {
 			return (T) new java.util.Date(COUNTER.incrementAndGet());
 		}
 		else if (clazz == LocalDate.class) {
-			return (T) LocalDate.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
+			return (T) LocalDate.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.DAYS);
 		}
 		else if (clazz == LocalDateTime.class) {
 			return (T) LocalDateTime.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
@@ -156,7 +156,7 @@ public class Utils {
 					if (c.getParameterTypes().length == 0) {
 						c.setAccessible(true);
 						try {
-							return clazz.newInstance();
+							return clazz.getConstructor().newInstance();
 						}
 						catch (Exception e2) {
 							// system out because logger is not available here
@@ -247,7 +247,7 @@ public class Utils {
 		if (targetType.getAnnotation(Entity.class) != null) {
 			// the current value is a primary key for a related table.
 			try {
-				return targetType.newInstance();
+				return targetType.getConstructor().newInstance();
 			}
 			catch (Exception e) {
 				throw new RuntimeException("Can not convert the value " + o + " from " + currentType + " to " + targetType);
