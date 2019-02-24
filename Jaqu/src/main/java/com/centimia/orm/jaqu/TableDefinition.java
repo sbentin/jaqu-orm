@@ -215,7 +215,7 @@ class TableDefinition<T> {
 							// should be marked as lazy loaded
 							if (field.getType().getAnnotation(Entity.class) != null) {
 								Field lazyfield = field.getType().getDeclaredField(Constants.IS_LAZY);
-								fieldValueFronDb = field.getType().newInstance();
+								fieldValueFronDb = field.getType().getConstructor().newInstance();
 					 			lazyfield.setBoolean(fieldValueFronDb, true);
 								field.set(objToSet, fieldValueFronDb);
 							}
@@ -396,7 +396,7 @@ class TableDefinition<T> {
 		if (null != interceptorAnnot) {
 			this.interceptorEvents = interceptorAnnot.event();
 			try {
-				interceptor = interceptorAnnot.Class().newInstance();
+				interceptor = interceptorAnnot.Class().getConstructor().newInstance();
 			}
 			catch (Exception e) {
 				throw new JaquError("Expected an Interceptor class for Table/ Entity %s. Unable to invoke!!", nameOfTable);
@@ -1000,6 +1000,7 @@ class TableDefinition<T> {
         }
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void handleValue(Db db, Object obj, SQLStatement stat, FieldDefinition field) {
 		Object value = field.getValue(obj);
 		// Deal with null primary keys (if object is sequence do a sequence query and update object... if identity you need to query the

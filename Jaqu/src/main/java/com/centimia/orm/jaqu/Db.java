@@ -79,7 +79,7 @@ public class Db implements AutoCloseable {
 
     /**
      * Insert the given object and all it's children to the DB.
-     * TODO support cascadeType
+     * 
      * @param <T>
      * @param t
      */
@@ -184,7 +184,7 @@ public class Db implements AutoCloseable {
     
     /**
      * Merge means that if the object exists it is updated (so are all his children), if not it is inserted (so are all his children)
-     * TODO support cascadeType
+     * 
      * @param <T>
      * @param t
      */
@@ -676,7 +676,6 @@ public class Db implements AutoCloseable {
 	 */
 	@Override
 	protected void finalize() throws Throwable {
-		super.finalize();
 		if (null != conn && !conn.isClosed()) {
 			InternalLogger.debug("Closing connection for you!!!, please make sure you close the connection yourself");
 			close();
@@ -907,7 +906,7 @@ public class Db implements AutoCloseable {
 								// dispose of the relationships.
 								if (null != pk) {
 									// we may get objects that have a primary key to be inserted with, which means they don't exist in the DB
-									Object parent = this.from(t.getClass().newInstance()).primaryKey().is(pk).selectFirst();
+									Object parent = this.from(t.getClass().getConstructor().newInstance()).primaryKey().is(pk).selectFirst();
 									if (null != parent)
 										deleteParentRelation(fdef, parent);
 								}
@@ -1033,7 +1032,7 @@ public class Db implements AutoCloseable {
 	}
 
 	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws Exception {
-		T descriptor = type.newInstance();
+		T descriptor = type.getConstructor().newInstance();
 		List<T> result;
 		if (def.relationDefinition.relationTableName == null) {
 			result = this.from(descriptor).where(new StringFilter() {
