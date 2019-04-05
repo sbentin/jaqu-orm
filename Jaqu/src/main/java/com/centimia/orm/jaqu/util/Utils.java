@@ -14,7 +14,6 @@ package com.centimia.orm.jaqu.util;
 
 import java.io.Reader;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Clob;
@@ -35,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.centimia.orm.jaqu.annotation.Entity;
@@ -76,7 +76,7 @@ public class Utils {
 		return new IdentityHashMap<A, B>();
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings({ "unchecked", "rawtypes", "deprecation" })
 	public static <T> T newObject(Class<T> clazz) {
 		// must create new instances
 		if (clazz == Integer.class) {
@@ -104,7 +104,10 @@ public class Utils {
 			return (T) Double.valueOf(COUNTER.incrementAndGet());
 		}
 		else if (clazz == Boolean.class) {
-			return (T) Boolean.valueOf(false);
+			COUNTER.getAndIncrement();
+			// although this is deprecated we must use a new object otherwise we will not be able to distinguish between boolean placeholders.
+			// also since Boolean is an Object I don't think this constructor will ever go away it might be made in accessible in the future but we can overcome that if need be.
+			return (T) new Boolean(false);
 		}
 		else if (clazz == BigDecimal.class) {
 			return (T) new BigDecimal(COUNTER.incrementAndGet());
@@ -137,13 +140,24 @@ public class Utils {
 			return (T) LocalTime.MIN.plus(COUNTER.incrementAndGet(), ChronoUnit.MICROS);
 		}
 		else if (clazz == List.class) {
+			COUNTER.getAndIncrement();
 			return (T) new ArrayList();
 		}
 		else if (clazz == Set.class) {
+			COUNTER.getAndIncrement();
 			return (T) new HashSet();
 		}
 		else if (clazz.isEnum()) {
-			return newEnum(clazz, 0);
+			COUNTER.getAndIncrement();
+			return clazz.getEnumConstants()[0];
+		}
+		else if (clazz == java.util.UUID.class) {
+			COUNTER.getAndIncrement();
+			return(T) UUID.randomUUID();
+		}
+		else if (clazz == byte[].class) {
+            COUNTER.getAndIncrement();
+            return (T) new byte[0];
 		}
 		try {
 			return clazz.getConstructor().newInstance();
@@ -184,21 +198,9 @@ public class Utils {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <E> E newEnum(Class<E> clazz, int ordinal) {
 		if (clazz.isEnum()) {
-			Object[] objs = null;
-			try {
-				Method m = clazz.getMethod("values");
-				objs = (Object[]) m.invoke(null);
-			}
-			catch (Exception e) {
-				return null;
-			}
-			if (null != objs && objs.length > ordinal)
-				return (E)objs[ordinal];
-			else
-				return null;
+			return clazz.getEnumConstants()[ordinal];			
 		}
 		throw new RuntimeException(clazz.getName() + ": is not an enum type"); 
 	}
