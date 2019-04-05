@@ -23,23 +23,6 @@
             id="com.centimia.orm.jaqu.plugin.builder.jaquBuilder">
       </builder>
    </extension>
-   <extension
-         point="org.eclipse.ui.popupMenus">
-      <objectContribution
-            adaptable="true"
-            objectClass="org.eclipse.core.resources.IProject"
-            nameFilter="*"
-            id="com.centimia.orm.jaqu.plugin.addJaquNature">
-         <action
-               class="com.centimia.orm.jaqu.plugin.ToggleNatureAction"
-               enablesFor="+"
-               icon="icons/jaqu-entity.png"
-               id="com.centimia.orm.jaqu.plugin.addRemoveNatureAction"
-               label="Add/Remove Jaqu Nature"
-               menubarPath="additions">
-         </action>
-      </objectContribution>
-   </extension>
 	<extension point="org.eclipse.ui.decorators">
 <decorator
       adaptable="true"
@@ -66,5 +49,29 @@
           class="com.centimia.orm.jaqu.plugin.nature.ClassPathInitializer"
           id="com.centimia.orm.jaqu.plugin.nature.JAQU">
     </classpathContainerInitializer>
+ </extension>
+ <extension
+       point="org.eclipse.ui.commands">
+    <command
+          defaultHandler="com.centimia.orm.jaqu.plugin.handler.ToggleHandler"
+          description="Add/Remove Jaqu Nature"
+          id="com.centimia.orm.jqu.plugin.toggle"
+          name="Add/Remove Jaqu Nature">
+    </command>
+ </extension>
+ <extension
+       point="org.eclipse.ui.menus">
+    <menuContribution
+          allPopups="false"
+          locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+       <command
+             commandId="com.centimia.orm.jqu.plugin.toggle"
+             icon="icons/jaqu-entity.png"
+             label="Add/Remove Jaqu Nature"
+             mnemonic="J"
+             style="push"
+             tooltip="Add/Remove Jaqu Nature">
+       </command>
+    </menuContribution>
  </extension>
 </plugin>

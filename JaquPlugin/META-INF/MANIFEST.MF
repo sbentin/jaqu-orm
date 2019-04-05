@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: JaquPlugin
 Bundle-SymbolicName: com.centimia.orm.jaqu.JaquPlugin;singleton:=true
-Bundle-Version: 5.2.3.qualifier
+Bundle-Version: 5.3.0.qualifier
 Bundle-Activator: com.centimia.orm.jaqu.plugin.Activator
 Bundle-Vendor: Centimia Inc.
 Eclipse-BundleShape: dir
@@ -13,24 +13,42 @@ Require-Bundle: org.eclipse.ui;bundle-version="3.109.100",
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Export-Package: .,
- com.centimia.orm.jaqu,
- com.centimia.orm.jaqu.annotation,
+ com.centimia.orm.jaqu;
+  uses:="com.centimia.orm.jaqu.annotation,
+   com.centimia.orm.jaqu.dialect,
+   javax.sql,
+   com.centimia.orm.jaqu.util,
+   com.centimia.orm.jaqu.constant,
+   javax.transaction",
+ com.centimia.orm.jaqu.annotation;uses:="com.centimia.orm.jaqu",
  com.centimia.orm.jaqu.constant,
- com.centimia.orm.jaqu.dialect,
- com.centimia.orm.jaqu.ext.ant,
- com.centimia.orm.jaqu.ext.asm,
+ com.centimia.orm.jaqu.dialect;uses:="com.centimia.orm.jaqu.util,com.centimia.orm.jaqu",
+ com.centimia.orm.jaqu.ext.ant;uses:="org.apache.tools.ant",
+ com.centimia.orm.jaqu.ext.asm;uses:="org.objectweb.asm",
  com.centimia.orm.jaqu.ext.common,
- com.centimia.orm.jaqu.ext.gradle,
- com.centimia.orm.jaqu.plugin,
- com.centimia.orm.jaqu.plugin.builder,
- com.centimia.orm.jaqu.plugin.decorator,
- com.centimia.orm.jaqu.plugin.nature,
- com.centimia.orm.jaqu.util,
+ com.centimia.orm.jaqu.ext.gradle;uses:="org.gradle.api,groovy.lang",
+ com.centimia.orm.jaqu.plugin;
+  uses:="org.osgi.framework,
+   org.eclipse.ui,
+   org.eclipse.osgi.util,
+   org.eclipse.jface.action,
+   org.eclipse.jface.resource,
+   org.eclipse.ui.plugin,
+   org.eclipse.jface.viewers",
+ com.centimia.orm.jaqu.plugin.builder;uses:="org.eclipse.core.runtime,org.eclipse.osgi.util,org.eclipse.core.resources",
+ com.centimia.orm.jaqu.plugin.decorator;uses:="org.eclipse.jface.viewers",
+ com.centimia.orm.jaqu.plugin.handler;uses:="org.eclipse.core.commands",
+ com.centimia.orm.jaqu.plugin.nature;
+  uses:="org.eclipse.osgi.util,
+   org.eclipse.core.runtime,
+   org.eclipse.jdt.core,
+   org.eclipse.core.resources",
+ com.centimia.orm.jaqu.util;uses:="org.slf4j",
  org.objectweb.asm,
- org.objectweb.asm.commons,
+ org.objectweb.asm.commons;uses:="org.objectweb.asm.signature,org.objectweb.asm,org.objectweb.asm.tree",
  org.objectweb.asm.signature
-Bundle-ClassPath: lib/asm-6.1.1.jar,
+Bundle-ClassPath: bin/,
+ lib/asm-6.1.1.jar,
  lib/asm-commons-6.1.1.jar,
  lib/jaqu.jar,
- lib/jaqu-ext.jar,
- .
+ lib/jaqu-ext.jar

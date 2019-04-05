@@ -18,7 +18,6 @@
 	</buildSpec>
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
-		<nature>com.centimia.jaqu.plugin.nature.jaquNature</nature>
 		<nature>com.centimia.orm.jaqu.plugin.nature.jaquNature</nature>
 	</natures>
 </projectDescription>
