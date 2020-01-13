@@ -51,7 +51,7 @@ public class TestSelectAsMap extends JaquTest {
 			assertEquals("value3", results.get("name3"));
 			
 			TestTable2 table2 = new TestTable2();
-			results = db.from(table1).leftOuterJoin(table2).on(table1.getId()).is(table2.getId()).selectAsMap(table1.getName(), Function.ifNull(table2.getDescription(), table1.getValue(), true)); //
+			results = db.from(table1).leftOuterJoin(table2).on(table1.getId()).is(table2.getId()).selectAsMap(table1.getName(), Function.ifNull(table2.getDescription(), table1.getValue(), true, db)); //
 			
 			assertEquals(2, results.size());
 			assertEquals("value2", results.get("name2"));

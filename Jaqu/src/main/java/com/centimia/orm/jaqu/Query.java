@@ -637,11 +637,11 @@ public class Query<T> implements FullQueryInterface<T> {
             return;
         }
         SelectColumn<T> col = null;
-        Token token = Db.getToken(x);
+        Token token = db.getToken(x);
         if (null == token && isEnum) {
            	// try to get the token according to an enum value
         	Object enumValue = handleAsEnum(enumClass, x);
-           	token = Db.getToken(enumValue);
+           	token = db.getToken(enumValue);
          	col = aliasMap.get(enumValue);
         }
         

@@ -54,7 +54,7 @@ public class H2Dialect implements SQLDialect{
 			return "DECIMAL";
 		}
 		else if (fieldClass == java.util.Date.class) {
-			return "DATE";
+			return "TIMESTAMP";
 		}
 		else if (fieldClass == java.sql.Date.class) {
 			return "DATE";
@@ -63,10 +63,10 @@ public class H2Dialect implements SQLDialect{
 			return "DATE";
 		}
 		else if (fieldClass == java.time.LocalDateTime.class) {
-			return "DATE";
+			return "TIMESTAMP";
 		}
 		else if (fieldClass == java.time.ZonedDateTime.class) {
-			return "DATE";
+			return "TIMESTAMP";
 		}
 		else if (fieldClass == java.time.LocalTime.class) {
 			return "TIME";
