@@ -3,7 +3,7 @@ JaQu stands for Java Query and allows to access databases using pure Java. The o
 
 JaQu ORM still allows for the former JaQu capabilities which together with the ORM gives the developer a single tool for all his database needs using an object oriented Java on the one hand based on a very SQL like grammar. Using Generics the framework helps the developer with building his queries.
 
-In order to use JaQu ORM, post compilation is needed on Entity Objects. There are two ways to achieve this task, using ant or using the eclipse plugin provided. For runtime, only the jaqu.jar is needed.
+In order to use JaQu ORM, post compilation is needed on Entity Objects. There are three ways to achieve this task, using ant, using the eclipse plugin provided or the gradle plugin provided. For runtime, only the jaqu.jar is needed.
 
 Here are some of the features:
 <p><ul>
@@ -20,7 +20,9 @@ Here are some of the features:
 <li>Added commit, rollback.</li>
 <li>Addressed some thread safety issues</li>
 </ul>
+
 # Using eclipse #
+
 Use automatic update for eclipse to get the plugin from the site.
 
 update site URL: http://www.centimia.com/JaquPluginSite
