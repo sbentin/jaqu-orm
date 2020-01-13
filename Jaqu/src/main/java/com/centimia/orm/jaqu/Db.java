@@ -44,7 +44,7 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
  */
 public class Db implements AutoCloseable {
 
-    private static final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
+    private final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
     
     private Connection conn;
     protected JaquSessionFactory factory;
@@ -983,12 +983,12 @@ public class Db implements AutoCloseable {
         }
     }
 
-    static <X> X registerToken(X x, Token token) {
-        TOKENS.put(x, token);
+    <X> X registerToken(X x, Token token) {
+    	TOKENS.put(x, token);
         return x;
     }
 
-    static Token getToken(Object x) {
+    Token getToken(Object x) {
         return TOKENS.get(x);
     }
     
@@ -1131,6 +1131,7 @@ public class Db implements AutoCloseable {
 		this.factory = null;
 		reEntrantCache.clearReEntrent();
 		multiCallCache.clearReEntrent();
+		TOKENS.clear();
 	}
 
 	/**

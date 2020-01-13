@@ -62,13 +62,12 @@ public class Function implements Token {
     }
     
     /**
-     * SQL Funcation 'LENGTH'
+     * SQL Function 'LENGTH'
      * @param x
      * @return Integer
      */
-    public static Integer length(Object x) {
-        return Db.registerToken(
-            Utils.newObject(Integer.class), new Function("LENGTH", x));
+    public static Integer length(Object x, Db db) {
+        return db.registerToken(Utils.newObject(Integer.class), new Function("LENGTH", x));
     }
 
     /**
@@ -77,18 +76,17 @@ public class Function implements Token {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public static <T extends Number> T sum(T x) {
-        return (T) Db.registerToken(
-            Utils.newObject(x.getClass()), new Function("SUM", x));
+    public static <T extends Number> T sum(T x, Db db) {
+        return (T) db.registerToken(Utils.newObject(x.getClass()), new Function("SUM", x));
     }
 
-    public static Long count(Object x) {
-        return Db.registerToken(
+    public static Long count(Object x, Db db) {
+        return db.registerToken(
             Utils.newObject(Long.class), new Function("COUNT", x));
     }
 
-    public static Boolean isNull(Object x) {
-        return Db.registerToken(
+    public static Boolean isNull(Object x, Db db) {
+        return db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
                 public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 	query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
@@ -97,8 +95,8 @@ public class Function implements Token {
             });
     }
 
-    public static Boolean isNotNull(Object x) {
-        return Db.registerToken(
+    public static Boolean isNotNull(Object x, Db db) {
+        return db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
                 public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 	query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
@@ -107,8 +105,8 @@ public class Function implements Token {
             });
     }
 
-    public static Boolean not(Boolean x) {
-        return Db.registerToken(
+    public static Boolean not(Boolean x, Db db) {
+        return db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
                 public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                     stat.appendSQL("NOT ");
@@ -117,8 +115,8 @@ public class Function implements Token {
             });
     }
 
-    public static Boolean or(Boolean... x) {
-        return Db.registerToken(
+    public static Boolean or(Db db, Boolean... x) {
+        return db.registerToken(
                 Utils.newObject(Boolean.class),
                 new Function("", (Object[]) x) {
             public <T> void appendSQL(SQLStatement stat, Query<T> query) {
@@ -133,8 +131,8 @@ public class Function implements Token {
         });
     }
 
-    public static Boolean and(Boolean... x) {
-        return Db.registerToken(
+    public static Boolean and(Db db, Boolean... x) {
+        return db.registerToken(
                 Utils.newObject(Boolean.class),
                 new Function("", (Object[]) x) {
             public <T> void appendSQL(SQLStatement stat, Query<T> query) {
@@ -150,32 +148,32 @@ public class Function implements Token {
     }
 
     @SuppressWarnings("unchecked")
-    public static <X> X min(X x) {
+    public static <X> X min(X x, Db db) {
         Class<X> clazz = (Class<X>) x.getClass();    
         if (clazz.isEnum()) {
         	X o = handleEnum(x, clazz);
-        	return Db.registerToken(o, new Function("MIN", x));
+        	return db.registerToken(o, new Function("MIN", x));
         }
         X o = Utils.newObject(clazz);
-        return Db.registerToken(o, new Function("MIN", x));
+        return db.registerToken(o, new Function("MIN", x));
     }
 
     @SuppressWarnings("unchecked")
-    public static <X> X max(X x) {
+    public static <X> X max(X x, Db db) {
         Class<X> clazz = (Class<X>) x.getClass();
         if (clazz.isEnum()) {
         	X o = handleEnum(x, clazz);
-        	return Db.registerToken(o, new Function("MAX", x));
+        	return db.registerToken(o, new Function("MAX", x));
         }
         X o = Utils.newObject(clazz);
-        return Db.registerToken(o, new Function("MAX", x));
+        return db.registerToken(o, new Function("MAX", x));
     }
 
     @SuppressWarnings("unchecked")
-    public static <X extends Number> X avg(X x) {
+    public static <X extends Number> X avg(X x, Db db) {
         Class<X> clazz = (Class<X>) x.getClass();
         X o = Utils.newObject(clazz);
-        return Db.registerToken(o, new Function("AVG", x));
+        return db.registerToken(o, new Function("AVG", x));
     }
     
     
@@ -186,9 +184,9 @@ public class Function implements Token {
      * @param pattern
      * @return Boolean
      */
-    public static Boolean like(String x, String pattern) {
+    public static Boolean like(String x, String pattern, Db db) {
         Boolean o = Utils.newObject(Boolean.class);
-        return Db.registerToken(o, new Function("LIKE", x, pattern) {
+        return db.registerToken(o, new Function("LIKE", x, pattern) {
             public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 stat.appendSQL("(");
                 query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
@@ -207,8 +205,8 @@ public class Function implements Token {
      * @param replacementValue
      * @return
      */
-	public static <X> X ifNull(X checkExpression, final Object replacementValue){
-    	return ifNull(checkExpression, replacementValue, false);
+	public static <X> X ifNull(X checkExpression, final Object replacementValue, Db db){
+    	return ifNull(checkExpression, replacementValue, false, db);
     }
     
     /**
@@ -221,11 +219,11 @@ public class Function implements Token {
      * @return
      */
     @SuppressWarnings("unchecked")
-	public static <X> X ifNull(X checkExpression, final Object replacementValue, final boolean isField){
+	public static <X> X ifNull(X checkExpression, final Object replacementValue, final boolean isField, Db db){
     	Class<X> clazz = (Class<X>) checkExpression.getClass();
     	X o = Utils.newObject(clazz);
     	
-    	return Db.registerToken(o, new ReplacementFunctions(isField, "IFNULL", checkExpression, replacementValue) {
+    	return db.registerToken(o, new ReplacementFunctions(isField, "IFNULL", checkExpression, replacementValue) {
     		public <T> void appendSQL(SQLStatement stat, Query<T> query) {
     			Dialect d = query.getDb().factory.getDialect();
     			name = d.getFunction(Functions.IFNULL);

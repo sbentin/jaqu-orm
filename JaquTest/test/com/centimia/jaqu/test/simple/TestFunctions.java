@@ -37,36 +37,36 @@ public class TestFunctions extends JaquTest {
 			
 			final TableForFunctions desc = new TableForFunctions();
 			// get the minimum row in the table
-			Double minValue = db.from(desc).selectFirst(Function.min(desc.getValue()));
+			Double minValue = db.from(desc).selectFirst(Function.min(desc.getValue(), db));
 			assertEquals(0D, minValue);
 			
 			// get the minimum row in the table
-			SEASON minSeason = db.from(desc).where(desc.name).is("name1").selectFirst(Function.min(desc.season));
+			SEASON minSeason = db.from(desc).where(desc.name).is("name1").selectFirst(Function.min(desc.season, db));
 			assertEquals(SEASON.AUTOMN, minSeason);
 			
-			SEASON maxSeason = db.from(desc).where(desc.name).is("name1").selectFirst(Function.max(desc.season));
+			SEASON maxSeason = db.from(desc).where(desc.name).is("name1").selectFirst(Function.max(desc.season, db));
 			assertEquals(SEASON.WINTER, maxSeason);
 			
 			TableForFunctions tff = db.from(desc).where(desc.name).is("name1").selectFirst(new TableForFunctions() {
 				{
 					id = desc.id;
 					name = desc.name;
-					season = Function.min(desc.season);
+					season = Function.min(desc.season, db);
 					value = desc.value;
 				}
 			});
 			
 			// get the maximum row in the table
-			Double maxValue = db.from(desc).selectFirst(Function.max(desc.getValue()));
+			Double maxValue = db.from(desc).selectFirst(Function.max(desc.getValue(), db));
 			assertEquals(5.3D, maxValue);
 						
 			// get the sum in the table
-			Double sumValue = db.from(desc).selectFirst(Function.sum(desc.getValue()));
+			Double sumValue = db.from(desc).selectFirst(Function.sum(desc.getValue(), db));
 			assertEquals(48.0D, new BigDecimal(sumValue).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
 						
 			// get the count in the table
 			// the following allows doing a count with some kind of a where clause to filter the table.
-			Long countValue = db.from(desc).where(desc.getName()).isNotNull().selectFirst(Function.count(desc.getValue()));
+			Long countValue = db.from(desc).where(desc.getName()).isNotNull().selectFirst(Function.count(desc.getValue(), db));
 			assertEquals(15, countValue.longValue());
 			
 			// same in a simpler way, by using count(*)
@@ -78,7 +78,7 @@ public class TestFunctions extends JaquTest {
 			assertEquals(16, countValue.longValue());
 			
 			// get the average value
-			Double avgValue = db.from(desc).selectFirst(Function.avg(desc.getValue()));
+			Double avgValue = db.from(desc).selectFirst(Function.avg(desc.getValue(), db));
 			assertEquals(3.0D,  new BigDecimal(avgValue).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
 			
 			// Unlike the filter like this like returns true or false on condition match. Test all that their name is like 'name1' and return true
@@ -86,7 +86,7 @@ public class TestFunctions extends JaquTest {
 				{
 					id = desc.getId();
 					name = desc.getName();
-					testResult = Function.like(desc.getName(), "%me1");
+					testResult = Function.like(desc.getName(), "%me1", db);
 					value = desc.value;
 				}
 			});
@@ -102,7 +102,7 @@ public class TestFunctions extends JaquTest {
 			tff = db.from(desc).where(desc.id).is(16L).selectFirst(new TableForFunctions() {
 				{
 					id = desc.getId();
-					name = Function.ifNull(desc.getName(), "newName");
+					name = Function.ifNull(desc.getName(), "newName", db);
 					value = desc.getValue();
 				}
 			});

@@ -83,7 +83,7 @@ public class TestSimpleOuterJoin extends JaquTest {
 				id = t1Desc.getId();
 				name = t1Desc.getName();
 				description = t2Desc.getDescription();
-				value = Function.ifNull(t3Desc.getValue(), null);
+				value = Function.ifNull(t3Desc.getValue(), null, db);
 				}
 			});
 			for (joinResult join: joins) {

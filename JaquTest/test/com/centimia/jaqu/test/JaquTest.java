@@ -55,7 +55,7 @@ public abstract class JaquTest extends TestCase {
 //			pool.setPassword("JAQU");
 
 			com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
-			pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
+			pool.setURL("jdbc:mysql://10.18.100.13:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
 			pool.setUser("jaqu");
 			pool.setPassword("jaqu");
 			

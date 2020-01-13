@@ -17,7 +17,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.centimia.jaqu.test.JaquTest;
-import com.centimia.jaqu.test.JaquTestSuite;
 
 import junit.framework.TestResult;
 
