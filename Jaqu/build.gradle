@@ -23,7 +23,7 @@ group = 'com.centimia'
 
 buildscript {
 	dependencies {
-		classpath "org.jfrog.buildinfo:build-info-extractor-gradle:+"
+		classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.5.0"
 	}
 	
 	repositories {

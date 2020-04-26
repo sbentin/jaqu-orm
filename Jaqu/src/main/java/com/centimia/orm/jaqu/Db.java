@@ -532,7 +532,6 @@ public class Db implements AutoCloseable {
     	List<T> result = Utils.newArrayList();
     	try {
             while (rs.next()) {
-                Utils.newObject(clazz);
                 T item = def.readRow(rs, this);
                 this.addSession(item);
                 result.add(item);

@@ -40,10 +40,9 @@ public class JaquFieldVisitor extends FieldVisitor {
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 		if (desc != null) {
-			if (desc.indexOf("com/centimia/orm/jaqu/annotation/JaquIgnore") != -1) {
+			if (desc.indexOf("com/centimia/orm/jaqu/annotation/Converter") != -1)
 				this.relationFields.remove(name);
-			}
-			if (desc.indexOf("com/centimia/orm/jaqu/annotation/Transient") != -1) {
+			if (desc.indexOf("com/centimia/orm/jaqu/annotation/JaquIgnore") != -1 || desc.indexOf("com/centimia/orm/jaqu/annotation/Transient") != -1) {
 				this.relationFields.remove(name);
 			}
 			else if (desc.indexOf("com/centimia/orm/jaqu/annotation/Lazy") != -1) {
