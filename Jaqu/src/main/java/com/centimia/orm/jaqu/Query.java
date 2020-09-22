@@ -688,11 +688,18 @@ public class Query<T> implements FullQueryInterface<T> {
                 if (PkCondition.class.isAssignableFrom(token.getClass()) || PkInCondition.class.isAssignableFrom(token.getClass()))
                 	useDiscriminator = false;
             }
+            
+            // add the discriminator if 'T' is a part of an inheritance tree.
+            if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType && useDiscriminator) {
+            	stat.appendSQL(" AND " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "='" + from.getAliasDefinition().discriminatorValue + "' ");
+            }
         }
-        // add the discriminator if 'T' is a part of an inheritance tree.
-        if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType && useDiscriminator) {
-        	stat.appendSQL(" AND " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "= '" + from.getAliasDefinition().discriminatorValue + "' ");
-        }
+    	else {
+    		// add the discriminator if 'T' is a part of an inheritance tree.
+            if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType && useDiscriminator) {
+            	stat.appendSQL(" WHERE " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "='" + from.getAliasDefinition().discriminatorValue + "' ");
+            }
+    	}
     }
     
     void appendUpdate(SQLStatement stat) {

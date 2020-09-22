@@ -178,9 +178,10 @@ public class H2Dialect implements SQLDialect{
 			case BIGDECIMAL: return rs.getBigDecimal(columnName);
 			case LOCALDATE: return null != rs.getDate(columnName) ? rs.getDate(columnName).toLocalDate() : null;
     		case LOCALDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null;
-    		case ZONEDDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null; // TODO this should be fixed
+    		case ZONEDDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null; // TODO this should be fixed to support zone
     		case LOCALTIME: return null != rs.getTime(columnName) ? null != rs.getTime(columnName).toLocalTime() : null;
-			default: return rs.getObject(columnName);
+    		case STRING:  return rs.getString(columnName);
+    		default: return rs.getObject(columnName);
 		}
 	}
 	
