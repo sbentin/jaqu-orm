@@ -132,7 +132,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 			if (desc.indexOf("java/util/List") != -1 || desc.indexOf("java/util/Set") != -1 || desc.indexOf("java/util/Collection") != -1)
 				relationFields.add(name.toLowerCase());
 		}
-		return new JaquFieldVisitor(Opcodes.ASM5, super.visitField(access, name, desc, signature, value), name.toLowerCase(), relationFields, lazyLoadFields);
+		return new JaquFieldVisitor(Opcodes.ASM8, super.visitField(access, name, desc, signature, value), name.toLowerCase(), relationFields, lazyLoadFields);
 	}
 	
 	/* (non-Javadoc)

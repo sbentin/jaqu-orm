@@ -54,9 +54,9 @@ buildscript {
 dependencies {
 	compile 'javax.transaction:jta:1.1'
 	
-	compileOnly 'org.ow2.asm:asm:6.1.1'
-	compileOnly 'org.ow2.asm:asm-commons:6.1.1'
-	compileOnly 'org.ow2.asm:asm-util:6.1.1'
+	compileOnly 'org.ow2.asm:asm:8.0.1'
+	compileOnly 'org.ow2.asm:asm-commons:8.0.1'
+	compileOnly 'org.ow2.asm:asm-util:8.0.1'
 	compileOnly 'org.apache.ant:ant:1.9.7'
 	
 	compileOnly (group: 'com.centimia', name: 'ccoreException', version: '1.0.2')
