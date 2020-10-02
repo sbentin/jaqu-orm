@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/com.centimia.orm.jaqu.feature_5.6.0.qualifier.jar" id="com.centimia.orm.jaqu.feature" version="5.6.0.qualifier">
+   <feature url="features/com.centimia.orm.jaqu.feature_5.6.0.202010020840.jar" id="com.centimia.orm.jaqu.feature" version="5.6.0.202010020840">
       <category name="jaqu-orm"/>
    </feature>
    <category-def name="jaqu-orm" label="jaQu-orm"/>
