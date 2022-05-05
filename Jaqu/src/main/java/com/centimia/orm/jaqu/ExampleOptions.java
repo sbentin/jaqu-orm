@@ -19,27 +19,30 @@ Created		   Nov 1, 2012			shai
 */
 package com.centimia.orm.jaqu;
 
-import java.util.Map;
+import java.util.HashSet;
 
 /**
- * 
+ * Example Options is used in selectByExample in order to clarify and exact the search example Object
  * @author shai
  */
 public interface ExampleOptions {
 	
 	/**
-	 * set properties you want to exclude
+	 * Some times when using a "select by example" some fields in the example object may hold values by default.
+	 * Their values will effect the search string sent to the db. Here you can exclude them from the search.
+	 * <br>
+	 * Use this method to set which fields you wish to exclude
 	 * 
 	 * @param excludeProps
 	 * @return ExampleOptions (this)
 	 */
-	public ExampleOptions setExcludeProps(Map<String, String> excludeProps);
+	public ExampleOptions setExcludeProps(HashSet<String> excludeProps);
 	
 	/**
 	 * get the list of exclude properties (which you don't want to include in the search).
-	 * @return Map<String, String>
+	 * @return HashSet&lt;String&gt;
 	 */
-	public Map<String, String> getExcludeProps();
+	public HashSet<String> getExcludeProps();
 	
 	/**
 	 * add a property name to the exclude property list
@@ -96,7 +99,7 @@ public interface ExampleOptions {
 	public ExampleOptions setLikeMode(LikeMode mode);
 	
 	/**
-	 * retruns the Like mode for string values.
+	 * returns the Like mode for string values.
 	 * @return LikeMode
 	 */
 	public LikeMode getLikeMode();

@@ -63,7 +63,7 @@ public interface FullQueryInterface<T> extends QueryInterface<T> {
 	public abstract int update();
 
 	/**
-	 * Returns distinct results of type X using az query on object Z
+	 * Returns distinct results of type X using a query on object Z
 	 * 
 	 * @param <X> - The type of object returned after the specific object is built from results.
 	 * @param <Z> - The type of the Object used for describing the query

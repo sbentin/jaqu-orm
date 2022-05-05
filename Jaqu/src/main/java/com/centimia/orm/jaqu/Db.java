@@ -454,7 +454,7 @@ public class Db implements AutoCloseable {
 			for (FieldDefinition fDef: tDef.getFields()) {
 				if (fDef.isSilent)
 					continue; // this field can not be selected upon.
-				if (null == params.getExcludeProps().get(fDef.field.getName())) {
+				if (!params.getExcludeProps().contains(fDef.field.getName())) {
 					fDef.field.setAccessible(true);
 					Object val = fDef.field.get(example);
 					boolean add = true;

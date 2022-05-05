@@ -22,6 +22,8 @@ package com.centimia.orm.jaqu.dialect;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.temporal.TemporalAccessor;
+import java.util.Date;
 
 import com.centimia.orm.jaqu.Db;
 import com.centimia.orm.jaqu.JaquError;
@@ -243,5 +245,17 @@ public class H2Dialect implements SQLDialect{
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
 		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 		return buff;
+	}
+
+	@Override
+	public String getQueryStyleDate(TemporalAccessor temporal) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getQueryStyleDate(Date date) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

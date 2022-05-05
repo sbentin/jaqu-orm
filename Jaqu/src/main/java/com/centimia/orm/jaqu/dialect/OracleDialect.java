@@ -23,6 +23,12 @@ package com.centimia.orm.jaqu.dialect;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
+import java.util.Date;
 
 import com.centimia.orm.jaqu.Db;
 import com.centimia.orm.jaqu.JaquError;
@@ -277,7 +283,32 @@ public class OracleDialect implements SQLDialect {
 		buff.append(innerUpdate);
 		return buff;
 	}
+	 
+	@Override
+	public String getQueryStyleDate(Date date) {
+		if (null == date)
+			return "null";
+		else {
+			if (java.sql.Date.class.isAssignableFrom(date.getClass()))
+				return "toDate('yyyy-MM-dd','" + new SimpleDateFormat("yyyy-MM-dd").format(date) + "')";
+			else
+				return "toDate(yyyy-MM-dd HH:mm:ss','" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date) + "')";
+		}
+	}
 	
+	@Override
+	public String getQueryStyleDate(TemporalAccessor temporal) {
+		if (null == temporal)
+			return "null";
+		else {
+			if (LocalDate.class.isAssignableFrom(temporal.getClass()))
+				return "toDate('yyyy-MM-dd','" + DateTimeFormatter.ISO_LOCAL_DATE.format(temporal) + "')";
+			if (LocalDateTime.class.isAssignableFrom(temporal.getClass()))
+				return "toDate('yyyy-MM-dd HH:mm:ss','" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(temporal) + "')";
+		}
+		return "null";
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
@@ -285,5 +316,9 @@ public class OracleDialect implements SQLDialect {
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
 		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 		return buff;
+	}
+	
+	public static void main(String[] args) {
+		System.out.println(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
 	}
 }

@@ -20,6 +20,8 @@
  */
 package com.centimia.orm.jaqu;
 
+import java.time.temporal.TemporalAccessor;
+import java.util.Date;
 import java.util.UUID;
 
 import com.centimia.orm.jaqu.annotation.Entity;
@@ -45,7 +47,7 @@ class InCondition<A> implements Token {
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" ");
@@ -63,6 +65,11 @@ class InCondition<A> implements Token {
             		default: buff.append("'" + item.toString() + "'"); break;
             	} 
         	}
+        	else if (item instanceof Date) {
+        		query.getDb().factory.getDialect().getQueryStyleDate((Date)item);
+        	}
+        	else if (TemporalAccessor.class.isAssignableFrom(item.getClass()))
+        		query.getDb().factory.getDialect().getQueryStyleDate((TemporalAccessor)item);
         	else if (item != null && item.getClass().getAnnotation(Entity.class) != null) {
         		Object o = query.getDb().factory.getPrimaryKey(item);
         		if (String.class.isAssignableFrom(o.getClass()))

@@ -33,7 +33,7 @@ class Condition<A> implements Token {
      * @see com.centimia.orm.jaqu.Token#appendSQL(SQLStatement, Query)
      * TODO check  if new enum implementation can change the ugliness here
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
     	query.appendSQL(stat, x, false, null);
         stat.appendSQL(" ");

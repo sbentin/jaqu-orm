@@ -124,7 +124,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	 * (non-Javadoc)
 	 * @see java.util.Collection#remove(java.lang.Object)
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "resource" })
 	public boolean remove(Object o) {
 		boolean removed = originalList.remove(o);
 		if (removed) {
@@ -227,7 +227,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			return current;
 		}
 
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings({ "unchecked", "resource" })
 		public void remove() {
 			delagete.remove();
 			if (!dbClosed()) {
@@ -258,6 +258,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	/*
 	 * Merge the list to the open db session
 	 */
+	@SuppressWarnings("resource")
 	void merge() {
 		if (internalDeleteMapping != null) {
 			for (E child: internalDeleteMapping) {

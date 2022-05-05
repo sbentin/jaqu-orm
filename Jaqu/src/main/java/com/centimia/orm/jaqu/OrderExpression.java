@@ -32,6 +32,7 @@ class OrderExpression<T> {
         this.nullsLast = nullsLast;
     }
 
+	@SuppressWarnings("resource")
 	void appendSQL(SQLStatement stat) {
 		if (1 >= query.getDb().factory.dialect.ordinal()) {
 			query.appendSQL(stat, expression, false, null);

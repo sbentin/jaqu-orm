@@ -22,7 +22,9 @@ package com.centimia.orm.jaqu.dialect;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
+import java.util.Date;
 
 import com.centimia.core.ExceptionMessages;
 import com.centimia.core.exception.ResourceDeadLockException;
@@ -264,5 +266,17 @@ public class MySqlDialect implements SQLDialect {
 				throw new ResourceDeadLockException(ExceptionMessages.DEADLOCK,(Exception)e);
 		}
 		SQLDialect.super.handleDeadlockException(e);
+	}
+
+	@Override
+	public String getQueryStyleDate(TemporalAccessor temporal) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getQueryStyleDate(Date date) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

@@ -139,6 +139,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	 * (non-Javadoc)
 	 * @see java.util.List#remove(int)
 	 */
+	@SuppressWarnings("resource")
 	public E remove(int index) {
 		E element = ((List<E>)originalList).remove(index);
 		modCount++;
@@ -158,6 +159,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	 * (non-Javadoc)
 	 * @see java.util.List#set(int, java.lang.Object)
 	 */
+	@SuppressWarnings("resource")
 	public E set(int index, E element) {
 		// get the current element
 		E e = ((List<E>)originalList).set(index, element);

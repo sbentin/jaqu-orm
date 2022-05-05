@@ -22,6 +22,12 @@ package com.centimia.orm.jaqu;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
+import java.util.Date;
 
 import com.centimia.orm.jaqu.dialect.Functions;
 import com.centimia.orm.jaqu.util.StatementBuilder;
@@ -131,5 +137,38 @@ public interface SQLDialect {
 	 */
 	default void handleDeadlockException(SQLException e) {
 		throw new JaquError(e, e.getMessage());
+	}
+
+	/**
+	 * returns a String representation of the date to be embedded in the dialect query
+	 * @param temporal
+	 * @return String
+	 */
+	default String getQueryStyleDate(TemporalAccessor temporal) {
+		if (null == temporal)
+			return "null";
+		else {
+			if (LocalDate.class.isAssignableFrom(temporal.getClass()))
+				return "'" + DateTimeFormatter.ISO_LOCAL_DATE.format(temporal) + "'";
+			if (LocalDateTime.class.isAssignableFrom(temporal.getClass()))
+				return "'" + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(temporal) + "'";
+		}
+		return "null";
+	}
+
+	/**
+	 * returns a String representation of the date to be embedded in the dialect query
+	 * @param temporal
+	 * @return String
+	 */
+	default String getQueryStyleDate(Date date) {
+		if (null == date)
+			return "null";
+		else {
+			if (java.sql.Date.class.isAssignableFrom(date.getClass()))
+				return "'" + new SimpleDateFormat("yyyy-MM-dd").format(date) + "'";
+			else
+				return "'" +  new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date) + "'";
+		}
 	}
 }

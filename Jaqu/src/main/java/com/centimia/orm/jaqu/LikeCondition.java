@@ -39,6 +39,7 @@ class LikeCondition<A> implements Token {
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
+	@SuppressWarnings("resource")
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" LIKE ");

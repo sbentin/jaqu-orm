@@ -22,6 +22,8 @@ package com.centimia.orm.jaqu;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.temporal.TemporalAccessor;
+import java.util.Date;
 
 import com.centimia.orm.jaqu.dialect.DB2Dialect;
 import com.centimia.orm.jaqu.dialect.Functions;
@@ -162,6 +164,24 @@ public enum Dialect {
 	 */
 	public String getIndexStatement(String name, String tableName, boolean unique, String[] columns){
 		return dialect.createIndexStatement(name, tableName, unique, columns);
+	}
+	
+	/**
+	 * returns a String representation of the date to be embedded in the dialect query
+	 * @param temporal
+	 * @return String
+	 */
+	public String getQueryStyleDate(TemporalAccessor temporal) {
+		return dialect.getQueryStyleDate(temporal);
+	}
+	
+	/**
+	 * returns a String representation of the date to be embedded in the dialect query
+	 * @param date
+	 * @return String
+	 */
+	public String getQueryStyleDate(Date date) {
+		return dialect.getQueryStyleDate(date);
 	}
 	
 	/**

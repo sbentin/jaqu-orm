@@ -66,7 +66,7 @@ public class PostCompileClosure extends Closure<String>{
 			BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
 			boolean failed = stats.getFailure() > 0;
 			if (failed) {
-				postCompileTask.getLogger().lifecycle("POST COMPILE FAILED for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, , ignored " + stats.getIgnored() + "files, failed to convert " + stats.getFailure() + " files");
+				postCompileTask.getLogger().lifecycle("POST COMPILE FAILED for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored() + " files, failed to convert " + stats.getFailure() + " files");
 			}
 			else {
 				postCompileTask.getLogger().lifecycle("POST COMPILE SUCCESSFUL for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored());

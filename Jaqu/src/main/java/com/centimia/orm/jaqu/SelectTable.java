@@ -37,7 +37,7 @@ class SelectTable<T> implements ISelectTable<T> {
     /** Holds the descriptor object */
     private T alias;
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "resource" })
     SelectTable(Query<T> query, T alias, JOIN_TYPE outerJoin) {
         this.alias = alias;
         this.query = query;

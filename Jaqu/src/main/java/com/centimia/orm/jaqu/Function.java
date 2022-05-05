@@ -224,7 +224,8 @@ public class Function implements Token {
     	X o = Utils.newObject(clazz);
     	
     	return db.registerToken(o, new ReplacementFunctions(isField, "IFNULL", checkExpression, replacementValue) {
-    		public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+    		@SuppressWarnings("resource")
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
     			Dialect d = query.getDb().factory.getDialect();
     			name = d.getFunction(Functions.IFNULL);
     			stat.appendSQL(name).appendSQL("(");

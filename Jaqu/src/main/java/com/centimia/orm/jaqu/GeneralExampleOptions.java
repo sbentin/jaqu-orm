@@ -19,30 +19,36 @@ Created		   Nov 2, 2012			shai
 */
 package com.centimia.orm.jaqu;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Map;
 
 /**
+ * A general pattern exampleOptions implementation
  * @author shai
- *
  */
 public class GeneralExampleOptions implements ExampleOptions {
 
-	protected Hashtable<String, String> map;
+	protected HashSet<String> fields;
 	protected boolean	excludeNulls = true;
 	protected boolean	excludeZeros = true;
 	protected LikeMode	likeMode = LikeMode.EXACT;
 	
+	/**
+	 * Construct with a list of excluded fields
+	 * @param excludeFields
+	 */
 	public GeneralExampleOptions(String[] excludeFields) {
-		this.map = toMap(excludeFields);
+		this.fields = new HashSet<>();
+		this.fields.addAll(Arrays.asList(excludeFields));
 	}
 	
 	/*
 	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeProps(java.util.Map)
+	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeProps(java.util.HashSet)
 	 */
-	public ExampleOptions setExcludeProps(Map<String, String> excludeProps) {
-		this.map = new Hashtable<String, String>(excludeProps);
+	public ExampleOptions setExcludeProps(HashSet<String> excludeProps) {
+		this.fields = new HashSet<String>(excludeProps);
 		return this;
 	}
 
@@ -50,8 +56,8 @@ public class GeneralExampleOptions implements ExampleOptions {
 	 * (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.ExampleOptions#getExcludeProps()
 	 */
-	public Map<String, String> getExcludeProps() {
-		return map;
+	public HashSet<String> getExcludeProps() {
+		return this.fields;
 	}
 
 	/*
@@ -59,7 +65,7 @@ public class GeneralExampleOptions implements ExampleOptions {
 	 * @see com.centimia.orm.jaqu.ExampleOptions#addExcludeProp(java.lang.String)
 	 */
 	public ExampleOptions addExcludeProp(String property) {
-		this.map.put(property, property);
+		this.fields.add(property);
 		return this;
 	}
 
@@ -68,7 +74,7 @@ public class GeneralExampleOptions implements ExampleOptions {
 	 * @see com.centimia.orm.jaqu.ExampleOptions#removeExcludeProp(java.lang.String)
 	 */
 	public ExampleOptions removeExcludeProp(String property) {
-		this.map.remove(property);
+		this.fields.remove(property);
 		return this;
 	}
 

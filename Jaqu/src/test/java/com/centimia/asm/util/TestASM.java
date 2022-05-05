@@ -1,7 +1,6 @@
 package com.centimia.asm.util;
 
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.List;
 
 import com.centimia.orm.jaqu.Db;
