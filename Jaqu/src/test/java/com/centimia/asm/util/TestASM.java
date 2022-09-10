@@ -4,7 +4,8 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import com.centimia.orm.jaqu.Db;
-import com.centimia.orm.jaqu.annotation.JaquIgnore;
+import com.centimia.orm.jaqu.QueryJoinCondition;
+import com.centimia.orm.jaqu.annotation.Transient;
 
 public class TestASM {
 	private Double num;
@@ -15,7 +16,7 @@ public class TestASM {
 	
 	Db db;
 	
-	@JaquIgnore
+	@Transient
 	public boolean isLazy;
 	
 	public TestASM() {
@@ -34,20 +35,27 @@ public class TestASM {
 		this.numB = numB;
 	}
 	
+	private Class<?>[] types = new Class<?>[] {Object.class};
+	
 	public TestB getNumB() {
 		if (numB != null && numB.isLazy) {
 			try {
 				if (null == db || db.isClosed())
 					throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
 				
-				TestASM parent = this.getClass().newInstance();
-				TestB desc = TestB.class.newInstance();
-				
+				TestASM parent = this.getClass().getConstructor().newInstance();
+				Class<?>[] innerTypes = new Class<?>[] {Object.class, TestB.class, Db.class, TestASM.class, Long.class, Double.class, Integer.class, String.class};
 				// get the primary key
 				Object pk = db.getPrimaryKey(this);
-				
+				TestB result = null;
+				for (Class<?> innerType: innerTypes) {
+					TestB o = (TestB) innerType.getConstructor().newInstance();
+					result = db.from(o).innerJoin(parent).on(parent.numB).is(o).where((Object)db.getPrimaryKey(parent)).is(pk).selectFirst();
+					if (null != result) 
+						break;
+				}
 				// get the object
-				numB = db.from(desc).innerJoin(parent).on(parent.numB).is(desc).where(db.getPrimaryKey(parent)).selectFirst();
+				numB = result;
 			}
 			catch (Exception e) {
 				if (e instanceof RuntimeException)

@@ -40,14 +40,14 @@ public class JaquError extends RuntimeException {
 	 * @param cause
 	 */
 	public JaquError(Throwable cause, String message, Object ... args) {
-		super(String.format(message, args), cause);
+		super(null != message ? String.format(message, args): "No reason given!", cause);
 	}
 
 	/**
 	 * @param message
 	 */
 	public JaquError(String message, Object ... args) {
-		super(String.format(message, args));
+		super(null != message ? String.format(message, args): "No reason given!");
 	}
 
 	/**

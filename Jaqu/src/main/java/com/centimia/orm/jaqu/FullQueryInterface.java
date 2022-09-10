@@ -57,6 +57,8 @@ public interface FullQueryInterface<T> extends QueryInterface<T> {
 	
 	/**
 	 * Perform the update requested by the specific where clause
+	 * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
+	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
 	 * 
 	 * @return int - number of lines updated.
 	 */

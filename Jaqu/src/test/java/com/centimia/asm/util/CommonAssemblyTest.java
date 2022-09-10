@@ -12,7 +12,7 @@ class CommonAssemblyTest {
 
 	@Test
 	void testAssembleFile() {
-		File classFile = new File("C:\\Users\\shai\\git\\jaqu-orm\\Jaqu\\bin\\default\\com\\centimia\\asm\\util\\CommonAssemblyTestModel.class");
+		File classFile = new File("/home/shai/git/jaqu-orm/Jaqu/bin/test/com/centimia/asm/util/CommonAssemblyTestModel.class");
 		try {
 			if (!CommonAssembly.assembleFile(classFile))
 				fail("Assembly failed");

@@ -25,8 +25,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * When you have a two sided relationship with an external join table use this annotation on the many side so jaqu will know to fetch the parentinto the
- * parent into the field.
+ * When you have a two sided relationship with an external join table use this annotation on the many side 
+ * so jaqu will know to fetch the parent into the parent into the field.
  * 
  * @author shai
  */

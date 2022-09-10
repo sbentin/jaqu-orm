@@ -20,6 +20,7 @@
  */
 package com.centimia.orm.jaqu.ext.asm;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -44,8 +45,10 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	private String className;
 	private HashSet<String> relationFields = new HashSet<>();
 	private HashSet<String> lazyLoadFields = new HashSet<>();
+	private HashMap<String, String[]> abstractFields = new HashMap<>();
 	private boolean isEntityAnnotationPresent = false;
 	private boolean isMappedSupperClass = false;
+	private boolean isInherited = false;
 	
 	public JaquClassAdapter(int api, ClassVisitor classVisitor) {
 		super(api, classVisitor);
@@ -71,6 +74,9 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		if (desc != null && desc.indexOf("com/centimia/orm/jaqu/annotation/MappedSuperclass") != -1){
 			this.isMappedSupperClass = true;
 		}
+		if (desc != null && desc.indexOf("com/centimia/orm/jaqu/annotation/Inherited") != -1){
+			this.isInherited  = true;
+		}
 		return super.visitAnnotation(desc, visible);
 	}
 	
@@ -86,7 +92,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 			// this is a getter check if it is a relation getter
 			if (relationFields.contains(name.substring(3).toLowerCase())) {
 				// this is a relationship.
-				String newName = $ORIG + name;				
+				String newName = $ORIG + name;
 				String fieldName = camelCase(name);
 				
 				generateNewMethodBody(access, desc, signature, exceptions, name, newName, fieldName);
@@ -110,17 +116,6 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		else
 			return null;
 	}
-
-	/**
-	 * @param name
-	 * @return
-	 */
-	private String camelCase(String name) {
-		char[] realName = name.substring(3).toCharArray();
-		realName[0] = Character.toLowerCase(realName[0]);
-		return new String(realName);
-	}
-	
 	
 	/* (non-Javadoc)
 	 * @see org.objectweb.asm.ClassAdapter#visitField(int, java.lang.String, java.lang.String, java.lang.String, java.lang.Object)
@@ -132,7 +127,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 			if (desc.indexOf("java/util/List") != -1 || desc.indexOf("java/util/Set") != -1 || desc.indexOf("java/util/Collection") != -1)
 				relationFields.add(name.toLowerCase());
 		}
-		return new JaquFieldVisitor(Opcodes.ASM8, super.visitField(access, name, desc, signature, value), name.toLowerCase(), relationFields, lazyLoadFields);
+		return new JaquFieldVisitor(Opcodes.ASM9, super.visitField(access, name, desc, signature, value), name.toLowerCase(), relationFields, lazyLoadFields, abstractFields);
 	}
 	
 	/* (non-Javadoc)
@@ -140,15 +135,17 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 */
 	@Override
 	public void visitEnd() {
-		if (isEntityAnnotationPresent) {
-			FieldVisitor fv = cv.visitField(ACC_PUBLIC+ACC_TRANSIENT, "db", "Lcom/centimia/orm/jaqu/Db;", null, null);
-			fv.visitEnd();
-			
-			fv = cv.visitField(ACC_PUBLIC, "isLazy", "Z", null, null);
-			// add the jaquIgnore annotaion to the lazy field because we need to carry this field around the network but not persist it
-			AnnotationVisitor av = fv.visitAnnotation("Lcom/centimia/orm/jaqu/annotation/Transient;", true);
-			av.visitEnd();
-			fv.visitEnd();
+		if (!isInherited) {
+			if (isEntityAnnotationPresent || isMappedSupperClass) {
+				FieldVisitor fv = cv.visitField(ACC_PUBLIC+ACC_TRANSIENT, "db", "Lcom/centimia/orm/jaqu/Db;", null, null);
+				fv.visitEnd();
+				
+				fv = cv.visitField(ACC_PUBLIC, "isLazy", "Z", null, null);
+				// add the jaquIgnore annotaion to the lazy field because we need to carry this field around the network but not persist it
+				AnnotationVisitor av = fv.visitAnnotation("Lcom/centimia/orm/jaqu/annotation/Transient;", true);
+				av.visitEnd();
+				fv.visitEnd();
+			}
 		}
 
 		super.visitEnd();
@@ -162,6 +159,10 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		return this.isMappedSupperClass;
 	}
 
+	public final boolean isInherited() {
+		return this.isInherited;
+	}
+	
 	/**
 	 * Generates the new method body, copy the old to a new method and connect them.
 	 * 
@@ -311,10 +312,10 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	/**
 	 * Generates the new method body, copy the old to a new method and connect them.
 	 * the structure of the new method is:<br>
-	 * <br><b><div style="background:lightgray">
+	 * <br><b><div style="background:lightgray;color:black">
 	 * <pre>
 	 * public [entityType] [getterName]() {
-	 *	if ([field] == null) {
+	 *	if ([field] != null && [field].isLazy) {
 	 *		try {
 	 *			if (null == db)
 	 *				throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
@@ -326,7 +327,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 *			Object pk = db.getPrimaryKey(this);
 	 *			
 	 *			// get the object
-	 *			[entityValue] = db.from(desc).innerJoin(parent).on(parent.[entityValue]).is(desc).where(db.getPrimaryKey(parent)).is(pk).selectFirst();
+	 *			[field] = db.from(desc).innerJoin(parent).on(parent.[entityValue]).is(desc).where(db.getPrimaryKey(parent)).is(pk).selectFirst();
 	 *		}
 	 *		catch (Exception e) {
 	 *			if (e instanceof RuntimeException)
@@ -385,29 +386,76 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
-		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "newInstance", "()Ljava/lang/Object;", false);
+		mv.visitInsn(ICONST_0);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getConstructor", "([Ljava/lang/Class;)Ljava/lang/reflect/Constructor;", false);
+		mv.visitInsn(ICONST_0);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Constructor", "newInstance", "([Ljava/lang/Object;)Ljava/lang/Object;", false);
 		mv.visitTypeInsn(CHECKCAST, className);
 		mv.visitVarInsn(ASTORE, 1);
-		mv.visitLdcInsn(Type.getType(fieldSignature));
-		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "newInstance", "()Ljava/lang/Object;", false);
-		mv.visitTypeInsn(CHECKCAST, fieldClassName);
+		mv.visitInsn(ICONST_2);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+		// takes care of the class array that is in the annotation
+		String[] relationClasses = abstractFields.get(fieldName.toLowerCase());
+		if (null == relationClasses || 0 == relationClasses.length) {
+			relationClasses = new String[1];
+			relationClasses[0] = fieldSignature;
+		}
+		for (int i = 0; i < relationClasses.length; i++) {
+			String classSig = relationClasses[i];
+			mv.visitInsn(DUP);
+			if (i <= 5)
+				mv.visitInsn(i + 3);
+			else
+				mv.visitIntInsn(BIPUSH, i);
+			mv.visitLdcInsn(Type.getType(classSig));
+			mv.visitInsn(AASTORE);
+		}
+		
 		mv.visitVarInsn(ASTORE, 2);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/Db", "getPrimaryKey", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 		mv.visitVarInsn(ASTORE, 3);
-		mv.visitVarInsn(ALOAD, 0);
+		mv.visitInsn(ACONST_NULL);
+		mv.visitVarInsn(ASTORE, 4);
+		mv.visitVarInsn(ALOAD, 2);
+		mv.visitInsn(DUP);
+		mv.visitVarInsn(ASTORE, 8);
+		mv.visitInsn(ARRAYLENGTH);
+		mv.visitVarInsn(ISTORE, 7);
+		mv.visitInsn(ICONST_0);
+		mv.visitVarInsn(ISTORE, 6);
+		Label l6 = new Label();
+		mv.visitJumpInsn(GOTO, l6);
+		Label l7 = new Label();
+		mv.visitLabel(l7);
+		mv.visitFrame(Opcodes.F_FULL, 9, new Object[] {className, className, "[Ljava/lang/Class;", "java/lang/Object", fieldClassName, Opcodes.TOP, Opcodes.INTEGER, Opcodes.INTEGER, "[Ljava/lang/Class;"}, 0, new Object[] {});
+		mv.visitVarInsn(ALOAD, 8);
+		mv.visitVarInsn(ILOAD, 6);
+		mv.visitInsn(AALOAD);
+		mv.visitVarInsn(ASTORE, 5);
+		mv.visitVarInsn(ALOAD, 5);
+		mv.visitInsn(ICONST_0);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getConstructor", "([Ljava/lang/Class;)Ljava/lang/reflect/Constructor;", false);
+		mv.visitInsn(ICONST_0);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Constructor", "newInstance", "([Ljava/lang/Object;)Ljava/lang/Object;", false);
+		mv.visitTypeInsn(CHECKCAST, fieldClassName);
+		mv.visitVarInsn(ASTORE, 9);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
-		mv.visitVarInsn(ALOAD, 2);
+		mv.visitVarInsn(ALOAD, 9);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/Db", "from", "(Ljava/lang/Object;)Lcom/centimia/orm/jaqu/QueryInterface;", false);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitMethodInsn(INVOKEINTERFACE, "com/centimia/orm/jaqu/QueryInterface", "innerJoin", "(Ljava/lang/Object;)Lcom/centimia/orm/jaqu/QueryJoin;", true);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitFieldInsn(GETFIELD, className, fieldName, fieldSignature);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/QueryJoin", "on", "(Ljava/lang/Object;)Lcom/centimia/orm/jaqu/QueryJoinCondition;", false);
-		mv.visitVarInsn(ALOAD, 2);
+		mv.visitVarInsn(ALOAD, 9);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/QueryJoinCondition", "is", "(Ljava/lang/Object;)Lcom/centimia/orm/jaqu/QueryJoinWhere;", false);
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitFieldInsn(GETFIELD, className, "db", "Lcom/centimia/orm/jaqu/Db;");
@@ -418,20 +466,38 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/QueryCondition", "is", "(Ljava/lang/Object;)Lcom/centimia/orm/jaqu/QueryWhere;", false);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "com/centimia/orm/jaqu/QueryWhere", "selectFirst", "()Ljava/lang/Object;", false);
 		mv.visitTypeInsn(CHECKCAST, fieldClassName);
+		mv.visitVarInsn(ASTORE, 4);
+		mv.visitVarInsn(ALOAD, 4);
+		Label l8 = new Label();
+		mv.visitJumpInsn(IFNULL, l8);
+		Label l9 = new Label();
+		mv.visitJumpInsn(GOTO, l9);
+		mv.visitLabel(l8);
+		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+		mv.visitIincInsn(6, 1);
+		mv.visitLabel(l6);
+		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+		mv.visitVarInsn(ILOAD, 6);
+		mv.visitVarInsn(ILOAD, 7);
+		mv.visitJumpInsn(IF_ICMPLT, l7);
+		mv.visitLabel(l9);
+		mv.visitFrame(Opcodes.F_FULL, 5, new Object[] {className, className, "[Ljava/lang/Class;", "java/lang/Object", fieldClassName}, 0, new Object[] {});
+		mv.visitVarInsn(ALOAD, 0);
+		mv.visitVarInsn(ALOAD, 4);
 		mv.visitFieldInsn(PUTFIELD, className, fieldName, fieldSignature);
 		mv.visitLabel(l1);
 		mv.visitJumpInsn(GOTO, l3);
 		mv.visitLabel(l2);
-		mv.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Exception"});
+		mv.visitFrame(Opcodes.F_FULL, 1, new Object[] {className}, 1, new Object[] {"java/lang/Exception"});
 		mv.visitVarInsn(ASTORE, 1);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
-		Label l6 = new Label();
-		mv.visitJumpInsn(IFEQ, l6);
+		Label l10 = new Label();
+		mv.visitJumpInsn(IFEQ, l10);
 		mv.visitVarInsn(ALOAD, 1);
 		mv.visitTypeInsn(CHECKCAST, "java/lang/RuntimeException");
 		mv.visitInsn(ATHROW);
-		mv.visitLabel(l6);
+		mv.visitLabel(l10);
 		mv.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Exception"}, 0, null);
 		mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
 		mv.visitInsn(DUP);
@@ -445,7 +511,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitVarInsn(ALOAD, 0);
 		mv.visitMethodInsn(INVOKEVIRTUAL, className, newName, desc, false);
 		mv.visitInsn(ARETURN);
-		mv.visitMaxs(4, 4);
+		mv.visitMaxs(4, 10);
 		mv.visitEnd();
 	}
 	
@@ -455,5 +521,15 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 */
 	public boolean isJaquAnnotated() {
 		return isEntityAnnotationPresent || isMappedSupperClass;
+	}
+	
+	/**
+	 * @param name
+	 * @return String
+	 */
+	private String camelCase(String name) {
+		char[] realName = name.substring(3).toCharArray();
+		realName[0] = Character.toLowerCase(realName[0]);
+		return new String(realName);
 	}
 }

@@ -35,6 +35,7 @@ import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
@@ -108,7 +109,7 @@ public class OracleDialect implements SQLDialect {
 		else if (fieldClass.isArray()) {
 			// not recommended for real use. Arrays and relational DB don't go well together and don't make much sense!
 			Class<?> componentClass = fieldClass.getComponentType();
-			if (componentClass.getAnnotation(Entity.class) != null)
+			if (null != componentClass.getAnnotation(Entity.class) || null != componentClass.getAnnotation(MappedSuperclass.class))
 				throw new JaquError("IllegalArgument - Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			return "BLOB";
 		}
@@ -130,25 +131,11 @@ public class OracleDialect implements SQLDialect {
 	 */
 	public boolean checkTableExists(String tableName, Db db) {
 		String query = "SELECT 1 FROM USER_TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
-		ResultSet rs = null;
-		try {
-			rs = db.executeQuery(query);
+		return db.executeQuery(query, rs -> {
 			if (rs.next())
 				return true;
-		}
-		catch (SQLException e) {
 			return false;
-		}
-		finally {
-			if (rs != null)
-				try {
-					rs.close();
-				}
-				catch (SQLException e) {
-					// nothing to do here
-				}
-		}
-		return false;
+		});		
 	}
 	
 	/**
@@ -205,12 +192,82 @@ public class OracleDialect implements SQLDialect {
 	}
 
 	/**
+	 * Oracle mapping is not straight forward so we map according to the type
+	 * 
+	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, java.lang.String)
+	 */
+	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
+		switch (type) {
+    		case INTEGER: return (rs.getObject(columnNumber) != null) ? rs.getInt(columnNumber): null;
+    		case LONG: return (rs.getObject(columnNumber) != null) ? rs.getLong(columnNumber): null;
+    		case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
+    		case BOOLEAN: return (rs.getObject(columnNumber) != null) ? rs.getBoolean(columnNumber): null;
+    		case BLOB: return rs.getObject(columnNumber);
+    		case CLOB: return rs.getClob(columnNumber);
+    		case BYTE: return (rs.getObject(columnNumber) != null) ? rs.getByte(columnNumber): null;
+    		case STRING: return rs.getString(columnNumber);
+    		case ENUM: return rs.getString(columnNumber);
+    		case ENUM_INT: return rs.getInt(columnNumber);
+    		case DOUBLE: return (rs.getObject(columnNumber) != null) ? rs.getDouble(columnNumber): null;
+    		case FLOAT: return (rs.getObject(columnNumber) != null) ? rs.getFloat(columnNumber): null;
+    		case SHORT: return (rs.getObject(columnNumber) != null) ? rs.getShort(columnNumber): null;
+    		case TIMESTAMP: return rs.getTimestamp(columnNumber);
+    		case SQL_DATE: return rs.getDate(columnNumber);
+    		case UTIL_DATE: return rs.getTimestamp(columnNumber);
+    		case LOCALDATE: return null != rs.getDate(columnNumber) ? rs.getDate(columnNumber).toLocalDate() : null;
+    		case LOCALDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null;
+    		case ZONEDDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null; // TODO this should be fixed
+    		case LOCALTIME: return null != rs.getTime(columnNumber) ? null != rs.getTime(columnNumber).toLocalTime() : null;
+    		case TIME: return rs.getTime(columnNumber);
+    		case FK: {
+    			Object o = rs.getObject(columnNumber); 
+    			if (o != null) {
+    				if (o instanceof BigDecimal) {
+	    				if (((BigDecimal)o).scale() == 0) {
+	    					if (((BigDecimal)o).precision() <= 10)
+	    						return rs.getInt(columnNumber);
+	    					else
+	    						return rs.getLong(columnNumber);
+	    				}
+	    				else if (((BigDecimal)o).scale() == 14) {
+	    					return rs.getFloat(columnNumber);
+	    				}
+	    				else
+	    					return rs.getDouble(columnNumber);
+    				}
+    				else
+    					return o;
+    			}
+    			return null;
+    		}
+    		default: return null;
+    	}
+	}
+	
+	/**
 	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentityType()
 	 */
 	public String getIdentityType() {
 		return "NUMBER(19)";
 	}
 
+	/*
+	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentitySuppliment()
+	 */
+	@Override
+	public String getIdentitySuppliment() {
+		return "GENERATED ALWAYS AS IDENTITY";
+	}
+
+	/*
+	 * @see com.centimia.orm.jaqu.SQLDialect#getSequnceQuery()
+	 */
+	@Override
+	public String getSequnceQuery(String seqName) {
+		StatementBuilder builder = new StatementBuilder("SELECT ").append(seqName).append(".nextval from dual");
+		return builder.toString();
+	}
+	
 	/**
 	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
 	 */
@@ -223,25 +280,11 @@ public class OracleDialect implements SQLDialect {
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "Select 1 from user_tab_columns c where c.table_name = '" + tableName + "' and c.column_name = '" + discriminatorName + "'";
-		ResultSet rs = null;
-		try {
-			rs = db.executeQuery(query);
+		return db.executeQuery(query, rs -> {
 			if (rs.next())
 				return true;
-		}
-		catch (SQLException e) {
 			return false;
-		}
-		finally {
-			if (rs != null)
-				try {
-					rs.close();
-				}
-				catch (SQLException e) {
-					// nothing to do here
-				}
-		}
-		return false;
+		});
 	}
 
 	/*

@@ -29,13 +29,23 @@ public class QueryCondition<T, A> {
         this.x = x;
     }
 
+    public QueryWhere<T> is(GenericMask mask) {
+    	query.addConditionToken(new Condition<A>(x, mask.mask(), CompareType.EQUAL));
+    	return new QueryWhere<T>(query);
+    }
+    
     public QueryWhere<T> is(A y) {
-        query.addConditionToken(new Condition<A>(x, y, CompareType.EQUAL));
+   		query.addConditionToken(new Condition<A>(x, y, CompareType.EQUAL));
         return new QueryWhere<T>(query);
     }
     
+    public QueryWhere<T> isNot(GenericMask mask) {
+    	query.addConditionToken(new Condition<A>(x, mask.mask(), CompareType.NOT_EQUAL));
+    	return new QueryWhere<T>(query);
+    }
+    
     public QueryWhere<T> isNot(A y) {
-        query.addConditionToken(new Condition<A>(x, y, CompareType.NOT_EQUAL));
+    	query.addConditionToken(new Condition<A>(x, y, CompareType.NOT_EQUAL));
         return new QueryWhere<T>(query);
     }
 

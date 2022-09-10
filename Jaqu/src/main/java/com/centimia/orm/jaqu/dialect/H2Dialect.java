@@ -30,6 +30,7 @@ import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
@@ -106,7 +107,7 @@ public class H2Dialect implements SQLDialect{
 				// byte array is mapped to BINARY type
 				return "BINARY";
 			}
-			else if (componentClass.getAnnotation(Entity.class) != null) {
+			else if (null != componentClass.getAnnotation(Entity.class) || null != componentClass.getAnnotation(MappedSuperclass.class)) {
 				throw new JaquError("IllegalArgument - Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			}
 			else {
@@ -147,25 +148,11 @@ public class H2Dialect implements SQLDialect{
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS C1 WHERE C1.TABLE_NAME = '" + tableName + "' AND C1.COLUMN_NAME = '" + discriminatorName + "'";
-		ResultSet rs = null;
-		try {
-			rs = db.executeQuery(query);
+		return db.executeQuery(query, rs -> {
 			if (rs.next())
 				return true;
-		}
-		catch (SQLException e) {
 			return false;
-		}
-		finally {
-			if (rs != null)
-				try {
-					rs.close();
-				}
-				catch (SQLException e) {
-					// nothing to do here
-				}
-		}
-		return false;
+		});
 	}
 	
 	/**
@@ -184,6 +171,25 @@ public class H2Dialect implements SQLDialect{
     		case LOCALTIME: return null != rs.getTime(columnName) ? null != rs.getTime(columnName).toLocalTime() : null;
     		case STRING:  return rs.getString(columnName);
     		default: return rs.getObject(columnName);
+		}
+	}
+	
+	/**
+	 * In H2 mapping is very straight forward between DB types and java types and thus a simple return is used
+	 * 
+	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, int)
+	 */
+	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
+		switch (type) {
+			case ENUM: return rs.getString(columnNumber);
+			case ENUM_INT: return rs.getInt(columnNumber);
+			case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
+			case LOCALDATE: return null != rs.getDate(columnNumber) ? rs.getDate(columnNumber).toLocalDate() : null;
+    		case LOCALDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null;
+    		case ZONEDDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null; // TODO this should be fixed to support zone
+    		case LOCALTIME: return null != rs.getTime(columnNumber) ? null != rs.getTime(columnNumber).toLocalTime() : null;
+    		case STRING:  return rs.getString(columnNumber);
+    		default: return rs.getObject(columnNumber);
 		}
 	}
 	
@@ -249,13 +255,17 @@ public class H2Dialect implements SQLDialect{
 
 	@Override
 	public String getQueryStyleDate(TemporalAccessor temporal) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public String getQueryStyleDate(Date date) {
-		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public String getSequnceQuery(String seqName) {
+		StatementBuilder builder = new StatementBuilder("SELECT ").append(seqName).append(".nextval from dual");
+		return builder.toString();
 	}
 }

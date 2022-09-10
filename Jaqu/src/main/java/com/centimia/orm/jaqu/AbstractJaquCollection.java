@@ -38,7 +38,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 
 	private static final long	serialVersionUID	= 3249922548306321787L;
 	
-	protected final Collection<E> originalList;
+	protected Collection<E> originalList;
 	List<E> internalDeleteMapping;
 	
 	protected transient WeakReference<Db> db;
@@ -58,7 +58,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	 */
 	public boolean add(E e) {
 		if (!dbClosed()) {			
-			db.get().checkSession(e); // merge the Object into the DB
+			e = db.get().checkSession(e); // merge the Object into the DB
 		}
 		return originalList.add(e);
 	}
@@ -254,24 +254,10 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	void setParentPk(Object parentPk) {
 		this.parentPk = parentPk;
 	}
-
 	/*
 	 * Merge the list to the open db session
 	 */
-	@SuppressWarnings("resource")
-	void merge() {
-		if (internalDeleteMapping != null) {
-			for (E child: internalDeleteMapping) {
-				if (null != db.get().factory.getPrimaryKey(child))
-					db.get().deleteChildRelation(definition, child, parentPk);
-			}
-		}		
-		
-		internalDeleteMapping = null;
-		for (E e: originalList) {
-			db.get().checkSession(e);
-		}			
-	}
+	abstract void merge();
 	
 	/*
 	 * (non-Javadoc)

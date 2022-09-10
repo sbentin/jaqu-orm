@@ -22,7 +22,8 @@ import java.util.ArrayList;
  * This class represents a parameterized SQL statement.
  */
 public class SQLStatement {
-    private Db db;
+    private static final String[] EMPTY_PK = new String[0];
+	private Db db;
     private StringBuilder buff = new StringBuilder();
     private String sql;
     private ArrayList<Object> params = new ArrayList<Object>();
@@ -73,16 +74,18 @@ public class SQLStatement {
         return this;
     }
 
-    ResultSet executeQuery() {
-        try {
-        	if (db.factory.isShowSQL())
-        		StatementLogger.select(logSQL());
-            return prepare().executeQuery();
+    <T> T executeQuery(IResultProcessor<T> processor) {
+        if (db.factory.isShowSQL())
+        	StatementLogger.select(logSQL());
+        try (PreparedStatement ps = prepare(EMPTY_PK)) {
+        	try (ResultSet rs = ps.executeQuery()) {
+        		return processor.processResult(rs);
+        	}        	
         } 
         catch (SQLException e) {
         	db.factory.dialect.dialect.handleDeadlockException(e);
         	return null;
-        }
+        }        
     }
 
     void prepareBatch() {
@@ -116,8 +119,8 @@ public class SQLStatement {
     }
     
 	int executeUpdate() {
-		try {
-        	return prepare().executeUpdate();
+		try (PreparedStatement ps = prepare(EMPTY_PK)) {
+        	return ps.executeUpdate();
         } 
         catch (SQLException e) {
         	db.factory.dialect.dialect.handleDeadlockException(e);
@@ -125,9 +128,8 @@ public class SQLStatement {
         }
     }
 	
-	Long executeUpdateWithId() {
-		try {
-			PreparedStatement ps = prepare();
+	Long executeUpdateWithId(String[] idColumnNames) {
+		try (PreparedStatement ps = prepare(idColumnNames)) {
 			int size = ps.executeUpdate();
 			if (size > 0)
 				return getGeneratedKeys(ps.getGeneratedKeys(), size);
@@ -138,12 +140,12 @@ public class SQLStatement {
         }
 	}
 
-	ResultSet executeUnion(SQLStatement unionStatement){
+	<T> T executeUnion(SQLStatement unionStatement, IResultProcessor<T> processor){
 		if (null != unionStatement) {		
 			this.buff.append(" union ").append(unionStatement.buff);
 			this.params.addAll(unionStatement.params);
 		}
-		return this.executeQuery();
+		return this.executeQuery(processor);
 	}
 	
     private Long getGeneratedKeys(ResultSet generatedKeys, int size) {
@@ -168,8 +170,8 @@ public class SQLStatement {
         }
     }
 
-    private PreparedStatement prepare() {
-        PreparedStatement prep = db.prepare(getSQL());
+    private PreparedStatement prepare(String[] idColumnNames) {
+        PreparedStatement prep = db.prepare(getSQL(), idColumnNames);
         for (int i = 0; i < params.size(); i++) {
             Object o = params.get(i);
             setValue(prep, i + 1, o);

@@ -21,7 +21,6 @@ package com.centimia.orm.jaqu;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Hashtable;
 
 /**
  * A general pattern exampleOptions implementation
@@ -40,7 +39,8 @@ public class GeneralExampleOptions implements ExampleOptions {
 	 */
 	public GeneralExampleOptions(String[] excludeFields) {
 		this.fields = new HashSet<>();
-		this.fields.addAll(Arrays.asList(excludeFields));
+		if (null != excludeFields)
+			this.fields.addAll(Arrays.asList(excludeFields));
 	}
 	
 	/*
@@ -127,15 +127,5 @@ public class GeneralExampleOptions implements ExampleOptions {
 	 */
 	public LikeMode getLikeMode() {
 		return this.likeMode;
-	}
-	
-	protected Hashtable<String, String> toMap(String[] fields){
-		Hashtable<String, String> toMap = new Hashtable<String, String>();
-		if (null != fields && 0 < fields.length) {
-			for (String field: fields) {
-				toMap.put(field, field);
-			}
-		}
-		return toMap;
 	}
 }

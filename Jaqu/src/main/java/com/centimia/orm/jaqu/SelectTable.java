@@ -13,6 +13,7 @@
 package com.centimia.orm.jaqu;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -108,6 +109,20 @@ class SelectTable<T> implements ISelectTable<T> {
     	if (query.isJoin()){
     		for (SelectTable<?> jointTable: query.getJoins()){
     			asList.put(jointTable.getAlias(), jointTable.getAs());
+    		}
+    	}
+    	return asList;
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.centimia.orm.jaqu.ISelectTable#getOrderedJoins()
+     */
+    public HashSet<Alias> getOrderedJoins(){
+    	HashSet<Alias> asList = new HashSet<Alias>();
+    	if (query.isJoin()){
+    		for (SelectTable<?> jointTable: query.getJoins()){
+    			asList.add(new Alias(jointTable.getAlias(), jointTable.getAs()));
     		}
     	}
     	return asList;

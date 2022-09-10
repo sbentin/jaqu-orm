@@ -10,14 +10,6 @@
  * (http://h2database.com/html/license.html).
  * Initial Developer: H2 Group, Centimia Inc.
  */
-
-/*
- * Update Log
- * 
- *  Date			User				Comment
- * ------			-------				--------
- * 08/06/2010		shai				 create
- */
 package com.centimia.orm.jaqu.annotation;
 
 import java.lang.annotation.ElementType;
@@ -26,12 +18,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This annotation should be used on object fields which Jaqu persistence should ignore, but regular serialization should not.
- * If both regular serialization and Jaqu should ignore simply use the 'transient' modifier.
- * 
+ * Use this annotation on O2O relationships you want to lazy load.
  * @author shai
- * @deprecated to be removed in next major release. Use {@link Transient} instead
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface JaquIgnore {}
+public @interface RelationTypes {
+	/** ths types of inherited classes that can fit into the parent calss that is the accepting type */
+	Class<?>[] value();
+}

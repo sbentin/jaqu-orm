@@ -19,18 +19,18 @@ Created		   May 6, 2012		 shai
 */
 package com.centimia.orm.jaqu.ext.gradle;
 
-import groovy.lang.Closure;
-
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.gradle.api.Task;
 import org.gradle.api.logging.LogLevel;
-import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.plugins.JavaPluginExtension;
 
 import com.centimia.orm.jaqu.ext.common.BuildStats;
 import com.centimia.orm.jaqu.ext.common.CommonAssembly;
+
+import groovy.lang.Closure;
 
 /**
  * 
@@ -50,7 +50,7 @@ public class PostCompileClosure extends Closure<String>{
 		
 		Set<File> outputDirs = null;
 		if (null == location.outputDir) {
-			JavaPluginConvention javaConvention = postCompileTask.getProject().getConvention().getPlugin(JavaPluginConvention.class);
+			JavaPluginExtension javaConvention = postCompileTask.getProject().getExtensions().getByType(JavaPluginExtension.class);
 			outputDirs = javaConvention.getSourceSets().findByName("main").getOutput().getClassesDirs().getFiles();
 		}
 		else {

@@ -66,9 +66,9 @@ public class CommonAssembly {
         byte[] b = null;       
        
     	ClassReader cr = new ClassReader(fis);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS + ClassWriter.COMPUTE_FRAMES);
+        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
           		
-        JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM8, cw);
+        JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM9, cw);
         cr.accept(jaquClassAdapter, 0);
         
         if (jaquClassAdapter.isJaquAnnotated()) {

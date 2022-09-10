@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 
@@ -62,7 +63,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	 */
 	public void add(int index, E element) {
 		if (!dbClosed()) {
-			db.get().checkSession(element);
+			element = db.get().checkSession(element);
 		}
 		((List<E>)originalList).add(index, element);
 		modCount++;
@@ -74,12 +75,16 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	 * @see {@link JaquList#add(int, Object)}
 	 */
 	public boolean addAll(int index, Collection<? extends E> c) {
+		boolean result;
 		if (!dbClosed()) {
+			ArrayList<E> attachedList = new ArrayList<>();
 			for (E e: c) {
-				db.get().checkSession(e);
+				attachedList.add(db.get().checkSession(e));
 			}
+			result = ((List<E>)originalList).addAll(index, c);
 		}
-		boolean result = ((List<E>)originalList).addAll(index, c);
+		else
+			result = ((List<E>)originalList).addAll(index, c);
 		if (result)
 			modCount ++;
 		return result;
@@ -164,7 +169,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		// get the current element
 		E e = ((List<E>)originalList).set(index, element);
 		if (!dbClosed()) {
-			db.get().checkSession(element);				
+			e = db.get().checkSession(element);				
 			if (null != db.get().factory.getPrimaryKey(e))
 				db.get().deleteChildRelation(definition, e, parentPk);			
 		}
@@ -247,6 +252,19 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		public void add(E e) {
 			((ListIterator<E>)this.delagete).add(e);		
 		}		
+	}
+	
+	@SuppressWarnings("resource")
+	void merge() {
+		if (internalDeleteMapping != null) {
+			for (E child: internalDeleteMapping) {
+				if (null != db.get().factory.getPrimaryKey(child))
+					db.get().deleteChildRelation(definition, child, parentPk);
+			}
+		}		
+		
+		internalDeleteMapping = null;
+		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toList());
 	}
 	
 	class SubList implements List<E> {

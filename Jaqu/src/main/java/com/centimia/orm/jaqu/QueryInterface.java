@@ -69,6 +69,8 @@ public interface QueryInterface<T> {
 
 	/**
 	 * Performs a delete query.
+	 * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
+	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
 	 * 
 	 * @return int - number of rows deleted
 	 */

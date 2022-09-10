@@ -49,15 +49,25 @@ public class EntityUpdateTest extends JaquTest {
 
 			Person me = db.from(descriptor).primaryKey().is(1L).selectFirst();
 			assertNotNull(me);
+			int size = me.getPhones().size();
 			me.getPhones().add(ph);
 			
 			// check and see that before update nothing is changed on the db... Remember no caching so this is from the DB
 			Person anotherMe = db.from(descriptor).primaryKey().is(1L).selectFirst();
-			assertNotNull(anotherMe);
-			assertEquals(2L, anotherMe.getPhones().size());
+			assertSame(me, anotherMe); // Proves multi Call cache.
+			assertEquals(2L, size); // the number of phones before update
 			
 			// update the new entry
 			db.update(me);
+			db.commit();
+			tearDown();
+		}
+		catch (Throwable e) {
+			result.addError(this, e);
+		}
+		try {	
+			setUp();
+			final Person descriptor = new Person();			
 			
 			// now we see that Db was updated. NOTICE that there are three different objects of Person, each with a different state... In
 			// real life, you can keep using the 'me' instance after update because it is in sync with the db, the connection is open and holds locking... no dirty reads, until commit!

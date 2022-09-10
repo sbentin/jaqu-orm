@@ -52,4 +52,9 @@ public @interface Column {
 	 * Types.ENUM which saves the value as a String, so only use this when it is imperative.
 	 */
 	Types enumType() default Types.ENUM;
+	
+	/** Sometimes the column in the db and the field don't match. Could be because of Conversion being used.
+	 * For those cases one can use the type, to tell jaqu what is needed for creating the column.
+	 */
+	Class<?> type() default Object.class;
 }

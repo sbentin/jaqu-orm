@@ -47,7 +47,9 @@ public class DropAll extends JaquTest {
 			"drop table tableb",
 			"drop table tablec",
 			"drop table tabled",
+			"drop table VERSIONING",
 			"drop sequence MY_SEQ"
+			
 	};
 
 	public String getName() {

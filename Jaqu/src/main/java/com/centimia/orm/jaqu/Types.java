@@ -27,6 +27,7 @@ package com.centimia.orm.jaqu;
  * @author Shai Bentin
  */
 public enum Types {
+	NONE,
 	INTEGER, 
 	LONG, 
 	FLOAT, 

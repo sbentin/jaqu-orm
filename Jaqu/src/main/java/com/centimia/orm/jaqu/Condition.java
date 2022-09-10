@@ -13,6 +13,7 @@
 package com.centimia.orm.jaqu;
 
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 
 /**
  * A condition contains one or two operands and a compare operation.
@@ -35,14 +36,27 @@ class Condition<A> implements Token {
      */
     @SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-    	query.appendSQL(stat, x, false, null);
+    	if (null != x && (null != x.getClass().getAnnotation(Entity.class) || null != x.getClass().getAnnotation(MappedSuperclass.class))) {
+			Object pk = query.getDb().factory.getPrimaryKey(x);
+			if (null == pk)
+				query.appendSQL(stat, x, false, null);
+			else
+				query.appendSQL(stat, pk, false, null);
+		}
+		else
+			query.appendSQL(stat, x, false, null);
         stat.appendSQL(" ");
         stat.appendSQL(compareType.getString());
         if (compareType.hasRightExpression()) {
             stat.appendSQL(" ");
             // check if a relation type
-            if (y != null && y.getClass().getAnnotation(Entity.class) != null)
-            	query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y), false, null);
+            if (y != null && (null != y.getClass().getAnnotation(Entity.class) || null != y.getClass().getAnnotation(MappedSuperclass.class))) {
+            	Object pk = query.getDb().factory.getPrimaryKey(y);
+            	if (null == pk)            		
+            		query.appendSQL(stat, y, false, null);
+            	else
+            		query.appendSQL(stat, pk, false, null);
+            }
             else if (y != null && (y.getClass().isEnum() || y.getClass().getSuperclass().isEnum())) {            	
             	switch (query.getSelectColumn(x).getFieldDefinition().type) {
             		case ENUM: query.appendSQL(stat, y.toString(), false, null); break;

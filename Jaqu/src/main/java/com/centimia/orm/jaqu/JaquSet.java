@@ -21,6 +21,7 @@
 package com.centimia.orm.jaqu;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 
@@ -36,5 +37,18 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 
 	public JaquSet(Set<E> origSet, Db db, FieldDefinition definition, Object parentPk) {
 		super(origSet, db, definition, parentPk);		
+	}
+	
+	@SuppressWarnings("resource")
+	void merge() {
+		if (internalDeleteMapping != null) {
+			for (E child: internalDeleteMapping) {
+				if (null != db.get().factory.getPrimaryKey(child))
+					db.get().deleteChildRelation(definition, child, parentPk);
+			}
+		}		
+		
+		internalDeleteMapping = null;
+		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toSet());
 	}
 }

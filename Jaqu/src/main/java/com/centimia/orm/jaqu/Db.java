@@ -34,6 +34,9 @@ import javax.transaction.SystemException;
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
+import com.centimia.orm.jaqu.util.ClassUtils;
+import com.centimia.orm.jaqu.util.FieldComperator;
 import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 import com.centimia.orm.jaqu.util.Utils;
@@ -44,11 +47,6 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
  */
 public class Db implements AutoCloseable {
 
-    private final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
-    
-    private Connection conn;
-    protected JaquSessionFactory factory;
-    
     /* 
      * A list of objects this specific DB call has already visited. This list is cleared after each call.
      * Keeps a different list per thread.
@@ -64,8 +62,14 @@ public class Db implements AutoCloseable {
      */
     final CacheManager multiCallCache;
     
-    // determines if the Db connection is closed. This gets value of true only when the underlying connection is closed on invalid
+    protected JaquSessionFactory factory;
+
+	// determines if the Db connection is closed. This gets value of true only when the underlying connection is closed on invalid
 	private volatile boolean closed = true;
+
+	private final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
+
+	private Connection conn;
 
 	private PojoUtils	pojoUtils;
     
@@ -87,7 +91,7 @@ public class Db implements AutoCloseable {
 	public <T> void insert(T t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
-    	checkSession(t);
+    	t = checkSession(t);
         Class<?> clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
@@ -109,7 +113,7 @@ public class Db implements AutoCloseable {
 	public <T,X> X insertAndGetPK(T t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
-    	checkSession(t);
+    	t = checkSession(t);
         Class<T> clazz = (Class<T>) t.getClass();
         TableDefinition<T> td = define(clazz);
         
@@ -192,7 +196,7 @@ public class Db implements AutoCloseable {
 	public <T> void merge(T t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
-    	checkSession(t);
+    	t = checkSession(t);
         Class<?> clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
@@ -245,7 +249,7 @@ public class Db implements AutoCloseable {
     	if (null == factory.getPrimaryKey(t))
     		// if I don't have a primary key I can't delete the object, don't know how
     		return;
-    	checkSession(t);
+    	t = checkSession(t);
     	Class<?> clazz = t.getClass();
     	TableDefinition<?> tdef = define(clazz);
     	tdef.delete(this, t);
@@ -322,7 +326,7 @@ public class Db implements AutoCloseable {
     	if (null == factory.getPrimaryKey(t))
     		// if I don't have a primary key I can't delete the object, don't know how
     		return;
-    	checkSession(t);
+    	t = checkSession(t);
         Class< ? > clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
@@ -430,78 +434,6 @@ public class Db implements AutoCloseable {
 			// therefore we must conclude that there is no match for our search.
     		return new ArrayList<T>();
     	return select.select();
-    }
-    
-    /**
-     * Prepare the select object for running the query.
-     * @param example
-     * @param params
-     * @return QueryWhere<T>
-     */
-    private <T> QueryWhere<T> getExampleQuery(T example, ExampleOptions params){
-    	@SuppressWarnings("unchecked")
-		Class<T> clazz = (Class<T>)example.getClass();
-    	T desc = Utils.newObject(clazz);
-    	QueryWhere<T> select = this.from(desc).where(new StringFilter() {
-			
-			public String getConditionString(ISelectTable<?> selectTable) {
-				return "1=1";
-			}
-		});
-    	
-    	TableDefinition<?> tDef = define(clazz);
-		try {
-			for (FieldDefinition fDef: tDef.getFields()) {
-				if (fDef.isSilent)
-					continue; // this field can not be selected upon.
-				if (!params.getExcludeProps().contains(fDef.field.getName())) {
-					fDef.field.setAccessible(true);
-					Object val = fDef.field.get(example);
-					boolean add = true;
-					if (params.getExcludeNulls() && null == val)
-						add = false;
-					if (params.getExcludeZeros()) {
-						if (null != val) {
-							if (val.getClass().isPrimitive()) {
-								if (0 == new BigDecimal(String.valueOf(val)).intValue())
-									add = false;
-							}
-							else if (Number.class.isAssignableFrom(val.getClass())) {
-								if (0 == ((Number)val).intValue())
-									add = false;
-							}
-						}
-					}
-					if (add) {
-						if (null == val) {
-							select = select.and(fDef.field.get(desc)).isNull();
-						}
-						else if (String.class.isAssignableFrom(val.getClass())) {
-							select = select.and(fDef.field.get(desc)).like(val, params.getLikeMode());
-						}
-						else if (val.getClass().isAnnotationPresent(Entity.class)) {							
-							List<Object> joins = selectByExample(val);
-							if (!joins.isEmpty()) {
-								select = select.and(fDef.field.get(desc)).in(joins.toArray());
-							}
-							else {
-								// this means that the child entity was not flagged out, and nothing was found to match the example
-								// therefore we must conclude that there is no match for our search.
-								return null;
-							}
-						}
-						else {
-							select = select.and(fDef.field.get(desc)).is(val);
-						}
-					}
-				}
-			}
-		}
-		catch (Exception e) {
-			// we can't process this example
-			throw new JaquError(e, e.getMessage());
-		}
-    	return select;
     }
 
     /**
@@ -670,31 +602,50 @@ public class Db implements AutoCloseable {
 		return this.closed;
 	}
     
-    /* (non-Javadoc)
-	 * @see java.lang.Object#finalize()
-	 */
-	@Override
-	protected void finalize() throws Throwable {
-		if (null != conn && !conn.isClosed()) {
-			InternalLogger.debug("Closing connection for you!!!, please make sure you close the connection yourself");
-			close();
-		}
-	}	
-
-	/**
+    /**
      * Run a SQL query directly against the database.
      *
      * @param sql the SQL statement
      * @return the result set
      */
-    public ResultSet executeQuery(String sql) {
+    public <T> T executeQuery(String sql, IResultProcessor<T> processor) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
-        try {
-        	if (factory.isShowSQL())
-				StatementLogger.select(sql);
-            return conn.createStatement().executeQuery(sql);
+       	if (factory.isShowSQL())
+			StatementLogger.select(sql);
+       	try (Statement s = conn.createStatement()) {
+       		try (ResultSet rs = s.executeQuery(sql)) {
+       			return processor.processResult(rs);
+       		}
         } 
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
+    }
+    
+    /**
+     * Run a SQL query directly against the database.
+     *
+     * @param sql the SQL statement
+     * @param processor
+     * @param args
+     * @return the result set
+     */
+    public <T> T executeQuery(String sql, IResultProcessor<T> processor, Object ... args) {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (factory.isShowSQL())
+			StatementLogger.select(sql);
+    	try (PreparedStatement stmnt = this.prepare(sql)) {
+    		if (null != args && 0 < args.length) {	    		
+				for (int i = 0; i < args.length; i++){
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
+				}	    		
+	    	}
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		return processor.processResult(rs);
+	    	}
+    	}
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         }
@@ -707,11 +658,45 @@ public class Db implements AutoCloseable {
      * @return List<T>
      */
     public <T> List<T> executeQuery(String sql, Class<T> clazz) {
-    	ResultSet rs = executeQuery(sql);
-    	if (null != rs) {
-    		return selectByResultSet(rs, clazz);    		
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (factory.isShowSQL())
+			StatementLogger.select(sql);
+    	return executeQuery(sql, rs -> {
+    		if (null != rs) {
+        		return selectByResultSet(rs, clazz);    		
+        	}
+    		return null;
+    	});
+    }
+    
+    /**
+     * A utility method that executes the String query and returns the result class
+     * 
+     * @param sql
+     * @param clazz
+     * @paran args
+     * 
+     * @return List<T>
+     */
+    public <T> List<T> executeQuery(String sql, Class<T> clazz, Object ... args) {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (factory.isShowSQL())
+			StatementLogger.select(sql);
+    	try (PreparedStatement stmnt = this.prepare(sql)) {
+    		if (null != args && 0 < args.length) {	    		
+				for (int i = 0; i < args.length; i++){
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
+				}	    		
+	    	}
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+        		return selectByResultSet(rs, clazz);    		
+	    	}
     	}
-    	return null;
+    	catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
     }
     
     /**
@@ -723,8 +708,11 @@ public class Db implements AutoCloseable {
      * @return List<T>
      */
     public <T> List<T> executeStatement(String preparedStmnt, Class<T> clazz, Object ... args) {
-    	PreparedStatement stmnt = this.prepare(preparedStmnt);
-    	try {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (factory.isShowSQL())
+			StatementLogger.select(preparedStmnt);
+    	try (PreparedStatement stmnt = this.prepare(preparedStmnt)) {
     		if (null != args && 0 < args.length) {	    		
 				for (int i = 0; i < args.length; i++){
 					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
@@ -748,8 +736,9 @@ public class Db implements AutoCloseable {
      * @return List<T>
      */
     public <T> List<T> executeCallable(String callableStmnt, Class<T> clazz, Object ... args) {
-    	try {
-    		CallableStatement stmnt = this.conn.prepareCall(callableStmnt);
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	try (CallableStatement stmnt = this.conn.prepareCall(callableStmnt)) {
     		if (null != args && 0 < args.length) {	    		
 				for (int i = 0; i < args.length; i++) {
 					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
@@ -764,22 +753,52 @@ public class Db implements AutoCloseable {
     }
     
     /**
+     * Run an update query directly on the database
+     * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
+	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
+	 * 
+     * @param <T>
+     * @param preparedStmnt
+     * @param args
+     * @return int
+     */
+    public <T> int executeUpdate(String preparedStmnt, Object ... args) {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (factory.isShowSQL())
+			StatementLogger.update(preparedStmnt);
+    	try (PreparedStatement stmnt = this.prepare(preparedStmnt)) {
+    		if (null != args && 0 < args.length) {	    		
+				for (int i = 0; i < args.length; i++){
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
+				}	    		
+	    	}
+    		this.reEntrantCache.clearReEntrent();
+	    	return stmnt.executeUpdate();
+    	}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+    /**
      * Run a SQL statement directly against the database.
-     *
+     * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
+	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
+	 * 
      * @param sql the SQL statement
      * @return the update count
      */
     public int executeUpdate(String sql) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
-        try {
-            Statement stat = conn.createStatement();
-            if (factory.isShowSQL())
-				StatementLogger.update(sql);
+    	if (factory.isShowSQL())
+			StatementLogger.update(sql);
+    	try (Statement stat = conn.createStatement()) {            
             int updateCount = stat.executeUpdate(sql);
-            stat.close();
+            this.reEntrantCache.clearReEntrent();
             return updateCount;
-        } 
+        }
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         }
@@ -789,19 +808,25 @@ public class Db implements AutoCloseable {
      * Check if the {@link Entity} is part of this live session. If not attach it to this session.
      * @param <T> - must be annotated as {@link Entity} to have any session attachment effect
      * @param t
+     * @return &lt;T&gt; t - returns the same instance or an equal instance that was previously saved in cache
      */
-    public <T> void checkSession(T t) {
+    @SuppressWarnings("unchecked")
+	public <T> T checkSession(T t) {
     	try {
-			if (t.getClass().getAnnotation(Entity.class) != null) {
+			if (null != t.getClass().getAnnotation(Entity.class)  || null != t.getClass().getAnnotation(MappedSuperclass.class)) {
 				// instrument this instance of the class
 				Field dbField = t.getClass().getField("db");
 				dbField.setAccessible(true);
 				
 				// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj' will produce the relation
 				Object o = dbField.get(t);
-				if (!this.equals(o))
-					attach(t);
+				if (!this.equals(o)) {
+					Object attached = attach(t);
+					if (attached != t)
+						return (T)attached;					
+				}
 			}
+			return t;
 		}
 		catch (Exception e) {
 			throw new JaquError(e, e.getMessage());
@@ -815,7 +840,7 @@ public class Db implements AutoCloseable {
 	 */
 	public <T> void addSession(T t) {
 		try {
-			if (t.getClass().getAnnotation(Entity.class) != null) {
+			if (null != t.getClass().getAnnotation(Entity.class) || null != t.getClass().getAnnotation(MappedSuperclass.class)) {
 				// instrument this instance of the class
 				Field dbField = t.getClass().getField("db");
 				dbField.setAccessible(true);
@@ -849,7 +874,7 @@ public class Db implements AutoCloseable {
      * @param t
      */
     @SuppressWarnings({ "unchecked" })
-	void attach(Object t) {
+	Object attach(Object t) {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
     	this.addSession(t);
@@ -867,9 +892,17 @@ public class Db implements AutoCloseable {
 		// make sure this object is synchronized with the cache
 		if (null != pk) {
 			Object o = multiCallCache.checkReEntrent(t.getClass(), pk);
-			if (null != o && o != t)
-				// we have the object in cache but it is not the same instance. Something is wrong.
-				throw new JaquError("Object %s with PrimaryKey %s already exists in this session's cache, but is a different instance. Use the cached instance to perform changes within the same session!!", t.getClass(), pk.toString());
+			if (null != o) {
+				if (!o.equals(t)) {
+					// we have the object in cache but it is not the same instance. Something is wrong.
+					throw new JaquError("Object %s with PrimaryKey %s already exists in this session's cache, but is a different instance. "
+							+ "Use the cached instance to perform changes within the same session!!", t.getClass(), pk.toString());
+				}
+				else {
+					// need to replace t with o
+					return o;
+				}
+			}
 		}
     	for (FieldDefinition fdef: tdef.getFields()) {
     		try {
@@ -877,25 +910,33 @@ public class Db implements AutoCloseable {
 					case M2O:	
 					case NORMAL: continue;
 					case FK: {
-						// if lazy and field is null then we need to get the object from db if exists so we do not delete it by accident
-						// if lazy and field is not null we need to compare
-						
+						fdef.field.setAccessible(true);
 						Object o = fdef.field.get(t);
-						if (o != null)
-							checkSession(o);
+						if (o != null) {
+							if (fdef.noUpdateField) {
+								// only need to set the 'db' but we will not be working on this object so don't need to attach the rest
+								this.addSession(o);
+								continue;
+							}								
+							Object attached = checkSession(o);
+							if (attached != o) {
+								fdef.field.set(t, o);
+							}
+						}
 						break;
 					}
 					case O2M:
 					case M2M: {
+						fdef.field.setAccessible(true);
 						Collection<?> col = (Collection<?>) fdef.field.get(t);
 						if (col != null) {
-							if (AbstractJaquCollection.class.isAssignableFrom(col.getClass())) {
+							if (AbstractJaquCollection.class.isInstance(col)) {
 								// set all transient fields (These are session related and mean nothing outside the session so we don't carry them)
 								((AbstractJaquCollection<?>) col).setDb(this);
 								((AbstractJaquCollection<?>) col).setFieldDefinition(fdef);
 								((AbstractJaquCollection<?>) col).parentPk = pk;
 								
-								((AbstractJaquCollection<?>) col).merge();								
+								((AbstractJaquCollection<?>) col).merge();
 							}
 							else {
 								// here we get a whole new relationship container which symbolizes the current relationships
@@ -905,9 +946,10 @@ public class Db implements AutoCloseable {
 								// dispose of the relationships.
 								if (null != pk) {
 									// we may get objects that have a primary key to be inserted with, which means they don't exist in the DB
-									Object parent = this.from(t.getClass().getConstructor().newInstance()).primaryKey().is(pk).selectFirst();
-									if (null != parent)
-										deleteParentRelation(fdef, parent);
+									Object parent = Utils.newObject(t.getClass());
+									pkDef.field.set(parent, pk);
+									this.addSession(parent);
+									deleteParentRelation(fdef, parent);
 								}
 								if (List.class.isAssignableFrom(col.getClass())) {
 									@SuppressWarnings("rawtypes")
@@ -933,6 +975,7 @@ public class Db implements AutoCloseable {
 				throw new JaquError(e, e.getMessage());
 			}
     	}
+    	return t;
     }
 	
     /**
@@ -943,17 +986,23 @@ public class Db implements AutoCloseable {
      * @param type
      * @return Collection<T>
      */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	<T> Collection<T> getRelationFromDb(String fieldName, Object myObject, Class<T> type) {
 		if (closed)
 			throw new JaquError("Cannot initialize a 'Relation' outside an open session!!!. Try initializing the field directly within the class.");
 		TableDefinition<?> def = define(myObject.getClass());
-		FieldDefinition definition = def.getDefinitionForField(fieldName);
-		
+		FieldDefinition definition = def.getDefinitionForField(fieldName);		
 		
 		if (!Collection.class.isAssignableFrom(definition.field.getType()))
 			throw new JaquError("%s relation is not a collection type!!!", fieldName);
 		try {
-			List<T> result = (List<T>) getRelationFromDb(definition, factory.getPrimaryKey(myObject), type);
+			List result = Utils.newArrayList();
+			for (Class<?> dataType : definition.relationDefinition.dataType) {
+				result.addAll((List) getRelationFromDb(definition, factory.getPrimaryKey(myObject), dataType));
+			}
+			if (definition.relationDefinition.dataType.length > 1 && null != definition.relationDefinition.orderByField) {
+				result.sort(new FieldComperator(definition.relationDefinition.dataType[0], definition.relationDefinition.orderByField));
+			}
 			if (definition.field.getType().isAssignableFrom(result.getClass()))
 				return new JaquList<T>(result, this, definition, factory.getPrimaryKey(myObject));
 			else {
@@ -973,9 +1022,11 @@ public class Db implements AutoCloseable {
 	 * @param sql
 	 * @return PreparedStatement
 	 */
-    PreparedStatement prepare(String sql) {
+    PreparedStatement prepare(String sql, String... idColumnNames) {
         try {
-            return conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            if (Dialect.ORACLE == factory.getDialect() && idColumnNames.length > 0)
+            	return conn.prepareStatement(sql, idColumnNames);
+        	return conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
         } 
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
@@ -1009,6 +1060,8 @@ public class Db implements AutoCloseable {
 		builder.append(" rt where rt.").append(def.relationDefinition.relationFieldName).append("=").append(pk).append(" and rt.").append(def.relationDefinition.relationColumnName);
 		builder.append("= target.").append(targetDef.getPrimaryKeyFields().get(0).columnName);
 
+		if (null != def.relationDefinition.orderByColumn)
+			builder.append(" order by rt." + def.relationDefinition.orderByColumn + " " + def.relationDefinition.direction);
 		List<T> result = Utils.newArrayList();
 		ResultSet rs = null;
 		try {
@@ -1020,7 +1073,7 @@ public class Db implements AutoCloseable {
                 T item = targetDef.readRow(rs, this);
                 result.add(item);
             }
-        } 
+        }
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         } 
@@ -1030,27 +1083,6 @@ public class Db implements AutoCloseable {
         return result;
 	}
 
-	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws Exception {
-		T descriptor = type.getConstructor().newInstance();
-		List<T> result;
-		if (def.relationDefinition.relationTableName == null) {
-			result = this.from(descriptor).where(new StringFilter() {
-				
-				/*
-				 * (non-Javadoc)
-				 * @see com.centimia.orm.jaqu.StringFilter#getConditionString(com.centimia.orm.jaqu.SelectTable)
-				 */
-				public String getConditionString(ISelectTable<?> st) {
-					String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());		
-					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;
-				}
-			}).select();
-		}
-		else
-			result = this.getRelationByRelationTable(def, myPrimaryKey, type);
-		return result;		
-	}
-	
 	/**
 	 * True when the Db is closed
 	 * @return boolean
@@ -1069,6 +1101,172 @@ public class Db implements AutoCloseable {
 		}
 			
 		return closed;
+	}
+
+	/**
+	 * 
+	 * @param field - the definition of the field on the parent
+	 * @param table - the object child to be updated.
+	 * @param obj - the object Parent to update the child with
+	 */
+	void updateRelationship(FieldDefinition field, Object table, Object obj) {
+		Object pKey = factory.getPrimaryKey(table);
+		Object rPk = factory.getPrimaryKey(obj);
+		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
+		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
+		switch (field.fieldType) {
+			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
+			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
+			case M2O: handleM2ORelationship(field, table, obj, primaryKey, relationPK); return;
+			case FK:
+			case NORMAL: return;
+		}
+	}
+
+	/*
+	 * Removes the relationship between all children of the given parent to the parent because the parent is being deleted 
+	 * from the underlying persistence layer. If cascade type is delete the children are also removed from DB.
+	 * 
+	 */
+	@SuppressWarnings("unchecked")
+	void deleteParentRelation(FieldDefinition fdef, Object parent) {
+		// using the getter because of lazy loading...
+		Collection<?> relations = null;
+		try {
+			fdef.getter.setAccessible(true);
+			relations =  (Collection<?>) fdef.getter.invoke(parent); // this must be a collection by design
+			fdef.getter.setAccessible(false);
+		}
+		catch (Exception e) {
+			throw new JaquError(e, e.getMessage());
+		}
+		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE) {
+			// in one to many there is a question of cascade delete, i.e delete the child as well. In M2M this can not be true
+			if (relations != null) {
+				for (Object o: relations)
+					delete(o);
+			}
+		}
+		// this means we are not in cascade delete, so we just break the link
+		else {
+			// since the relationFieldName should be the sa,e for the hierarchy we can just get the first
+			TableDefinition<?> tdef = define(fdef.relationDefinition.dataType[0]);
+			// the following code runs only if we have not deleted our objects and we have an update interceptor.
+			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE)) {
+				if (relations != null) {
+					for (Object o: relations)
+						tdef.getInterceptor().onUpdate(o);
+				}
+			}
+			if (fdef.relationDefinition.relationTableName == null) { // if it's cascade delete these objects where deleted already so we can skip
+				// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists, 
+				// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
+				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
+				StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
+				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
+				executeUpdate(builder.toString());
+				return;
+			}
+		}
+		
+		// relationTables exist both in O2M and M2M relations. In this case all we need to do is to remove all the entries in the table that include the parent
+		// this code runs also for cascade deletes because the normal delete removes the object, the following also removes the reference from the relationtable.
+		if (fdef.relationDefinition.relationTableName != null) {
+			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
+			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
+			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
+			executeUpdate(builder.toString());
+		}
+	}
+	
+	/*
+	 * Remove the relationship between a given child and its parent. If the cascade type is delete the child is also removed from the underlying storage.
+	 * @param fdef
+	 * @param child
+	 */
+	void deleteChildRelation(FieldDefinition fdef, Object child, Object parentPrimaryKey) {
+		// delete depending on the cascade type
+		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE)
+			delete(child);
+		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) {
+			try {
+				// I use fdef.relationDefinition.dataType[0] because even in inheritance situation the relation field must be the same
+				Field otherSideRelation = ClassUtils.findField(fdef.relationDefinition.dataType[0], fdef.relationDefinition.relationFieldName);
+				otherSideRelation.setAccessible(true);
+				otherSideRelation.set(child, null);
+				otherSideRelation.setAccessible(false);
+				// updates the child in the DB.
+				update(child);
+			}
+			catch (NoSuchFieldException nsfe) {
+				// this is not a two sided relationship, we need to update the table with the id
+				// when we reach here the object has already been merged. All we need to do is update it.
+				
+				// Calling define here costs very little since this table's definition is cached.
+				TableDefinition<?> def = define(child.getClass());
+				StatementBuilder updateQuery = new StatementBuilder("UPDATE ").append(def.tableName);
+				updateQuery.append(" SET ").append(fdef.relationDefinition.relationFieldName).append(" = ").append("null");
+				// we assume that our table has a single column primary key.
+				String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
+				updateQuery.append(" WHERE ").append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
+				
+				executeUpdate(updateQuery.toString());
+			}
+			catch (Exception e) {
+				throw new JaquError(e, e.getMessage());
+			}
+		}
+		// relationTables exist both in O2M and M2M relations. In this case all we need to remove a specific entry in the relation table.
+		if (fdef.relationDefinition.relationTableName != null) {
+			String pk = (factory.getPrimaryKey(child) instanceof String) ? "'" + factory.getPrimaryKey(child).toString() + "'" : factory.getPrimaryKey(child).toString();
+			String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
+			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
+			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pPk).append(" AND ").append(fdef.relationDefinition.relationColumnName);
+			builder.append(" = ").append(pk);
+			executeUpdate(builder.toString());
+		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#finalize()
+	 */
+	@Override
+	protected void finalize() throws Throwable {
+		if (null != conn && !conn.isClosed()) {
+			InternalLogger.debug("Closing connection for you!!!, please make sure you close the connection yourself");
+			close();
+		}
+	}
+
+	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws Exception {
+		T descriptor = Utils.newObject(type);
+		List<T> result;
+		if (def.relationDefinition.relationTableName == null) {
+			QueryWhere<T> where = this.from(descriptor).where(new StringFilter() {
+				
+				/*
+				 * (non-Javadoc)
+				 * @see com.centimia.orm.jaqu.StringFilter#getConditionString(com.centimia.orm.jaqu.SelectTable)
+				 */
+				public String getConditionString(ISelectTable<?> st) {
+					String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());		
+					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;					
+				}
+			});
+			if (null != def.relationDefinition.orderByField) {
+				Field field = ClassUtils.findField(type, def.relationDefinition.orderByField);
+				field.setAccessible(true);
+				if ("DESC".equals(def.relationDefinition.direction))
+					result =  where.orderByDesc(field.get(descriptor)).select();
+				else
+					result = where.orderBy(field.get(descriptor)).select();
+			}
+			else
+				result = where.select();
+		}
+		else
+			result = this.getRelationByRelationTable(def, myPrimaryKey, type);
+		return result;		
 	}
 
 	/*
@@ -1132,27 +1330,7 @@ public class Db implements AutoCloseable {
 		multiCallCache.clearReEntrent();
 		TOKENS.clear();
 	}
-
-	/**
-	 * 
-	 * @param field - the definition of the field on the parent
-	 * @param table - the object child to be updated.
-	 * @param obj - the object Parent to update the child with
-	 */
-	void updateRelationship(FieldDefinition field, Object table, Object obj) {
-		Object pKey = factory.getPrimaryKey(table);
-		Object rPk = factory.getPrimaryKey(obj);
-		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
-		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
-		switch (field.fieldType) {
-			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
-			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
-			case M2O: handleM2ORelationship(field, table, obj, primaryKey, relationPK); return;
-			case FK:
-			case NORMAL: return;
-		}
-	}
-
+	
 	/**
 	 * returns true if there is a running transaction status
 	 * @param status
@@ -1167,7 +1345,7 @@ public class Db implements AutoCloseable {
 		// when the user calls get again the list will be lazy loaded with the correct values....
 		Field targetField;
 		try {
-			targetField = table.getClass().getDeclaredField(field.relationDefinition.relationFieldName);
+			targetField = ClassUtils.findField(table.getClass(), field.relationDefinition.relationFieldName);
 			targetField.setAccessible(true);
 			targetField.set(table, null);
 			targetField.setAccessible(false);
@@ -1184,7 +1362,7 @@ public class Db implements AutoCloseable {
 		if (field.relationDefinition.relationTableName == null) {
 			// We have a relationship without a relationTable. We might have a two sided O2M relationship, or a single sided relationship
 			try {
-				Field realtedField = table.getClass().getDeclaredField(field.relationDefinition.relationFieldName);
+				Field realtedField = ClassUtils.findField(table.getClass(), field.relationDefinition.relationFieldName);
 				realtedField.setAccessible(true);
 				// update the object for consistency
 				realtedField.set(table, obj);
@@ -1241,9 +1419,7 @@ public class Db implements AutoCloseable {
 		checkExistsQuery.append(field.relationDefinition.relationColumnName).append(" = ").append(primaryKey).append(" AND ").append(field.relationDefinition.relationFieldName);
 		checkExistsQuery.append(" = ").append(relationPK);
 		
-		ResultSet rs = executeQuery(checkExistsQuery.toString());
-		
-		try {
+		executeQuery(checkExistsQuery.toString(), rs -> {
 			if (!rs.next()) {
 				// the relationship is missing
 				StatementBuilder insertStmnt = new StatementBuilder("INSERT INTO ").append(field.relationDefinition.relationTableName);
@@ -1252,114 +1428,79 @@ public class Db implements AutoCloseable {
 				
 				executeUpdate(insertStmnt.toString());
 			}
-		}
-		catch (SQLException se) {
-			throw new JaquError(se, se.getMessage());
-		}
-		finally {
-			JdbcUtils.closeSilently(rs);
-		}
+			return null;
+		});
 	}
 
-	/*
-	 * Removes the relationship between all children of the given parent to the parent because the parent is being deleted 
-	 * from the underlying persistence layer. If cascade type is delete the children are also removed from DB.
-	 * 
-	 */
-	@SuppressWarnings("unchecked")
-	void deleteParentRelation(FieldDefinition fdef, Object parent) {
-		// using the getter because of lazy loading...
-		Collection<?> relations = null;
-		try {
-			fdef.getter.setAccessible(true);
-			relations =  (Collection<?>) fdef.getter.invoke(parent); // this must be a collection by design
-			fdef.getter.setAccessible(false);
-		}
-		catch (Exception e) {
-			throw new JaquError(e, e.getMessage());
-		}
-		TableDefinition<?> tdef = define(fdef.relationDefinition.dataType);
-		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE) {
-			// in one to many there is a question of cascade delete, i.e delete the child as well. In M2M this can not be true
-			if (relations != null) {
-				for (Object o: relations)
-					delete(o);
+	/**
+     * Prepare the select object for running the query.
+     * @param example
+     * @param params
+     * @return QueryWhere<T>
+     */
+    private <T> QueryWhere<T> getExampleQuery(T example, ExampleOptions params){
+    	@SuppressWarnings("unchecked")
+		Class<T> clazz = (Class<T>)example.getClass();
+    	T desc = Utils.newObject(clazz);
+    	QueryWhere<T> select = this.from(desc).where(new StringFilter() {
+			
+			public String getConditionString(ISelectTable<?> selectTable) {
+				return "1=1";
 			}
-		}
-		// this means we are not in cascade delete, so we just break the link
-		else {
-			// the following code runs only if we have not deleted our objects and we have an update interceptor.
-			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE)) {
-				if (relations != null) {
-					for (Object o: relations)
-						tdef.getInterceptor().onUpdate(o);
+		});
+    	
+    	TableDefinition<?> tDef = define(clazz);
+		try {
+			for (FieldDefinition fDef: tDef.getFields()) {
+				if (fDef.isSilent)
+					continue; // this field can not be selected upon.
+				if (!params.getExcludeProps().contains(fDef.field.getName())) {
+					fDef.field.setAccessible(true);
+					Object val = fDef.field.get(example);
+					boolean add = true;
+					if (params.getExcludeNulls() && null == val)
+						add = false;
+					if (params.getExcludeZeros()) {
+						if (null != val) {
+							if (val.getClass().isPrimitive()) {
+								if (0 == new BigDecimal(String.valueOf(val)).intValue())
+									add = false;
+							}
+							else if (Number.class.isAssignableFrom(val.getClass())) {
+								if (0 == ((Number)val).intValue())
+									add = false;
+							}
+						}
+					}
+					if (add) {
+						if (null == val) {
+							select = select.and(fDef.field.get(desc)).isNull();
+						}
+						else if (String.class.isAssignableFrom(val.getClass())) {
+							select = select.and(fDef.field.get(desc)).like(val, params.getLikeMode());
+						}
+						else if (val.getClass().isAnnotationPresent(Entity.class) || val.getClass().isAnnotationPresent(MappedSuperclass.class)) {							
+							List<Object> joins = selectByExample(val);
+							if (!joins.isEmpty()) {
+								select = select.and(fDef.field.get(desc)).in(joins.toArray());
+							}
+							else {
+								// this means that the child entity was not flagged out, and nothing was found to match the example
+								// therefore we must conclude that there is no match for our search.
+								return null;
+							}
+						}
+						else {
+							select = select.and(fDef.field.get(desc)).is(val);
+						}
+					}
 				}
 			}
-			if (fdef.relationDefinition.relationTableName == null) { // if it's cascade delete these objects where deleted already so we can skip
-				// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists, 
-				// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
-				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-				StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
-				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-				executeUpdate(builder.toString());
-				return;
-			}
 		}
-		
-		// relationTables exist both in O2M and M2M relations. In this case all we need to do is to remove all the entries in the table that include the parent
-		// this code runs also for cascade deletes because the normal delete removes the object, the following also removes the reference from the relationtable.
-		if (fdef.relationDefinition.relationTableName != null) {
-			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
-			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-			executeUpdate(builder.toString());
+		catch (Exception e) {
+			// we can't process this example
+			throw new JaquError(e, e.getMessage());
 		}
-	}
-	
-	/*
-	 * Remove the relationship between a given child and its parent. If the cascade type is delete the child is also removed from the underlying storage.
-	 * @param fdef
-	 * @param child
-	 */
-	void deleteChildRelation(FieldDefinition fdef, Object child, Object parentPrimaryKey) {
-		// delete depending on the cascade type
-		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE)
-			delete(child);
-		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) {
-			try {
-				Field otherSideRelation = fdef.relationDefinition.dataType.getDeclaredField(fdef.relationDefinition.relationFieldName);
-				otherSideRelation.setAccessible(true);
-				otherSideRelation.set(child, null);
-				otherSideRelation.setAccessible(false);
-				// updates the child in the DB.
-				update(child);
-			}
-			catch (NoSuchFieldException nsfe) {
-				// this is not a two sided relationship, we need to update the table with the id
-				// when we reach here the object has already been merged. All we need to do is update it.
-				
-				// Calling define here costs very little since this table's definition is cached.
-				TableDefinition<?> def = define(child.getClass());
-				StatementBuilder updateQuery = new StatementBuilder("UPDATE ").append(def.tableName);
-				updateQuery.append(" SET ").append(fdef.relationDefinition.relationFieldName).append(" = ").append("null");
-				// we assume that our table has a single column primary key.
-				String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
-				updateQuery.append(" WHERE ").append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
-				
-				executeUpdate(updateQuery.toString());
-			}
-			catch (Exception e) {
-				throw new JaquError(e, e.getMessage());
-			}
-		}
-		// relationTables exist both in O2M and M2M relations. In this case all we need to remove a specific entry in the relation table.
-		if (fdef.relationDefinition.relationTableName != null) {
-			String pk = (factory.getPrimaryKey(child) instanceof String) ? "'" + factory.getPrimaryKey(child).toString() + "'" : factory.getPrimaryKey(child).toString();
-			String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
-			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
-			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pPk).append(" AND ").append(fdef.relationDefinition.relationColumnName);
-			builder.append(" = ").append(pk);
-			executeUpdate(builder.toString());
-		}
-	}
+    	return select;
+    }
 }

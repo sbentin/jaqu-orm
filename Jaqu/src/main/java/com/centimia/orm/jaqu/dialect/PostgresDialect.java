@@ -22,14 +22,13 @@ package com.centimia.orm.jaqu.dialect;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.temporal.TemporalAccessor;
-import java.util.Date;
 
 import com.centimia.orm.jaqu.Db;
 import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
@@ -44,26 +43,11 @@ public class PostgresDialect implements SQLDialect {
 	 */
 	public boolean checkTableExists(String tableName, Db db) {
 		String query = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "'";
-		ResultSet rs = null;
-		try {
-			rs = db.executeQuery(query);
+		return db.executeQuery(query, rs -> {
 			if (rs.next())
 				return true;
-		}
-		catch (SQLException e) {
 			return false;
-		}
-		finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				}
-				catch (SQLException e) {
-					// nothing to do here
-				}
-			}
-		}
-		return false;
+		});
 	}
 
 	/**
@@ -140,7 +124,7 @@ public class PostgresDialect implements SQLDialect {
 				// byte array is mapped to BINARY type
 				return "BINARY";
 			}
-			else if (componentClass.getAnnotation(Entity.class) != null) {
+			else if (null != componentClass.getAnnotation(Entity.class) || null != componentClass.getAnnotation(MappedSuperclass.class)) {
 				throw new JaquError("IllegalArgument - Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			}
 		}
@@ -174,6 +158,22 @@ public class PostgresDialect implements SQLDialect {
 	}
 
 	/**
+	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, int)
+	 */
+	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
+		switch (type) {
+			case ENUM: return rs.getString(columnNumber);
+			case ENUM_INT: return rs.getInt(columnNumber);
+			case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
+			case LOCALDATE: return null != rs.getDate(columnNumber) ? rs.getDate(columnNumber).toLocalDate() : null;
+    		case LOCALDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null;
+    		case ZONEDDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null; // TODO this should be fixed
+    		case LOCALTIME: return null != rs.getTime(columnNumber) ? null != rs.getTime(columnNumber).toLocalTime() : null;
+			default: return rs.getObject(columnNumber);
+		}
+	}
+	
+	/**
 	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
 	 */
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
@@ -185,25 +185,11 @@ public class PostgresDialect implements SQLDialect {
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "select 1 from information_schema.columns where table_name = '" + tableName + "' and column_name = '" + discriminatorName + "'";
-		ResultSet rs = null;
-		try {
-			rs = db.executeQuery(query);
+		return db.executeQuery(query, rs -> {
 			if (rs.next())
 				return true;
-		}
-		catch (SQLException e) {
 			return false;
-		}
-		finally {
-			if (rs != null)
-				try {
-					rs.close();
-				}
-				catch (SQLException e) {
-					// nothing to do here
-				}
-		}
-		return false;
+		});
 	}
 
 	/*
@@ -256,14 +242,8 @@ public class PostgresDialect implements SQLDialect {
 	}
 
 	@Override
-	public String getQueryStyleDate(TemporalAccessor temporal) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getQueryStyleDate(Date date) {
-		// TODO Auto-generated method stub
-		return null;
+	public String getSequnceQuery(String seqName) {
+		StatementBuilder builder = new StatementBuilder("SELECT nextval('").append(seqName).append("')");
+		return builder.toString();
 	}
 }

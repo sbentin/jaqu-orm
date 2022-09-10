@@ -44,7 +44,7 @@ public @interface One2Many {
 	/** 
 	 * Optional - the class type of the related object. Inferred by the generic type if exists.
 	 */
-	Class<?> childType() default java.lang.Object.class;
+	Class<?>[] childType() default {java.lang.Object.class};
 	/** 
 	 * the name of the DB table maintaining the relationship. (when it is maintained in a relation table and not by Foreign Key)<br> 
 	 * Default no relation table 
@@ -77,4 +77,8 @@ public @interface One2Many {
 	 * Only Cascade Delete is supported. Default is CascadeType.NONE, which means the related objects are not deleted when parent is deleted.
 	 */
 	CascadeType cascadeType() default CascadeType.NONE;
+	/** the name of a column in the other side of the relation that determines the order of the response */
+	String orderBy() default "";
+	/** the direction of order by. Default is ASC" */
+	String direction() default "ASC";
 }

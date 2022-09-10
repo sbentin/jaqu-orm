@@ -14,6 +14,8 @@ package com.centimia.orm.jaqu.util;
 
 import java.io.Reader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Clob;
@@ -23,6 +25,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -37,7 +40,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.centimia.orm.jaqu.GenericMask;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 
 /**
  * Generic utility methods.
@@ -86,7 +91,8 @@ public class Utils {
 			return (T) ("" + COUNTER.incrementAndGet());
 		}
 		else if (clazz == Character.class) {
-			return (T) ("" + COUNTER.incrementAndGet());
+			char c = (char)COUNTER.incrementAndGet();
+			return (T) Character.valueOf(c);
 		}
 		else if (clazz == Long.class) {
 			return (T) Long.valueOf(COUNTER.incrementAndGet());
@@ -191,6 +197,9 @@ public class Utils {
 						catch (Exception e2) {
 							// ignore
 						}
+						finally {
+							c.setAccessible(false);
+						}
 					}
 				}
 			}
@@ -201,6 +210,31 @@ public class Utils {
 	public static <E> E newEnum(Class<E> clazz, int ordinal) {
 		if (clazz.isEnum()) {
 			return clazz.getEnumConstants()[ordinal];			
+		}
+		throw new RuntimeException(clazz.getName() + ": is not an enum type"); 
+	}
+	
+	@SuppressWarnings({ "unchecked", "restriction" })
+	public static <E> E newEnum(Class<E> clazz) {
+		if (clazz.isEnum()) {
+			try {				
+				Constructor<?> constructor = sun.misc.Unsafe.class.getDeclaredConstructors()[0];
+			    constructor.setAccessible(true);
+			    sun.misc.Unsafe unsafe = (sun.misc.Unsafe) constructor.newInstance();
+			    Object enumValue = unsafe.allocateInstance(clazz);
+			    
+			    Field ordinalField = Enum.class.getDeclaredField("ordinal");
+			    makeAccessible(ordinalField);
+			    ordinalField.setInt(enumValue, clazz.getEnumConstants().length);
+
+			    Field nameField = Enum.class.getDeclaredField("name");
+			    makeAccessible(nameField);
+			    nameField.set(enumValue, "" + COUNTER.incrementAndGet());
+			    return (E)enumValue;	
+			}
+			catch (Exception e) {				
+				e.printStackTrace();
+			}
 		}
 		throw new RuntimeException(clazz.getName() + ": is not an enum type"); 
 	}
@@ -218,7 +252,8 @@ public class Utils {
 			String.class.isAssignableFrom(clazz) || 
 			Date.class.isAssignableFrom(clazz) ||
 			Boolean.class.isAssignableFrom(clazz) ||
-			Character.class.isAssignableFrom(clazz))  {
+			Character.class.isAssignableFrom(clazz) ||
+			Temporal.class.isAssignableFrom(clazz))  {
 			
 			return true;
 		}
@@ -246,7 +281,7 @@ public class Utils {
 			}
 			return o.toString();
 		}
-		if (targetType.getAnnotation(Entity.class) != null) {
+		if (null != targetType.getAnnotation(Entity.class) || null != targetType.getAnnotation(MappedSuperclass.class)) {
 			// the current value is a primary key for a related table.
 			try {
 				return targetType.getConstructor().newInstance();
@@ -271,5 +306,22 @@ public class Utils {
 			}
 		}
 		throw new RuntimeException("Can not convert the value " + o + " from " + currentType + " to " + targetType);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static GenericMask asPrimaryKey(final Object o) {
+		return new GenericMask() {
+			@Override
+			public <T> T mask() {
+				return (T)o;
+			}
+		};
+	}
+	
+	static void makeAccessible(Field field) throws Exception {
+	    field.setAccessible(true);
+	    Field modifiersField = Field.class.getDeclaredField("modifiers");
+	    modifiersField.setAccessible(true);
+	    modifiersField.setInt(field, field.getModifiers() & ~ Modifier.FINAL);
 	}
 }

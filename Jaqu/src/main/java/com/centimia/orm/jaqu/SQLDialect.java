@@ -61,6 +61,16 @@ public interface SQLDialect {
 	 * @throws SQLException
 	 */
 	public abstract Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException;
+	
+	/**
+	 * Retrieves the value from the result set according to the appropriate java data type.
+	 * @param type
+	 * @param rs
+	 * @param columnNumber
+	 * @return Object
+	 * @throws SQLException
+	 */
+	public abstract Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException;
 
 	/**
 	 * Checks if the table already exists. Some databases don't have this feature incorporated in their SQL language.
@@ -77,6 +87,14 @@ public interface SQLDialect {
 	 */
 	public abstract String getIdentityType();
 
+	/**
+	 * retruns the dialect specific Identity definition.
+	 * @return String
+	 */
+	default String getIdentitySuppliment() {
+		return "NOT NULL AUTO_INCREMENT";
+	}
+	
 	/**
 	 * Because Alter table is different in every dialect we used this method to add a discriminator column
 	 * @param tableName
@@ -170,5 +188,15 @@ public interface SQLDialect {
 			else
 				return "'" +  new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date) + "'";
 		}
+	}
+
+	/**
+	 * get the apporpriate query for selecting a value from a sequence
+	 * @param seqName
+	 * @return String
+	 */
+	default String getSequnceQuery(String seqName) {
+		StatementBuilder builder = new StatementBuilder("SELECT NEXT VALUE FOR ").append(seqName);
+		return builder.toString();
 	}
 }

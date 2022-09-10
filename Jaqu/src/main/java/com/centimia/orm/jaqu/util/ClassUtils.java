@@ -12,7 +12,10 @@
  */
 package com.centimia.orm.jaqu.util;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
+
+import com.centimia.orm.jaqu.annotation.Inherited;
 
 /**
  * This utility class contains functions related to class loading. There is a mechanism to restrict class loading.
@@ -58,5 +61,26 @@ public class ClassUtils {
 		if (clazz.isPrimitive())
 			return map.get(clazz);
 		return clazz;
+	}
+	
+	/**
+	 * find a field in a class
+	 * @param <A>
+	 * @param clazz
+	 * @param fieldName
+	 * @return Field
+	 * @throws NoSuchFieldException 
+	 */
+	public static <A> Field findField(Class<A> clazz, final String fieldName) throws NoSuchFieldException {
+		try {
+			return clazz.getDeclaredField(fieldName);
+		}
+		catch (NoSuchFieldException nsfe) {
+			Inherited inherited = clazz.getAnnotation(Inherited.class);
+			if (null != inherited) {
+				return findField(clazz.getSuperclass(), fieldName);
+			}
+		}
+		throw new NoSuchFieldException();
 	}
 }

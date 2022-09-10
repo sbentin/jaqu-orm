@@ -176,7 +176,20 @@ public class Function implements Token {
         return db.registerToken(o, new Function("AVG", x));
     }
     
-    
+    @SuppressWarnings("unchecked") // FIXME
+	public static <X> X concat(Db db, X ...x) {
+    	return (X) db.registerToken(x, new Function("CONCAT", x) {
+
+			@Override
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+				stat.appendSQL("(");
+				if (x.length > 2) {
+					
+				}
+			}
+    		
+    	});
+    }
     
     /**
      * This performs a like operation at column level and returns in that column a true or false value depending on what was checked.

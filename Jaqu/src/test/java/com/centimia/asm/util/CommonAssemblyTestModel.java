@@ -14,7 +14,11 @@ package com.centimia.asm.util;
 
 import java.util.List;
 
+import com.centimia.orm.jaqu.Db;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.Lazy;
+import com.centimia.orm.jaqu.annotation.RelationTypes;
+import com.centimia.orm.jaqu.annotation.Table;
 import com.centimia.orm.jaqu.annotation.Transient;
 
 /**
@@ -22,6 +26,7 @@ import com.centimia.orm.jaqu.annotation.Transient;
  *
  */
 @Entity 
+@Table(name="somthing")
 public class CommonAssemblyTestModel {
 
 	private String name;
@@ -32,6 +37,10 @@ public class CommonAssemblyTestModel {
 	
 	@Transient
 	private List<TestB> list2;
+	
+	@RelationTypes({TestB.class, Db.class})
+	@Lazy
+	private TestB aTestB;
 	
 	public CommonAssemblyTestModel() {}
 
@@ -61,6 +70,20 @@ public class CommonAssemblyTestModel {
 	 */
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
+	}
+
+	/**
+	 * @return the aTestB
+	 */
+	public TestB getaTestB() {
+		return aTestB;
+	}
+
+	/**
+	 * @param aTestB the aTestB to set
+	 */
+	public void setaTestB(TestB aTestB) {
+		this.aTestB = aTestB;
 	}
 
 	/**

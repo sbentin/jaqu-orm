@@ -33,6 +33,7 @@ import com.centimia.orm.jaqu.JaquError;
 import com.centimia.orm.jaqu.SQLDialect;
 import com.centimia.orm.jaqu.Types;
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
@@ -136,7 +137,7 @@ public class MySqlDialect implements SQLDialect {
 		else if (fieldClass.isArray()) {
 			// not recommended for real use. Arrays and relational DB don't go well together and don't make much sense!
 			Class<?> componentClass = fieldClass.getComponentType();
-			if (componentClass.getAnnotation(Entity.class) != null)
+			if (null != componentClass.getAnnotation(Entity.class) || null != componentClass.getAnnotation(MappedSuperclass.class))
 				throw new JaquError("IllegalArgument - Array of type 'com.centimia.orm.jaqu.Entity' are relations. Either mark as transient or use a Collection type instead.");
 			return "BLOB";
 		}
@@ -164,6 +165,25 @@ public class MySqlDialect implements SQLDialect {
 			default: return rs.getObject(columnName);
 		}
 	}
+	
+	/*
+	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, int)
+	 *  mapping is very close between DB types and java types so we just return the object at hand!
+	 */
+	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
+		switch (type) {
+			case BOOLEAN: return rs.getBoolean(columnNumber);
+			case BYTE: return rs.getByte(columnNumber);
+			case ENUM: return rs.getString(columnNumber);
+			case ENUM_INT: return rs.getInt(columnNumber);
+			case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
+			case LOCALDATE: return null != rs.getDate(columnNumber) ? rs.getDate(columnNumber).toLocalDate() : null;
+    		case LOCALDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null;
+    		case ZONEDDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null; // TODO this should be fixed
+    		case LOCALTIME: return null != rs.getTime(columnNumber) ? null != rs.getTime(columnNumber).toLocalTime() : null;
+			default: return rs.getObject(columnNumber);
+		}
+	}
 
 	/**
 	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentityType()
@@ -184,25 +204,11 @@ public class MySqlDialect implements SQLDialect {
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME = '" + discriminatorName + "'";
-		ResultSet rs = null;
-		try {
-			rs = db.executeQuery(query);
+		return db.executeQuery(query, rs -> {
 			if (rs.next())
 				return true;
-		}
-		catch (SQLException e) {
 			return false;
-		}
-		finally {
-			if (rs != null)
-				try {
-					rs.close();
-				}
-				catch (SQLException e) {
-					// nothing to do here
-				}
-		}
-		return false;
+		});		
 	}
 
 	/*
@@ -270,13 +276,11 @@ public class MySqlDialect implements SQLDialect {
 
 	@Override
 	public String getQueryStyleDate(TemporalAccessor temporal) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public String getQueryStyleDate(Date date) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }

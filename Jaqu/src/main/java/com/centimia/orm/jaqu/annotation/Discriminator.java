@@ -24,19 +24,19 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import com.centimia.orm.jaqu.InheritedType;
-
 /**
- * Use this annotation on a super class that should be mapped with it's children to a single table. Super classes without
- * this annotation will not be mapped to the DB.<p>
- * <b>If a super class is used in a relation, FK,O2M,M2M then:
- * <ol>
- * <li>The Inherited type must be of {@link InheritedType} DISCRIMINATOR. Otherwise jaQu will not know which table to join.</li>
- * <li>If the table name is different then the the super class type name then the super type must also take the table name using the Table annotation</li>
- * </ol>
- * 
+ * Use this annotation if your entity is a super type in an inheritance graph and you need to use a discriminator.<br>
+ * <b>To be clear, if your class is not a {@link MappedSuperclass} which makes it abstract and is inherited by another {@link Entity} and the
+ * inheritance strategy is discriminator use this annotation to let jaqu know what is the discriminator key for this entity.</b>
+ *
  * @author Shai Bentin
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface MappedSuperclass {}
+public @interface Discriminator {
+	/** the column in the DB holding the discriminator. The default is 'class'. If this column does not exist it will be created */
+	String DiscriminatorColumn() default "class";
+	
+	/** the discriminator word to be used in the discriminator column to distinguish one object child from another. */
+	char DiscriminatorValue() default ' ';
+}

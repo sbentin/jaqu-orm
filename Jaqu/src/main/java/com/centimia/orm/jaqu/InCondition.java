@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
@@ -70,7 +71,7 @@ class InCondition<A> implements Token {
         	}
         	else if (TemporalAccessor.class.isAssignableFrom(item.getClass()))
         		query.getDb().factory.getDialect().getQueryStyleDate((TemporalAccessor)item);
-        	else if (item != null && item.getClass().getAnnotation(Entity.class) != null) {
+        	else if (item != null && (null != item.getClass().getAnnotation(Entity.class) || null != item.getClass().getAnnotation(MappedSuperclass.class))) {
         		Object o = query.getDb().factory.getPrimaryKey(item);
         		if (String.class.isAssignableFrom(o.getClass()))
         			buff.append("'" + o.toString() + "'");

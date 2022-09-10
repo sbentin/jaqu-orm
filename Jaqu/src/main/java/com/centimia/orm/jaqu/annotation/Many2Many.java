@@ -39,7 +39,7 @@ public @interface Many2Many {
 	/** 
 	 * The class type of the related object. 
 	 */
-	Class<?> childType() default Object.class;
+	Class<?>[] childType() default {Object.class};
 	/** 
 	 * The name of the DB table maintaining the relationship. Default no relation table 
 	 */
@@ -58,4 +58,8 @@ public @interface Many2Many {
 	 * The other side of the relation primary key field could be named here. Correlates to the relation table. If not present JaQu attempts to find it. or fail
 	 */
 	Class<?> childPkType() default Object.class;
+	/** the name of a <b>field</b> in the other side of the relation that determines the order of the response. (field must exist and be annotated in other class) */
+	String orderBy() default "";
+	/** the direction of order by. Default is ASC" */
+	String direction() default "ASC";
 }

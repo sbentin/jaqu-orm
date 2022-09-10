@@ -93,9 +93,17 @@ public class EntityDeleteTest extends JaquTest {
 			// workPlace is a many to many relationship, when deleted all relationships are deleted from the relation table as well.
 			deleted = db.from(wDesc).where(wDesc.getId()).is(1L).delete();
 			assertEquals(1, deleted);
-			
+			db.commit();
+			tearDown();
+		}
+		catch (Throwable e) {
+			db.rollback();
+			result.addError(this, e);
+		}
+		try {
+			setUp();
 			// reinsert person 1L into db
-			me = new Person(1L, "Shai", "Bentin");
+			Person me = new Person(1L, "Shai", "Bentin");
 			HashSet<Phone> phoneList = new HashSet<Phone>();
 			phoneList.add(new Phone(1L, "1234567"));
 			phoneList.add(new Phone(2L, "98765432"));

@@ -31,11 +31,11 @@ public class JaquPlugin implements Plugin<Project> {
 
 	public void apply(Project prj) {
 		try {
-			prj.getPlugins().getPlugin("java");
+			prj.getPlugins().getPlugin("java-library");
 		}
 		catch (Exception e) {
 			System.out.println("Adding dependency java plugin....");
-			prj.getPlugins().apply("java");
+			prj.getPlugins().apply("java-library");
 		}
 
 		Task postCompile = prj.task("jaquPostCompile");

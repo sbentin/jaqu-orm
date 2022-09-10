@@ -75,8 +75,8 @@ public class PojoUtils {
      * @param statement
      * @return {@link PreparedStatement}
      */
-    public PreparedStatement getPreparedStatement(String statement) {
-    	return db.prepare(statement);
+    public PreparedStatement getPreparedStatement(String statement, String ... idColumnNames) {
+    	return db.prepare(statement, idColumnNames);
     }
     
     /**
@@ -267,7 +267,8 @@ public class PojoUtils {
     	PreparedStatement ps = insertStatements.get(clazz);
     	if (null == ps) {
     		TableDefinition<?> definition = JaquSessionFactory.define(clazz, db);
-     		ps = db.prepare(getInsertStatement(definition, externalizePk).toString());
+    		String[] idColumnNames = null != definition.getPrimaryKeyFields() ? definition.getPrimaryKeyFields().stream().map(fd -> fd.columnName).toArray(String[]::new) : new String[0];
+     		ps = db.prepare(getInsertStatement(definition, externalizePk).toString(), idColumnNames);
      		insertStatements.put(clazz, ps);
     	}
     	return ps;
@@ -284,9 +285,10 @@ public class PojoUtils {
     	PreparedStatement ps = updateStatements.get(clazz);
     	if (null == ps) {
     		TableDefinition<?> definition = JaquSessionFactory.define(clazz, db);
+    		String[] idColumnNames = null != definition.getPrimaryKeyFields() ? definition.getPrimaryKeyFields().stream().map(fd -> fd.columnName).toArray(String[]::new) : new String[0];
     		StatementBuilder builder = getUpdateStatement(definition, clazz);
     		if (null != builder) {
-    			ps = db.prepare(builder.toString());
+    			ps = db.prepare(builder.toString(), idColumnNames);
     			updateStatements.put(clazz, ps);
     		}
     		else
@@ -306,7 +308,8 @@ public class PojoUtils {
     	PreparedStatement ps = deleteStatements.get(clazz);
     	if (null == ps) {
     		TableDefinition<?> definition = JaquSessionFactory.define(clazz, db);
-   			ps = db.prepare(getDeleteStatement(definition, clazz).toString());
+    		String[] idColumnNames = null != definition.getPrimaryKeyFields() ? definition.getPrimaryKeyFields().stream().map(fd -> fd.columnName).toArray(String[]::new) : new String[0];
+   			ps = db.prepare(getDeleteStatement(definition, clazz).toString(), idColumnNames);
     		deleteStatements.put(clazz, ps);
     	}
     	return ps;
@@ -439,7 +442,7 @@ public class PojoUtils {
 		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
 		buff.append(def.tableName).append('(');
 		if (InheritedType.DISCRIMINATOR == def.inheritedType) {
-			// the inheritense is based on a single table with a discriminator
+			// the inheritance is based on a single table with a discriminator
 			fieldTypes.appendExceptFirst(", ");
 			fieldTypes.append(def.discriminatorColumn);
 			valueTypes.appendExceptFirst(", ");

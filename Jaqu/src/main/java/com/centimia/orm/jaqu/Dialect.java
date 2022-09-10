@@ -81,6 +81,18 @@ public enum Dialect {
 	}
 
 	/**
+	 * Get the value from the result set based on the dialect data types
+	 * @param type
+	 * @param rs
+	 * @param columnNumber
+	 * @return Object
+	 * @throws SQLException
+	 */
+	Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
+		return dialect.getValueByType(type, rs, columnNumber);
+	}
+	
+	/**
 	 * Check if the table object (given by name) exists in the DB
 	 * @param tableName
 	 * @param db
@@ -120,6 +132,14 @@ public enum Dialect {
 	 */
 	String getIdentityType() {
 		return dialect.getIdentityType();
+	}
+	
+	/**
+	 * retruns the dialect specific Identity definition.
+	 * @return String
+	 */
+	String getIdentitySuppliment() {
+		return dialect.getIdentitySuppliment();
 	}
 	
 	/**
@@ -201,5 +221,9 @@ public enum Dialect {
 		if (clazz.toLowerCase().indexOf("h2") != -1)
 			return H2;
 		return H2;
+	}
+
+	public String getSequenceQuery(String seqName) {
+		return dialect.getSequnceQuery(seqName);	
 	}
 }

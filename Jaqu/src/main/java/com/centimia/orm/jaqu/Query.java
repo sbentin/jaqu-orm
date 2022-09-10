@@ -12,8 +12,6 @@
  */
 package com.centimia.orm.jaqu;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -22,7 +20,6 @@ import java.util.Map;
 
 import com.centimia.orm.jaqu.ISelectTable.JOIN_TYPE;
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
-import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.Utils;
 
 /**
@@ -60,18 +57,11 @@ public class Query<T> implements FullQueryInterface<T> {
     public long selectCount() {
         SQLStatement selectList = new SQLStatement(db);
         selectList.setSQL("COUNT(*)");
-        ResultSet rs = prepare(selectList, false).executeQuery();
-        try {
-            rs.next();
+        return prepare(selectList, false).executeQuery(rs -> {
+        	rs.next();
             long value = rs.getLong(1);
             return value;
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
+        });
     }
 
     /*
@@ -315,25 +305,21 @@ public class Query<T> implements FullQueryInterface<T> {
 	        from.appendSQL(stat);
 	        appendWhere(stat);
 	        if (db.factory.isShowSQL())
-	        	StatementLogger.delete(stat.logSQL());
-	        ResultSet rs = stat.executeQuery();
-	        try {
-	            while (rs.next()) {
-	                T item = from.getAliasDefinition().readRow(rs, db);
-	                for (FieldDefinition fdef: def.getFields()) {
-	                	if (fdef.fieldType.ordinal() > 1) {
-	                		// this is a relation
-	                		db.deleteParentRelation(fdef, item); // item has relations so it must be a Entity type
-	                	}
-	                }
-	            }
-	        } 
-	        catch (SQLException e) {
-	            throw new JaquError(e, e.getMessage());
-	        } 
-	        finally {
-	            JdbcUtils.closeSilently(rs);
-	        }
+	        	StatementLogger.select(stat.logSQL());
+
+	        stat.executeQuery(rs -> {
+				while (rs.next()) {
+				    T item = from.getAliasDefinition().readRow(rs, db);
+				    for (FieldDefinition fdef: def.getFields()) {
+				    	if (fdef.fieldType.isCollectionRelation()) {
+				    		// this is a relation
+				    		db.deleteParentRelation(fdef, item); // item has relations so it must be a Entity type
+				    	}
+				    }
+				    db.multiCallCache.removeReEntrent(item);
+				}
+	        	return null;
+	        });
         }
         stat = new SQLStatement(db);
         // Nasty hack for MYSQL
@@ -345,6 +331,7 @@ public class Query<T> implements FullQueryInterface<T> {
         appendWhere(stat);
         if (db.factory.isShowSQL())
         	StatementLogger.delete(stat.logSQL());
+        db.multiCallCache.clearReEntrent();
         return stat.executeUpdate();
     }
     
@@ -361,6 +348,7 @@ public class Query<T> implements FullQueryInterface<T> {
         	throw new JaquError("IllegalState - To perform update use the set directive after from...!!!");
         if (db.factory.isShowSQL())
         	StatementLogger.update(stat.logSQL());
+        db.multiCallCache.clearReEntrent();
         return stat.executeUpdate();
     }
     
@@ -678,15 +666,6 @@ public class Query<T> implements FullQueryInterface<T> {
             for (Token token : conditions) {
                 token.appendSQL(stat, this);
                 stat.appendSQL(" ");
-                // FIXME Here is the specific use of the PkConditions. When inheritance is done base on a discriminator it may be the situation
-                // where the object that needs to be mapped declares a parent (in a relationship O2O or O2M) but the actual data represents an
-                // inherited child. Since this is internally fetched by JaQu, and since this is based on a definite and known primary key
-                // we can omit the discriminator in the query. This opens the discussion to potential problems as the object type returned is not
-                // the inherited child but the parent type. For one it will be impossible to cast it to the child and get the other fields since they will not
-                // exist. It could also be a problem saving it as updating may override the type of object. 
-                // Best thing if we could return an the actual child type here, if not maybe find a way to return an immutable object.
-                if (PkCondition.class.isAssignableFrom(token.getClass()) || PkInCondition.class.isAssignableFrom(token.getClass()))
-                	useDiscriminator = false;
             }
             
             // add the discriminator if 'T' is a part of an inheritance tree.
@@ -809,21 +788,15 @@ public class Query<T> implements FullQueryInterface<T> {
     	List<T> result = Utils.newArrayList();
         TableDefinition<T> def = from.getAliasDefinition();
         SQLStatement selectList = def.getSelectList(db, from.getAs());
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        try {
-            while (rs.next()) {
-                T item = def.readRow(rs, db);
-                db.addSession(item);
-                result.add(item);
-            }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
-        
+        prepare(selectList, distinct).executeQuery(rs -> {
+        	 while (rs.next()) {
+                 T item = def.readRow(rs, db);
+                 db.addSession(item);
+                 result.add(item);
+             }
+        	 return null;
+        });
+       
         return result;
     }
    
@@ -839,20 +812,14 @@ public class Query<T> implements FullQueryInterface<T> {
     	SQLStatement unuionSelectList = unionDef.getSelectList(db, unionQuery.from.getAs());
     	
     	selectList = prepare(selectList, distinct);
-    	ResultSet rs = selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct));    	
-    	try {
-            while (rs.next()) {
+    	selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct), rs -> {
+    		while (rs.next()) {
                 T item = def.readRow(rs, db);
                 db.addSession(item);
                 result.add(item);
             }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
+    		return null;
+    	});    	
     	return result;
     }
     
@@ -873,19 +840,13 @@ public class Query<T> implements FullQueryInterface<T> {
 		    	SQLStatement unuionSelectList = def.getSelectList(db, unionQuery.from.getAs());
 		    	
 		    	selectList = prepare(selectList, distinct);
-		    	ResultSet rs = selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct));    	
-		    	try {
-		            while (rs.next()) {
+		    	selectList.executeUnion(unionQuery.prepare(unuionSelectList, distinct), rs -> {
+		    		while (rs.next()) {
 		                X item = def.readRow(rs, db);
 		                result.add(item);
 		            }
-		        } 
-		        catch (SQLException e) {
-		            throw new JaquError(e, e.getMessage());
-		        } 
-		        finally {
-		            JdbcUtils.closeSilently(rs);
-		        }
+		    		return null;
+		    	});
 		    	return result;
 			}
 		}
@@ -899,30 +860,27 @@ public class Query<T> implements FullQueryInterface<T> {
     	if (this.joins == null || this.joins.isEmpty())
     		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getClass().getName());
     	
-    	TableDefinition<U> def = null;
+    	TableDefinition<U> definition = null;
     	String as = null;
     	for (SelectTable<?> selectTable: joins) {
     		if (selectTable.getAlias() == tableClass) {
     			as = selectTable.getAs();
-    			def = (TableDefinition<U>) selectTable.getAliasDefinition();
+    			definition = (TableDefinition<U>) selectTable.getAliasDefinition();
+    			break;
     		}
     	}
+    	final TableDefinition<U> def = definition;
     	SQLStatement selectList = def.getSelectList(db, as);
     	List<U> result = Utils.newArrayList();
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        try {
-            while (rs.next()) {
+        prepare(selectList, distinct).executeQuery(rs -> {
+        	while (rs.next()) {
                 U item = def.readRow(rs, db);
                 db.addSession(item);
                 result.add(item);
             }
-        } 
-        catch (Exception e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
+        	return null;
+        });
+        
         return result;
     }
 
@@ -945,23 +903,19 @@ public class Query<T> implements FullQueryInterface<T> {
 		    		}
 		    	}
 	        
-	        	ResultSet rs = prepare(selectList, distinct).executeQuery();
-	        	try {
-                	while (rs.next()) {
+	        	prepare(selectList, distinct).executeQuery(rs -> {
+	        		while (rs.next()) {
 		        		Z value = null;
 	                	if (x.getClass().isEnum())
 	                		value = (Z)handleAsEnum(x.getClass(), rs.getObject(1));
-	                	else
-	                    	value = (Z) rs.getObject(1);
+	                	else {
+	                    	Types type = Types.valueOf(x.getClass().getSimpleName().toUpperCase());
+	                		value = (Z) db.factory.getDialect().getValueByType(type, rs, 1);
+	                	}
 	                    result.add(value);
                 	}
-                } 
-                catch (Exception e) {
-                    throw new JaquError(e, e.getMessage());
-                }
-	        	finally {
-	                JdbcUtils.closeSilently(rs);
-	            }
+	        		return null;
+	        	});	        	
 	        }
 	        else
 	        	throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
@@ -986,35 +940,32 @@ public class Query<T> implements FullQueryInterface<T> {
         appendSQL(selectList, key, false, null);
         selectList.appendSQL(", ");
         appendSQL(selectList, value, false, null);
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
         Map<K, V> result = Utils.newHashMap();
-        try {
-            while (rs.next()) {
+        prepare(selectList, distinct).executeQuery(rs -> {
+        	while (rs.next()) {
                 try {
                 	K theKey = null;
                 	V theValue = null;
                 	if (key.getClass().isEnum())
                 		theKey = (K)handleAsEnum(key.getClass(), rs.getObject(1));
-                	else
-                		theKey = (K) rs.getObject(1);
-                	
+                	else {
+                		Types type = Types.valueOf(value.getClass().getSimpleName().toUpperCase());
+                		theKey = (K) db.factory.dialect.getValueByType(type, rs, 1);
+                	}
                 	if (value.getClass().isEnum())
                 		theValue = (V)handleAsEnum(value.getClass(), rs.getObject(2));
-                	else
-                		theValue = (V) rs.getObject(2);
+                	else {
+                		Types type = Types.valueOf(value.getClass().getSimpleName().toUpperCase());
+                		theValue = (V) db.factory.dialect.getValueByType(type, rs, 2);
+                	}
                     result.put(theKey, theValue);
                 } 
                 catch (Exception e) {
                     throw new JaquError(e, e.getMessage());
                 }
             }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
+        	return null;
+        });
         return result;
     }
     
@@ -1022,19 +973,13 @@ public class Query<T> implements FullQueryInterface<T> {
         List<X> result = Utils.newArrayList();
         TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
         SQLStatement selectList = def.getSelectList(this, x);
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
-        try {
-            while (rs.next()) {
-                X row = def.readRow(rs, db);
-                result.add(row);
-            }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
+        prepare(selectList, distinct).executeQuery(rs -> {
+        	 while (rs.next()) {
+                 X row = def.readRow(rs, db);
+                 result.add(row);
+             }
+        	 return null;
+        });
         return result;
     }
 
@@ -1042,29 +987,25 @@ public class Query<T> implements FullQueryInterface<T> {
     private <X> List<X> getSimple(X x, boolean distinct) {
         SQLStatement selectList = new SQLStatement(db);
         appendSQL(selectList, x, false, null);
-        ResultSet rs = prepare(selectList, distinct).executeQuery();
         List<X> result = Utils.newArrayList();
-        try {
-            while (rs.next()) {
+        prepare(selectList, distinct).executeQuery(rs -> {
+        	while (rs.next()) {
                 try {
                 	X value = null;
                 	if (x.getClass().isEnum())
                 		value = (X)handleAsEnum(x.getClass(), rs.getObject(1));
-                	else
-                    	value = (X) rs.getObject(1);
+                	else {
+                		Types type = Types.valueOf(x.getClass().getSimpleName().toUpperCase());
+                		value = (X) db.factory.getDialect().getValueByType(type, rs, 1);
+                	}
                     result.add(value);
                 } 
                 catch (Exception e) {
                     throw new JaquError(e, e.getMessage());
                 }
             }
-        } 
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        } 
-        finally {
-            JdbcUtils.closeSilently(rs);
-        }
+        	return null;
+        });
         return result;
     }
 

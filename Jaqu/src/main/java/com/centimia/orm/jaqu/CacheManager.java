@@ -15,6 +15,7 @@ package com.centimia.orm.jaqu;
 import java.util.Map;
 
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.Utils;
 
 /**
@@ -41,7 +42,9 @@ final class CacheManager {
 			innerMap = Utils.newHashMap();
 			cache.put(obj.getClass(), innerMap);
 		}
-		innerMap.put(factory.getPrimaryKey(obj).toString(), obj);
+		String primaryKey = factory.getPrimaryKey(obj).toString();
+		if (null == innerMap.get(primaryKey))
+			innerMap.put(primaryKey, obj);
 	}
     
     /**
@@ -67,7 +70,7 @@ final class CacheManager {
      * @return boolean
      */
     boolean checkReEntrent(Object obj) {
-		if (null != obj.getClass().getAnnotation(Entity.class))
+		if (null != obj && (null != obj.getClass().getAnnotation(Entity.class) || null != obj.getClass().getAnnotation(MappedSuperclass.class)))
 			return checkReEntrent(obj.getClass(), factory.getPrimaryKey(obj)) != null;
 		return false;
 	}

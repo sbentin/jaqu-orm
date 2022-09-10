@@ -21,6 +21,7 @@
 package com.centimia.orm.jaqu;
 
 import com.centimia.orm.jaqu.annotation.Entity;
+import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 
 /**
  * Use for Update Set directive in an update query.
@@ -45,7 +46,7 @@ class SetDirective<A> implements Token {
 		query.appendSQL(stat, x, false, null);
 		stat.appendSQL(" = ");
 		// for relationship support
-		if (value != null && value.getClass().getAnnotation(Entity.class) != null) {
+		if (value != null && (null != value.getClass().getAnnotation(Entity.class) || null != value.getClass().getAnnotation(MappedSuperclass.class))) {
 			query.getDb().merge(value);
 			query.appendSQL(stat, query.getDb().factory.getPrimaryKey(value), false, null);
 		}
