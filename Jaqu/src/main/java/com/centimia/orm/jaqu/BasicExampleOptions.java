@@ -26,7 +26,7 @@ public class BasicExampleOptions extends GeneralExampleOptions {
 		
 		TableDefinition<?> tDef = JaquSessionFactory.define(example.getClass(), db);
 		for (FieldDefinition fDef: tDef.getFields()) {
-			if (fDef.isSilent)
+			if (fDef.isSilent || fDef.isExtension)
 				continue; // this field can not be selected upon.
 			else if (fDef.fieldType != FieldType.NORMAL) {
 				addExcludeProp(fDef.field.getName());

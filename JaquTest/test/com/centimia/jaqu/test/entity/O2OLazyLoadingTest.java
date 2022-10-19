@@ -54,6 +54,7 @@ public class O2OLazyLoadingTest extends JaquTest {
 			TableD tableD = new TableD("Test Lazy Parent", null);
 			db.insert(tableD);
 			assertNotNull(tableD.getId());
+			Long tableDId = tableD.getId();
 			db.commit();
 			
 			// because we are caching objects on within session we now have to close the session
@@ -62,7 +63,7 @@ public class O2OLazyLoadingTest extends JaquTest {
 			db = sessionFactory.getSession();
 			// now we reRead these objects and check that initially we don't receive c and after calling get we do.
 			TableD desc = new TableD();
-			desc = db.from(desc).primaryKey().is(tableD.getId()).selectFirst();
+			desc = db.from(desc).primaryKey().is(tableDId).selectFirst();
 			assertNotNull(desc);
 			assertNotNull(desc.tableC);
 			
@@ -71,14 +72,9 @@ public class O2OLazyLoadingTest extends JaquTest {
 			assertTrue(isLazy);
 			db.close();
 			
-			try {
-				desc.getTableC();
-				fail();
-			}
-			catch (Exception e) {
-				// if we're  here everything is fine.
-				System.err.println(e.getMessage());
-			}
+			TableC shouldBeNull = desc.getTableC();
+			assertNull(shouldBeNull);
+
 			db = sessionFactory.getSession();
 			desc.setTableC(tableC);
 			db.update(desc);
@@ -86,7 +82,7 @@ public class O2OLazyLoadingTest extends JaquTest {
 			db.close();
 			
 			db = sessionFactory.getSession();
-			desc = db.from(desc).primaryKey().is(tableD.getId()).selectFirst();
+			desc = db.from(desc).primaryKey().is(tableDId).selectFirst();
 			assertNotNull(desc.tableC);
 			isLazyField = desc.tableC.getClass().getDeclaredField("isLazy");
 			isLazy = isLazyField.getBoolean(desc.tableC);
@@ -95,6 +91,25 @@ public class O2OLazyLoadingTest extends JaquTest {
 			TableC c = desc.getTableC();
 			assertNotNull(c);
 			assertEquals(tableC.getId(), c.getId());
+			Long tableCId = c.getId();
+			db.close();
+			
+			// test delete of lazy relation
+			db = sessionFactory.getSession();
+			TableD deleteMe = new TableD();
+			deleteMe.setId(tableDId);
+			// we're deleting the object and its cascades by the given primaryKey only
+			db.delete(deleteMe);
+			db.commit();
+			db.close();
+			
+			db = sessionFactory.getSession();
+			desc = new TableD();
+			desc = db.from(desc).primaryKey().is(tableDId).selectFirst();
+			assertNull(desc);
+			c = new TableC();
+			c = db.from(c).primaryKey().is(tableCId).selectFirst();
+			assertNull(c);
 		}
 		catch (Exception e) {
 			db.rollback();

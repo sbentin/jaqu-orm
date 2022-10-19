@@ -222,15 +222,7 @@ public class Utils {
 			    constructor.setAccessible(true);
 			    sun.misc.Unsafe unsafe = (sun.misc.Unsafe) constructor.newInstance();
 			    Object enumValue = unsafe.allocateInstance(clazz);
-			    
-			    Field ordinalField = Enum.class.getDeclaredField("ordinal");
-			    makeAccessible(ordinalField);
-			    ordinalField.setInt(enumValue, clazz.getEnumConstants().length);
-
-			    Field nameField = Enum.class.getDeclaredField("name");
-			    makeAccessible(nameField);
-			    nameField.set(enumValue, "" + COUNTER.incrementAndGet());
-			    return (E)enumValue;	
+			    return (E)enumValue;
 			}
 			catch (Exception e) {				
 				e.printStackTrace();
@@ -241,7 +233,7 @@ public class Utils {
 	
 	/**
 	 * returns true when the object represents a DB simple type and could be held in a column.
-	 * This method is called for selectable fields, however because of the way blobs work it will not work for
+	 * This method is called for select able fields, however because of the way blobs work it will not work for
 	 * Objects that are stored as blobs, clobs
 	 * 
 	 * @param clazz

@@ -56,4 +56,11 @@ public class JaquError extends RuntimeException {
 	public JaquError(Throwable cause) {
 		super(cause);
 	}
+	
+	/**
+	 * @return true if this error is a deadlock error
+	 */
+	public boolean isDeadLockError() {
+		return null != this.getMessage() && this.getMessage().indexOf("Deadlock") != -1;
+	}
 }

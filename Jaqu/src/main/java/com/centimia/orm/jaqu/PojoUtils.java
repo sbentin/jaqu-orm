@@ -332,7 +332,7 @@ public class PojoUtils {
 				// skip identity types because these are auto incremented
         		continue;
 			
-			if (field.isSilent)
+			if (field.isSilent || field.isExtension)
 				// skip silent fields because they don't really exist.
         		continue;
         	
@@ -384,7 +384,9 @@ public class PojoUtils {
     	TableDefinition<?> definition = JaquSessionFactory.define(tClazz, db);
 		int i = 1;
     	for (FieldDefinition field : definition.getFields()) {
-			if (!field.isPrimaryKey) {
+			if (field.isExtension)
+				continue;
+    		if (!field.isPrimaryKey) {
 				if (field.fieldType == FieldType.FK) {
 					setValue(ps, i, getFkValue(obj, field));
 					i++;
@@ -453,7 +455,7 @@ public class PojoUtils {
 				// skip identity types because these are auto incremented
         		continue;
 			
-			if (field.isSilent)
+			if (field.isSilent || field.isExtension)
 				// skip silent fields because they don't really exist.
         		continue;
 			
@@ -483,7 +485,7 @@ public class PojoUtils {
 		boolean hasNoSilent = false;
 		for (FieldDefinition field : def.getFields()) {
 			if (!field.isPrimaryKey) {
-				if (field.fieldType == FieldType.FK || !field.isSilent) {
+				if (field.fieldType == FieldType.FK || !field.isSilent || !field.isExtension) {
 					innerUpdate.appendExceptFirst(", ");
 					innerUpdate.append(as + ".");
 					innerUpdate.append(field.columnName);

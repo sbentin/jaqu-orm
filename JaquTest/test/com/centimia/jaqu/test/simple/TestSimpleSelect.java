@@ -17,11 +17,12 @@ package com.centimia.jaqu.test.simple;
 
 import java.util.List;
 
-import junit.framework.TestResult;
-
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.Function;
 import com.centimia.orm.jaqu.HavingFunctions;
 import com.centimia.orm.jaqu.LikeMode;
+
+import junit.framework.TestResult;
 
 /**
  * 
@@ -36,7 +37,7 @@ public class TestSimpleSelect extends JaquTest {
 	 */
 	@Override
 	public String getName() {
-		return "Simple 'LIKE' Tests ";
+		return "Simple 'Function' Tests ";
 	}
 
 	/* (non-Javadoc)
@@ -58,6 +59,11 @@ public class TestSimpleSelect extends JaquTest {
 			rows = db.from(desc).where(desc.getName()).like("me1", LikeMode.START).select();
 			assertEquals(5, rows.size());
 			
+			List<String> concats = db.from(desc).select(Function.concat(db, "concatedVal", desc.getName(), " ", desc.getValue(), " ", desc.season));
+			assertNotNull(concats);
+			assertTrue(concats.size() > 0);
+			for (String concat: concats)
+				System.out.println(concat);
 			tearDown();
 		}
 		catch (Throwable e){

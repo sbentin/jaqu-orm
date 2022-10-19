@@ -82,7 +82,7 @@ class SelectTable<T> implements ISelectTable<T> {
      */
     void appendSqlColumnFromField(SQLStatement stat, Object descValue) {
     	for (FieldDefinition def: aliasDef.getFields()) {
-    		if (def.isSilent)
+    		if (def.isSilent || def.isExtension)
 				continue;
     		if (descValue.equals(def.getValue(alias))){
     			// this is the field we're looking for

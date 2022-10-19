@@ -84,11 +84,6 @@ public class TransactionTests extends JaquTest {
 		pool.getDriverProperties().setProperty("URL", "jdbc:mysql://10.18.100.13:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
 
 		
-//		com.mysql.jdbc.jdbc2.optional.MysqlDataSource pool = new com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
-//		pool.setURL("jdbc:mysql://192.168.13.7:3306/JAQU?useUnicode=true&amp;characterEncoding=UTF8");
-//		pool.setUser("JAQU");
-//		pool.setPassword("JAQU");
-
 		sessionFactory = new JaquSessionFactory(pool, false, Connection.TRANSACTION_READ_COMMITTED);
 		sessionFactory.setDialect(Dialect.MYSQL);
 		sessionFactory.setCreateTable(false);
@@ -151,7 +146,7 @@ public class TransactionTests extends JaquTest {
 				Person person = dbSession.from(desc).primaryKey().is(1L).selectFirst();
 				
 				assertEquals("Shai", person.getFirstName());
-				dbSession.from(desc).set(desc.getFirstName(), "NewShai"+name).where(desc.getId()).is(1L).update();
+				dbSession.from(desc).set(desc.getFirstName(), "NewShai" + name).where(desc.getId()).is(1L).update();
 
 				System.out.println(name + " --> " + "update Done!!!");
 				person = dbSession.from(desc).primaryKey().is(1L).selectFirst();

@@ -22,12 +22,12 @@ package com.centimia.jaqu.test.inheritance;
 import java.util.List;
 
 import com.centimia.orm.jaqu.GeneratorType;
-import com.centimia.orm.jaqu.InheritedType;
 import com.centimia.orm.jaqu.annotation.Column;
+import com.centimia.orm.jaqu.annotation.Discriminator;
 import com.centimia.orm.jaqu.annotation.Entity;
-import com.centimia.orm.jaqu.annotation.Inherited;
 import com.centimia.orm.jaqu.annotation.One2Many;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
+import com.centimia.orm.jaqu.annotation.RelationTypes;
 import com.centimia.orm.jaqu.annotation.Table;
 
 /**
@@ -36,7 +36,7 @@ import com.centimia.orm.jaqu.annotation.Table;
  */
 @Entity
 @Table(name="DISCRIMINATOR")
-@Inherited(inheritedType=InheritedType.DISCRIMINATOR, DiscriminatorValue='S')
+@Discriminator(DiscriminatorValue='S')
 public class SuperClass {
 
 	@PrimaryKey(generatorType=GeneratorType.IDENTITY)
@@ -48,6 +48,7 @@ public class SuperClass {
 	@Column(name="LAST_NAME")
 	private String lastName;
 	
+	@RelationTypes({SuperClass.class, InherittedClass.class})
 	private SuperClass partner;
 	
 	@One2Many(childPkType=Long.class, eagerLoad=true, joinTableName="PARENT_TO_CHILD", relationFieldName="superClass")

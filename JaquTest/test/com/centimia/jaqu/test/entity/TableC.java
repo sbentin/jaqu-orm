@@ -31,13 +31,14 @@ import com.centimia.orm.jaqu.annotation.PrimaryKey;
  */
 @Entity
 public class TableC implements Serializable{
-
 	private static final long	serialVersionUID	= 3873738844948207194L;
 
 	@PrimaryKey(generatorType=GeneratorType.IDENTITY)
 	public Long id;
 	
 	public String name;
+	
+	public TableA aId;
 	
 	public TableC() {
 		
@@ -73,5 +74,19 @@ public class TableC implements Serializable{
 	 */
 	public void setName(String name) {
 		this.name = name;
+	}
+	
+	/**
+	 * @return the aId
+	 */
+	public TableA getaId() {
+		return aId;
+	}
+
+	/**
+	 * @param aId the aId to set
+	 */
+	public void setaId(TableA aId) {
+		this.aId = aId;
 	}
 }

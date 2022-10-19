@@ -297,59 +297,67 @@ public class Query<T> implements FullQueryInterface<T> {
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#delete()
 	 */
     public int delete() {
-    	TableDefinition<T> def = from.getAliasDefinition();
-        SQLStatement stat = new SQLStatement(db);
-        if (def.isAggregateParent) {
-        	// before we delete we must take care of relationships
-	        stat.appendSQL("SELECT * FROM ");
-	        from.appendSQL(stat);
-	        appendWhere(stat);
-	        if (db.factory.isShowSQL())
-	        	StatementLogger.select(stat.logSQL());
+    	try {
+			TableDefinition<T> def = from.getAliasDefinition();
+			SQLStatement stat = new SQLStatement(db);
+			if (def.isAggregateParent) {
+				// before we delete we must take care of relationships
+				stat.appendSQL("SELECT * FROM ");
+				from.appendSQL(stat);
+				appendWhere(stat);
+				if (db.factory.isShowSQL())
+					StatementLogger.select(stat.logSQL());
 
-	        stat.executeQuery(rs -> {
-				while (rs.next()) {
-				    T item = from.getAliasDefinition().readRow(rs, db);
-				    for (FieldDefinition fdef: def.getFields()) {
-				    	if (fdef.fieldType.isCollectionRelation()) {
-				    		// this is a relation
-				    		db.deleteParentRelation(fdef, item); // item has relations so it must be a Entity type
-				    	}
-				    }
-				    db.multiCallCache.removeReEntrent(item);
-				}
-	        	return null;
-	        });
-        }
-        stat = new SQLStatement(db);
-        // Nasty hack for MYSQL
-        if (def.DIALECT == Dialect.MYSQL)
-        	stat.appendSQL("DELETE " + from.getAs() + " FROM ");
-        else
-        	stat.appendSQL("DELETE FROM ");
-        from.appendSQL(stat);
-        appendWhere(stat);
-        if (db.factory.isShowSQL())
-        	StatementLogger.delete(stat.logSQL());
-        db.multiCallCache.clearReEntrent();
-        return stat.executeUpdate();
+				stat.executeQuery(rs -> {
+					while (rs.next()) {
+						T item = from.getAliasDefinition().readRow(rs, db);
+						for (FieldDefinition fdef : def.getFields()) {
+							if (fdef.fieldType.isCollectionRelation()) {
+								// this is a relation
+								db.deleteParentRelation(fdef, item); // item has relations so it must be a Entity type
+							}
+						}
+						db.multiCallCache.removeReEntrent(item);
+					}
+					return null;
+				});
+			}
+			stat = new SQLStatement(db);
+			// Nasty hack for MYSQL
+			if (def.DIALECT == Dialect.MYSQL)
+				stat.appendSQL("DELETE " + from.getAs() + " FROM ");
+			else
+				stat.appendSQL("DELETE FROM ");
+			from.appendSQL(stat);
+			appendWhere(stat);
+			if (db.factory.isShowSQL())
+				StatementLogger.delete(stat.logSQL());			
+			return stat.executeUpdate();
+		}
+		finally {
+			db.multiCallCache.clearReEntrent();
+		}
     }
     
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#update()
 	 */
     public int update() {
-        SQLStatement stat = new SQLStatement(db);
-        stat.appendSQL("UPDATE ");
-        from.appendSQL(stat);
-        appendUpdate(stat);
-        appendWhere(stat);
-        if (stat.getSQL().indexOf("SET") == -1)
-        	throw new JaquError("IllegalState - To perform update use the set directive after from...!!!");
-        if (db.factory.isShowSQL())
-        	StatementLogger.update(stat.logSQL());
-        db.multiCallCache.clearReEntrent();
-        return stat.executeUpdate();
+        try {
+			SQLStatement stat = new SQLStatement(db);
+			stat.appendSQL("UPDATE ");
+			from.appendSQL(stat);
+			appendUpdate(stat);
+			appendWhere(stat);
+			if (stat.getSQL().indexOf("SET") == -1)
+				throw new JaquError("IllegalState - To perform update use the set directive after from...!!!");
+			if (db.factory.isShowSQL())
+				StatementLogger.update(stat.logSQL());			
+			return stat.executeUpdate();
+		}
+		finally {
+			db.multiCallCache.clearReEntrent();
+		}
     }
     
     
@@ -779,6 +787,8 @@ public class Query<T> implements FullQueryInterface<T> {
     @SuppressWarnings("unchecked")
 	private <X> String getSQL(X x, boolean distinct) {
     	Class<X> clazz = (Class<X>) x.getClass();
+    	if (clazz.isAnonymousClass())
+    		clazz = (Class<X>) clazz.getSuperclass();
     	TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
         SQLStatement selectList = def.getSelectList(this, x);
         return prepare(selectList, false).logSQL().trim();
@@ -850,7 +860,7 @@ public class Query<T> implements FullQueryInterface<T> {
 		    	return result;
 			}
 		}
-		return new ArrayList<>();    	
+		return new ArrayList<>();
     }
     
 	@SuppressWarnings("unchecked")
@@ -915,7 +925,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	                    result.add(value);
                 	}
 	        		return null;
-	        	});	        	
+	        	});
 	        }
 	        else
 	        	throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
@@ -959,7 +969,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 		theValue = (V) db.factory.dialect.getValueByType(type, rs, 2);
                 	}
                     result.put(theKey, theValue);
-                } 
+                }
                 catch (Exception e) {
                     throw new JaquError(e, e.getMessage());
                 }
@@ -999,7 +1009,7 @@ public class Query<T> implements FullQueryInterface<T> {
                 		value = (X) db.factory.getDialect().getValueByType(type, rs, 1);
                 	}
                     result.add(value);
-                } 
+                }
                 catch (Exception e) {
                     throw new JaquError(e, e.getMessage());
                 }

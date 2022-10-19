@@ -23,6 +23,8 @@ package com.centimia.jaqu.test.simple;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.centimia.orm.jaqu.annotation.Extension;
+
 /**
  * @author shai
  *
@@ -33,6 +35,9 @@ public class TableForFunctions {
 	public String name;
 	public Double value;
 	public SEASON season;
+	
+	@Extension
+	public String concatenated;
 	
 	public TableForFunctions(){
 		

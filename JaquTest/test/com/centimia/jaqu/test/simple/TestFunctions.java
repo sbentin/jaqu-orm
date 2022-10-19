@@ -4,6 +4,7 @@
 package com.centimia.jaqu.test.simple;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import junit.framework.TestResult;
@@ -62,7 +63,7 @@ public class TestFunctions extends JaquTest {
 						
 			// get the sum in the table
 			Double sumValue = db.from(desc).selectFirst(Function.sum(desc.getValue(), db));
-			assertEquals(48.0D, new BigDecimal(sumValue).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
+			assertEquals(48.0D, new BigDecimal(sumValue).setScale(1, RoundingMode.CEILING).doubleValue());
 						
 			// get the count in the table
 			// the following allows doing a count with some kind of a where clause to filter the table.
@@ -79,7 +80,7 @@ public class TestFunctions extends JaquTest {
 			
 			// get the average value
 			Double avgValue = db.from(desc).selectFirst(Function.avg(desc.getValue(), db));
-			assertEquals(3.0D,  new BigDecimal(avgValue).setScale(1, BigDecimal.ROUND_HALF_UP).doubleValue());
+			assertEquals(3.0D,  new BigDecimal(avgValue).setScale(1, RoundingMode.CEILING).doubleValue());
 			
 			// Unlike the filter like this like returns true or false on condition match. Test all that their name is like 'name1' and return true
 			List<TestObject> testObjects = db.from(desc).select(new TestObject() {;
@@ -104,10 +105,32 @@ public class TestFunctions extends JaquTest {
 					id = desc.getId();
 					name = Function.ifNull(desc.getName(), "newName", db);
 					value = desc.getValue();
+					season = desc.season;
 				}
 			});
-			
 			assertEquals(tff.getName(), "newName");
+			
+			System.out.println(db.from(desc).where(desc.id).is(10L).getSQL(new TableForFunctions() {
+				{
+					id = desc.getId();
+					name = desc.getName();
+					value = desc.getValue();
+					season = desc.season;
+					concatenated = Function.concat(db, null, desc.getName(), " ", desc.getValue(), " ", desc.season);
+				}
+			}));
+			tff = db.from(desc).where(desc.id).is(10L).selectFirst(new TableForFunctions() {
+				{
+					id = desc.getId();
+					name = desc.getName();
+					value = desc.getValue();
+					season = desc.season;
+					concatenated = Function.concat(db, null, desc.getName(), " ", desc.getValue(), " ", desc.season);
+				}
+			});
+			assertNotNull(tff);
+			assertNotNull(tff.concatenated);
+			System.out.println(tff.concatenated);
 		}
 		catch (Throwable e) {
 			db.rollback();

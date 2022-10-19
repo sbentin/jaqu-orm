@@ -176,19 +176,61 @@ public class Function implements Token {
         return db.registerToken(o, new Function("AVG", x));
     }
     
-    @SuppressWarnings("unchecked") // FIXME
-	public static <X> X concat(Db db, X ...x) {
-    	return (X) db.registerToken(x, new Function("CONCAT", x) {
-
-			@Override
-			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-				stat.appendSQL("(");
-				if (x.length > 2) {
-					
+    @SuppressWarnings("unchecked")
+	public static <X> String concat(Db db, String as, X ...x) {
+    	String o = Utils.newObject(String.class);
+    	if (Dialect.ORACLE == db.factory.getDialect()) {
+    		return db.registerToken(o, new Function("", x) {
+    			
+				@Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+					stat.appendSQL("(");
+					for (int i = 0; i < x.length ; i++) {
+						Object val = x[i];
+						if (val.equals(" "))
+							stat.appendSQL("' '");
+						else {
+							if (val.getClass().isEnum())
+								query.appendSQL(stat, val, true, val.getClass());
+							else
+								query.appendSQL(stat, val, false, null);
+						}
+						
+						if (i < (x.length - 1))
+							stat.appendSQL(" || ");
+					}
+					stat.appendSQL(")");
+					if (null != as)
+						stat.appendSQL(" as " + as);
 				}
-			}
-    		
-    	});
+	    		
+	    	});
+    	}
+    	else 
+	    	return db.registerToken(o, new Function("CONCAT", x) {
+	
+				@Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+					stat.appendSQL(name).appendSQL("(");
+					for (int i = 0; i < x.length ; i++) {
+						Object val = x[i];
+						if (val.equals(" "))
+							stat.appendSQL("' '");
+						else {
+							if (val.getClass().isEnum())
+								query.appendSQL(stat, val, true, val.getClass());
+							else
+								query.appendSQL(stat, val, false, null);							
+						}
+						if (i < (x.length - 1))
+							stat.appendSQL(",");
+					}
+					stat.appendSQL(")");
+					if (null != as)
+						stat.appendSQL(" as " + as);
+				}
+	    		
+	    	});
     }
     
     /**

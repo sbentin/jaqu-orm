@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: JaquPlugin
 Bundle-SymbolicName: com.centimia.orm.jaqu.JaquPlugin;singleton:=true
-Bundle-Version: 5.6.0.qualifier
+Bundle-Version: 6.0.1.qualifier
 Bundle-Activator: com.centimia.orm.jaqu.plugin.Activator
 Bundle-Vendor: Centimia Inc.
 Eclipse-BundleShape: dir
@@ -27,28 +27,12 @@ Export-Package: .,
  com.centimia.orm.jaqu.ext.asm;uses:="org.objectweb.asm",
  com.centimia.orm.jaqu.ext.common,
  com.centimia.orm.jaqu.ext.gradle;uses:="org.gradle.api,groovy.lang",
- com.centimia.orm.jaqu.plugin;
-  uses:="org.osgi.framework,
-   org.eclipse.ui,
-   org.eclipse.osgi.util,
-   org.eclipse.jface.action,
-   org.eclipse.jface.resource,
-   org.eclipse.ui.plugin,
-   org.eclipse.jface.viewers",
- com.centimia.orm.jaqu.plugin.builder;uses:="org.eclipse.core.runtime,org.eclipse.osgi.util,org.eclipse.core.resources",
- com.centimia.orm.jaqu.plugin.decorator;uses:="org.eclipse.jface.viewers",
- com.centimia.orm.jaqu.plugin.handler;uses:="org.eclipse.core.commands",
- com.centimia.orm.jaqu.plugin.nature;
-  uses:="org.eclipse.osgi.util,
-   org.eclipse.core.runtime,
-   org.eclipse.jdt.core,
-   org.eclipse.core.resources",
  com.centimia.orm.jaqu.util;uses:="org.slf4j",
  org.objectweb.asm,
  org.objectweb.asm.commons;uses:="org.objectweb.asm.signature,org.objectweb.asm,org.objectweb.asm.tree",
  org.objectweb.asm.signature
 Bundle-ClassPath: bin/,
- lib/asm-8.0.1.jar,
- lib/asm-commons-8.0.1.jar,
  lib/jaqu.jar,
- lib/jaqu-ext.jar
+ lib/jaqu-ext.jar,
+ lib/asm.jar,
+ lib/asm-commons.jar

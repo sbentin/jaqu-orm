@@ -36,6 +36,7 @@ import com.centimia.orm.jaqu.annotation.Converter;
 import com.centimia.orm.jaqu.annotation.Discriminator;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
+import com.centimia.orm.jaqu.annotation.Extension;
 import com.centimia.orm.jaqu.annotation.Index;
 import com.centimia.orm.jaqu.annotation.Indices;
 import com.centimia.orm.jaqu.annotation.Inherited;
@@ -64,16 +65,16 @@ import com.centimia.orm.jaqu.util.Utils;
  * @param <T> the table type
  */
 class TableDefinition<T> {
-
 	private static final String TO_DB = "toDb";
 
-	enum FieldType {
+	static enum FieldType {
 		NORMAL, FK, M2M, O2M, M2O;
 		
 		boolean isCollectionRelation() {
 			return this == O2M || this == M2M;
 		}
 	};
+	
 	
 	private FieldDefinition version = null;
 	
@@ -95,6 +96,7 @@ class TableDefinition<T> {
 		public boolean unique;
 		public boolean notNull;
 		public boolean isVersion = false;
+		public boolean isExtension = false;
 
 		@SuppressWarnings("rawtypes")
 		Object getValue(Object obj) {
@@ -103,8 +105,16 @@ class TableDefinition<T> {
 				Object actualValue = field.get(obj);
 				if (null != actualValue) {
 					switch (type) {
-						case ENUM: return actualValue.toString();
-						case ENUM_INT: return ((Enum)actualValue).ordinal();
+						case ENUM: {
+							if (null == actualValue.toString())
+								return actualValue;
+							return actualValue.toString();
+						}
+						case ENUM_INT: {
+							if (null == actualValue.toString())
+								return actualValue;
+							return ((Enum)actualValue).ordinal();
+						}
 						case UUID: return actualValue.toString();
 						default: break;
 					}
@@ -119,30 +129,16 @@ class TableDefinition<T> {
 		Object initWithNewObject(Object obj) {
 			if (Types.ENUM == type || Types.ENUM_INT == type) {
 				// initialize with the first value in the enum (to be used as key)
-				// FIXME in case of enums, this creates a problem when the aliasMap already has this enum as key (which means the object contains two enums of the same type)
 				Class<?> enumClass = field.getType();
-//				if (Types.ENUM_INT == type) {
-//					Integer enumValue = 0;
-//					setValue(obj, enumValue, null);
-//					return enumClass.getEnumConstants()[0];
-//					Object newEnum = Utils.newEnum(enumClass);
-//					setValue(obj, enumClass.getEnumConstants().length - 1, null);
-//					return newEnum;
-//				}
-//				else {
-//					String enumValue = enumClass.getEnumConstants()[0].toString();
-//					setValue(obj, enumValue, null);
-//					return enumClass.getEnumConstants()[0];
-					Object newEnum = Utils.newEnum(enumClass);
-					field.setAccessible(true);
-					try {
-						field.set(obj, newEnum);
-					}
-					catch (IllegalArgumentException | IllegalAccessException e) {
-						e.printStackTrace();
-					}					
-					return newEnum;
-//				}
+				Object newEnum = Utils.newEnum(enumClass);
+				field.setAccessible(true);
+				try {
+					field.set(obj, newEnum);
+				}
+				catch (IllegalArgumentException | IllegalAccessException e) {
+					e.printStackTrace();
+				}					
+				return newEnum;
 			}
 			else if (Types.UUID == type) {
 				String sUUID = UUID.randomUUID().toString();
@@ -242,7 +238,7 @@ class TableDefinition<T> {
 											found = true;
 											break;
 										}											
-										db.reEntrantCache.removeReEntrent(objToSet);
+										// db.reEntrantCache.removeReEntrent(objToSet);
 									}
 								}
 								else {
@@ -361,7 +357,7 @@ class TableDefinition<T> {
 										fieldValueFronDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
 								}
 							}
-							db.reEntrantCache.removeReEntrent(objToSet);
+							// db.reEntrantCache.removeReEntrent(objToSet);
 						}
 						else {
 							// instrument this instance of the class
@@ -669,8 +665,9 @@ class TableDefinition<T> {
 				continue;
 			
 			// don't persist ignored fields.
-			if (f.getAnnotation(Transient.class) != null)
-				continue;
+			if (null != f.getAnnotation(Transient.class))
+				continue;		
+				
 			Class<?> classType = f.getType();
 			Converter converter = f.getAnnotation(Converter.class);
 			if (null != converter) {
@@ -686,6 +683,8 @@ class TableDefinition<T> {
 			}
 			f.setAccessible(true);
 			FieldDefinition fieldDef = new FieldDefinition();
+			if (null != f.getAnnotation(Extension.class))
+				fieldDef.isExtension = true;
 			fieldDef.field = f;
 			fieldDef.columnName = f.getName();
 			fields.add(fieldDef);
@@ -995,7 +994,7 @@ class TableDefinition<T> {
 			valueTypes.append("'" + this.discriminatorValue + "'");
 		}
 		for (FieldDefinition field : fields) {
-			if (field.isSilent)
+			if (field.isSilent || field.isExtension)
 				// skip silent fields because they don't really exist.
         		continue;
         	
@@ -1015,7 +1014,7 @@ class TableDefinition<T> {
 		for (Object o: objs) {
 			// add the parameters
 			for (FieldDefinition field : fields) {
-				if (field.isSilent)
+				if (field.isSilent || field.isExtension)
 					// skip silent fields because they don't really exist.
 	        		continue;
 	        	
@@ -1055,8 +1054,12 @@ class TableDefinition<T> {
         		nullIdentityField = true;
 				continue;
 			}
+			if (field.isExtension )
+				// skip these because they do not exist in the underlying db
+				continue;
+			
 			if (field.isSilent)
-				// skip silent fields because they don't really exist.
+				// skip silent fields because they don't really exist in this table.
         		continue;
         	
         	if (field.fieldType != FieldType.NORMAL)
@@ -1095,13 +1098,14 @@ class TableDefinition<T> {
 			else
 				stat.executeUpdate();
 			// put object in multicall cache.
-			db.multiCallCache.prepareReEntrent(obj);
+			db.multiCallCache.prepareReEntrent(obj);			
 			update(db, obj);
+			db.reEntrantCache.removeReEntrent(obj);
 		}
 		else {
 			// an object with no primary key fields can not have relationships or silent fields so we can just execute the simple db update
 			stat.executeUpdate();
-		}		
+		}
 	}
 
 	void merge(Db db, Object obj) {
@@ -1140,113 +1144,6 @@ class TableDefinition<T> {
 			return null;
 		});
 	}
-	
-	@SuppressWarnings("unchecked")
-	private void handleValue(Db db, Object obj, SQLStatement stat, FieldDefinition field) {
-		Object value = field.getValue(obj);
-		// Deal with null primary keys (if object is sequence do a sequence query and update object... if identity you need to query the
-		// object on the way out).
-		if (field.isPrimaryKey && null == value) {
-			if (genType == GeneratorType.SEQUENCE) {
-				value = db.executeQuery(sequenceQuery, rs -> {
-					if (rs.next()) {
-						return rs.getLong(1);
-					}
-					return null;
-				});
-				try {	
-					field.field.set(obj, value); // add the new id to the object
-				}
-				catch (Exception e) {
-					throw new JaquError(e, e.getMessage());
-				}
-			 }
-			else if (genType == GeneratorType.UUID || UUID.class.isAssignableFrom(field.field.getType())) {
-				try {
-					UUID pk = UUID.randomUUID();
-					// add the new id to the object
-					if (String.class.isAssignableFrom(field.field.getType()))
-						field.field.set(obj, pk.toString()); 
-					else if (UUID.class.isAssignableFrom(field.field.getType()))
-							field.field.set(obj, pk);
-					
-					value = pk.toString(); // the value int underlying Db is varchar
-				}
-				catch (Exception e) {
-					throw new JaquError(e, e.getMessage());
-				}
-			}		 
-		}
-		switch (field.fieldType) {
-			case NORMAL:
-				Converter converter = field.field.getAnnotation(Converter.class);
-				if (null != converter) {
-					@SuppressWarnings("rawtypes")
-					JaquConverter convert = Utils.newObject(converter.value());
-					value = convert.toDb(value);
-					stat.addParameter(value);
-					break;
-				}
-				stat.addParameter(value);
-				break;
-			case FK: {
-				// value is a table
-				if (value != null) {
-					// if this object exists it updates if not it is inserted. ForeignKeys are always table
-					if (!field.noUpdateField) {
-						db.reEntrantCache.prepareReEntrent(obj);
-						db.merge(value);
-						db.reEntrantCache.removeReEntrent(obj);
-					}
-					stat.addParameter(db.factory.getPrimaryKey(value));
-				}
-				else
-					stat.addParameter(null);
-				break;
-			}
-			case O2M:
-			case M2M: {
-				// value is a list of tables (we got here only when merge was called from db by outside user
-				if (value != null && !((Collection<?>) value).isEmpty()) {
-					// value is a Collection type
-					for (Object table : (Collection<?>) value) {
-						db.reEntrantCache.prepareReEntrent(obj);
-						if(!field.noUpdateField)
-							db.merge(table);
-						db.updateRelationship(field, table, obj); // here object can only be a entity
-						db.reEntrantCache.removeReEntrent(obj);
-					}
-					if (!AbstractJaquCollection.class.isInstance(value)) {
-						try {							
-							if (List.class.isAssignableFrom(field.field.getType())) {
-								JaquList<?> list = new JaquList<>((List<?>)value, db, field, db.getPrimaryKey(obj));
-								field.field.set(obj, list);
-							}
-							else if (Set.class.isInstance(field.field.getType())) {
-								JaquSet<?> list = new JaquSet<>((Set<?>)value, db, field, db.getPrimaryKey(obj));
-								field.field.set(obj, list);
-							}
-						}
-						catch (IllegalArgumentException | IllegalAccessException e) {
-							// unable to set keeping the original
-						}
-					}
-				}				
-				break;
-			}
-			case M2O: {
-				// this is the many side of a join table managed O2M relationship.
-				if (value != null) {
-					db.reEntrantCache.prepareReEntrent(obj);
-					if(!field.noUpdateField)
-						db.merge(value);
-					db.updateRelationship(field, obj, value); // the parent is still the one side as 'obj' is the many side
-					db.reEntrantCache.removeReEntrent(obj);
-				}
-				break;
-			}
-		}
-	}
 
 	void update(Db db, Object obj) {
 		if (db.reEntrantCache.checkReEntrent(obj))
@@ -1263,6 +1160,8 @@ class TableDefinition<T> {
 		innerUpdate.resetCount();
 		boolean hasNoneSilent = false;
 		for (FieldDefinition field : fields) {
+			if (field.isExtension) 
+				continue;
 			if (!field.isPrimaryKey) {
 				if (null != field.field.getAnnotation(Lazy.class)) {
 					try {
@@ -1347,34 +1246,15 @@ class TableDefinition<T> {
 			}
 			// store in multi call cache
 			db.multiCallCache.prepareReEntrent(obj);
+			db.reEntrantCache.removeReEntrent(obj);
 		}
 
 		// if the object inserted successfully and is a Table add the session to it.
 		db.addSession(obj);
 	}
 
-	/*
-	 * The last identity called using this connection would be the one that inserted the parameter 'obj'. we use it to set the value
-	 */
-	private void updateWithId(Object obj, SQLStatement stat) {
-		String[] idColumnNames;
-		idColumnNames =  null != primaryKeyColumnNames ? primaryKeyColumnNames.stream().map(fd -> fd.columnName).toArray(String[]::new) : new String[0];
-		Long generatedId = stat.executeUpdateWithId(idColumnNames);
-		if (null != generatedId) {
-			try {
-				primaryKeyColumnNames.get(0).field.set(obj, generatedId);
-			}
-			catch (Exception e) {
-				throw new JaquError(e, e.getMessage());
-			}
-		}
-		else {
-			throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
-		}
-	}
-
 	@SuppressWarnings("unchecked")
-	void  delete(Db db, Object obj) {
+	void delete(Db db, Object obj) {
 		db.reEntrantCache.prepareReEntrent(obj);
 		if (this.isAggregateParent) {
     		// we have aggregate children
@@ -1436,9 +1316,136 @@ class TableDefinition<T> {
 		if (db.factory.isShowSQL())
 			StatementLogger.delete(stat.logSQL());
 		stat.executeUpdate();
-		db.reEntrantCache.removeReEntrent(obj);
+		//db.reEntrantCache.removeReEntrent(obj);
 	}
 
+	/*
+	 * The last identity called using this connection would be the one that inserted the parameter 'obj'. we use it to set the value
+	 */
+	private void updateWithId(Object obj, SQLStatement stat) {
+		String[] idColumnNames;
+		idColumnNames =  null != primaryKeyColumnNames ? primaryKeyColumnNames.stream().map(fd -> fd.columnName).toArray(String[]::new) : new String[0];
+		Long generatedId = stat.executeUpdateWithId(idColumnNames);
+		if (null != generatedId) {
+			try {
+				primaryKeyColumnNames.get(0).field.set(obj, generatedId);
+			}
+			catch (Exception e) {
+				throw new JaquError(e, e.getMessage());
+			}
+		}
+		else {
+			throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void handleValue(Db db, Object obj, SQLStatement stat, FieldDefinition field) {
+		Object value = field.getValue(obj);
+		// Deal with null primary keys (if object is sequence do a sequence query and update object... if identity you need to query the
+		// object on the way out).
+		if (field.isPrimaryKey && null == value) {
+			if (genType == GeneratorType.SEQUENCE) {
+				value = db.executeQuery(sequenceQuery, rs -> {
+					if (rs.next()) {
+						return rs.getLong(1);
+					}
+					return null;
+				});
+				try {	
+					field.field.set(obj, value); // add the new id to the object
+				}
+				catch (Exception e) {
+					throw new JaquError(e, e.getMessage());
+				}
+			 }
+			else if (genType == GeneratorType.UUID || UUID.class.isAssignableFrom(field.field.getType())) {
+				try {
+					UUID pk = UUID.randomUUID();
+					// add the new id to the object
+					if (String.class.isAssignableFrom(field.field.getType()))
+						field.field.set(obj, pk.toString()); 
+					else if (UUID.class.isAssignableFrom(field.field.getType()))
+							field.field.set(obj, pk);
+					
+					value = pk.toString(); // the value int underlying Db is varchar
+				}
+				catch (Exception e) {
+					throw new JaquError(e, e.getMessage());
+				}
+			}		 
+		}
+		switch (field.fieldType) {
+			case NORMAL:
+				Converter converter = field.field.getAnnotation(Converter.class);
+				if (null != converter) {
+					@SuppressWarnings("rawtypes")
+					JaquConverter convert = Utils.newObject(converter.value());
+					value = convert.toDb(value);
+					stat.addParameter(value);
+					break;
+				}
+				stat.addParameter(value);
+				break;
+			case FK: {
+				// value is a table
+				if (value != null) {
+					// if this object exists it updates if not it is inserted. ForeignKeys are always table
+					if (!field.noUpdateField) {
+						db.reEntrantCache.prepareReEntrent(obj);
+						db.merge(value);
+						//db.reEntrantCache.removeReEntrent(obj);
+					}
+					stat.addParameter(db.factory.getPrimaryKey(value));
+				}
+				else
+					stat.addParameter(null);
+				break;
+			}
+			case O2M:
+			case M2M: {
+				// value is a list of tables (we got here only when merge was called from db by outside user
+				if (value != null && !((Collection<?>) value).isEmpty()) {
+					// value is a Collection type
+					for (Object table : (Collection<?>) value) {
+						db.reEntrantCache.prepareReEntrent(obj);
+						if(!field.noUpdateField)
+							db.merge(table);
+						db.updateRelationship(field, table, obj); // here object can only be a entity
+						//db.reEntrantCache.removeReEntrent(obj);
+					}
+					if (!AbstractJaquCollection.class.isInstance(value)) {
+						try {							
+							if (List.class.isAssignableFrom(field.field.getType())) {
+								JaquList<?> list = new JaquList<>((List<?>)value, db, field, db.getPrimaryKey(obj));
+								field.field.set(obj, list);
+							}
+							else if (Set.class.isInstance(field.field.getType())) {
+								JaquSet<?> list = new JaquSet<>((Set<?>)value, db, field, db.getPrimaryKey(obj));
+								field.field.set(obj, list);
+							}
+						}
+						catch (IllegalArgumentException | IllegalAccessException e) {
+							// unable to set keeping the original
+						}
+					}
+				}				
+				break;
+			}
+			case M2O: {
+				// this is the many side of a join table managed O2M relationship.
+				if (value != null) {
+					db.reEntrantCache.prepareReEntrent(obj);
+					if(!field.noUpdateField)
+						db.merge(value);
+					db.updateRelationship(field, obj, value); // the parent(value) is still the one side as 'obj' is the many side
+					//db.reEntrantCache.removeReEntrent(obj);
+				}
+				break;
+			}
+		}
+	}
+	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Object getOne2OneFromDb(Db db, Object obj, List<FieldDefinition> primaryKeyColumnNames, FieldDefinition fdef) {
 		try {
@@ -1493,7 +1500,7 @@ class TableDefinition<T> {
 		StatementBuilder buff = new StatementBuilder(DIALECT.getCreateTableStatment(tableName));
 		buff.append('(');
 		for (FieldDefinition field : fields) {
-			if (!field.isSilent) {
+			if (!field.isSilent && !field.isExtension) {
 				buff.appendExceptFirst(", ");
 				buff.append(field.columnName).append(' ').append(field.dataType);
 				if (field.isPrimaryKey && field.field.getAnnotation(PrimaryKey.class).generatorType() == GeneratorType.IDENTITY) {
@@ -1572,8 +1579,11 @@ class TableDefinition<T> {
 			// this class has a primary key
 			// 1. get the primaryKey value, 2. check if we have an object with such value in cache, 3. if so return it
 			// if not continue.
-			for (FieldDefinition def: primaryKeyColumnNames){				
-				Object o = db.multiCallCache.checkReEntrent(clazz, def.read(rs, DIALECT));
+			for (FieldDefinition def: primaryKeyColumnNames) {	
+				Object key = def.read(rs, DIALECT);
+				Object o = db.multiCallCache.checkReEntrent(clazz, key);
+				if (null == o)
+					o = db.reEntrantCache.checkReEntrent(clazz, key);
 				if (null != o) {
 					try {
 						return (T)o;
@@ -1589,7 +1599,15 @@ class TableDefinition<T> {
 			if (StatementLogger.isDebugEnabled())
 				StatementLogger.debug("Working on Field: " + def.field.getName());
 			if (!def.isSilent) {
-				Object o = def.read(rs, DIALECT);
+				Object o;
+				try {
+					o = def.read(rs, DIALECT);
+				}
+				catch (JaquError sqle) {
+					if (def.isExtension)
+						continue;
+					throw sqle;
+				}
 				Converter converter = def.field.getAnnotation(Converter.class);
 				if (null != converter) {
 					@SuppressWarnings("rawtypes")
@@ -1602,8 +1620,10 @@ class TableDefinition<T> {
 				// probably a relation is loaded
 				def.setValue(item, null, db);
 		}
-		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty())
+		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
 			db.multiCallCache.prepareReEntrent(item);
+			db.reEntrantCache.removeReEntrent(item);
+		}
 		return item;
 	}
 
@@ -1611,7 +1631,7 @@ class TableDefinition<T> {
 		SQLStatement selectList = new SQLStatement(db);
 		int i = 0;
 		for (FieldDefinition def: fields) {
-			if (!def.isSilent) {
+			if (!def.isSilent && !def.isExtension) {
 				if (i > 0) {
 					selectList.appendSQL(", ");
 				}
@@ -1694,7 +1714,7 @@ class TableDefinition<T> {
 			StatementBuilder builder = new StatementBuilder(DIALECT.getCreateTableStatment(joinTableName)).append(" (").append(myColumnNameInRelation).append(" ");
 			builder.append(getDataType(primaryKeyColumnNames.get(0).field.getType())).append(myPkLength + ", ").append(relationColumnName).append(" ");
 			builder.append(DIALECT.getDataType(relationPkClass)).append(relationPkLength + ")");
-			db.executeUpdate(builder.toString());
+			db.executeUpdate(false, builder.toString());
 		}
 		catch (Exception e) {
 			throw new JaquError(e, e.getMessage());

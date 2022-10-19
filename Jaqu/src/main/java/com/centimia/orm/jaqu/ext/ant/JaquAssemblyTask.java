@@ -40,6 +40,7 @@ import com.centimia.orm.jaqu.ext.common.CommonAssembly;
  * 	&lt;!-- the outputDir is the directory where the original .class files before post compile reside --&gt;
  * 	&lt;JaquAssembly classOutputDirectory="${outputDir}"/&gt;
  * &lt;/target&gt;
+ * </pre>
  * <br>
  * <b>Note: </b> Easier solution exists with the Jaqu Plugin for eclipse
  * @author Shai Bentin

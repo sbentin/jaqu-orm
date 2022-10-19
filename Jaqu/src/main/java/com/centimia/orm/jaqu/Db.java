@@ -71,8 +71,12 @@ public class Db implements AutoCloseable {
 
 	private Connection conn;
 
-	private PojoUtils	pojoUtils;
+	private PojoUtils pojoUtils;
     
+	// for granular control of commit and close of this db session when no transaction exists.
+	private boolean closeExternal;	
+	private boolean commitExternal;
+	
     Db(Connection conn, JaquSessionFactory factory) {
         this.conn = conn;
         this.factory = factory;
@@ -502,23 +506,48 @@ public class Db implements AutoCloseable {
     }
 
     /**
-     * Rollback the underlying connection
+     * When working in nested method calls in which any of the inner method calls may also use Db in autoClosable or also call commit and you want to 
+     * control the commit and close from the outer method call only you can set the these variables. Applying externalCommit will cause a commit not to do anything,
+     * thus you need to remember to remove this value before the actual commit. Same with close. Since multiple commits are allowed you can actually play with
+     * this boolean when nesting methods and you don't always have to set it to false. However, when nesting such methods you shuold always set external close to true
+     * so you control the close and your db object will not close under you.
+     * <p>
+     * <b>Note:</b> these attributes have no meaning if a TransactionManager is attached to the session factory.
+     * 
+     * @param externalCommit
+     * @param externalClose
+     * @return Db
+     */
+    public Db applyExternal(boolean externalCommit, boolean externalClose) {
+    	if (null == this.factory.tm) {
+    		this.commitExternal = externalCommit;
+    		this.closeExternal = externalClose;
+    	}
+    	return this;
+    }
+    
+    /**
+     * Rollback the underlying connection.
+	 * <p>
+	 * <b>Note</b> that if "commitExternal" is true, after rolling back you should notify the enclosing caller of the rollback.
      */
     public void rollback() {
     	if (this.closed)
     		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
 			try {
-				if (null != this.factory.tm && hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
-					try {
-						this.factory.tm.getTransaction().setRollbackOnly();
-						return;
-					}
-					catch (IllegalStateException e) {
-						StatementLogger.error("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
-					}
-					catch (SystemException e) {
-						StatementLogger.error("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
+				if (null != this.factory.tm && null != this.factory.tm.getTransaction()) {
+					if (hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
+						try {
+							this.factory.tm.getTransaction().setRollbackOnly();
+							return;
+						}
+						catch (IllegalStateException e) {
+							StatementLogger.error("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
+						}
+						catch (SystemException e) {
+							StatementLogger.error("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
+						}
 					}
 				}
 			}
@@ -544,9 +573,13 @@ public class Db implements AutoCloseable {
     		throw new JaquError("IllegalState - Session is closed!!!");
 		try {
 			try {
-				// if we're in a running transaction it is up to the transaction manager to commit not me.
-				if (null != this.factory.tm && hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) 
+				if (commitExternal)
 					return;
+				if (null != this.factory.tm && null != this.factory.tm.getTransaction()) {
+					// if we're in a running transaction it is up to the transaction manager to commit not me.
+					if (hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) 
+						return;
+				}
 			}
 			catch (SystemException e) {
 				StatementLogger.error("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
@@ -567,10 +600,15 @@ public class Db implements AutoCloseable {
     public void close() {
         if (!closed){
         	try {
+        		if (closeExternal)
+        			return;
+        		
         		// if we're in a running transaction that has not been committed it is not up to me to close the connection
-        		int status = this.factory.tm.getTransaction().getStatus();
-				if (null != this.factory.tm && hasRunningTransaction(status) && status != Status.STATUS_COMMITTED)
-					return;
+        		if (null != this.factory.tm && null != this.factory.tm.getTransaction()) {
+        			int status = this.factory.tm.getTransaction().getStatus();
+        			if (hasRunningTransaction(status) && status != Status.STATUS_COMMITTED)
+        				return;
+        		}
 			}
 			catch (SystemException e) {
 				StatementLogger.error("unable to get transaction status for an unknown reason. [" + e.getMessage() + "]");
@@ -728,7 +766,10 @@ public class Db implements AutoCloseable {
     
     /**
      * A utility that builds a callable statement out of the given string, sets the arguments calls the statement and returns the object values.
-     * Note that callable statements should look like '{call doCallable (?, ?)}'
+     * the callable statements should look like '{call doCallable (?, ?)}'
+     * 
+     * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure 
+	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
      * 
      * @param preparedStmnt
      * @param clazz
@@ -745,6 +786,7 @@ public class Db implements AutoCloseable {
 				}
 	    	}
 	    	ResultSet rs = stmnt.executeQuery();
+	    	this.multiCallCache.clearReEntrent();
 			return selectByResultSet(rs, clazz);
     	}
 		catch (SQLException e) {
@@ -754,8 +796,8 @@ public class Db implements AutoCloseable {
     
     /**
      * Run an update query directly on the database
-     * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
-	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
+     * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure 
+	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
 	 * 
      * @param <T>
      * @param preparedStmnt
@@ -773,7 +815,7 @@ public class Db implements AutoCloseable {
 					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
 				}	    		
 	    	}
-    		this.reEntrantCache.clearReEntrent();
+    		this.multiCallCache.clearReEntrent();
 	    	return stmnt.executeUpdate();
     	}
 		catch (SQLException e) {
@@ -783,27 +825,16 @@ public class Db implements AutoCloseable {
     
     /**
      * Run a SQL statement directly against the database.
-     * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
-	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
+     * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure 
+	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
 	 * 
      * @param sql the SQL statement
      * @return the update count
      */
     public int executeUpdate(String sql) {
-    	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
-			StatementLogger.update(sql);
-    	try (Statement stat = conn.createStatement()) {            
-            int updateCount = stat.executeUpdate(sql);
-            this.reEntrantCache.clearReEntrent();
-            return updateCount;
-        }
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        }
+    	return executeUpdate(true, sql);
     }
-	
+    
     /**
      * Check if the {@link Entity} is part of this live session. If not attach it to this session.
      * @param <T> - must be annotated as {@link Entity} to have any session attachment effect
@@ -1164,7 +1195,7 @@ public class Db implements AutoCloseable {
 				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
 				StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
 				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-				executeUpdate(builder.toString());
+				executeUpdate(false, builder.toString());
 				return;
 			}
 		}
@@ -1210,7 +1241,7 @@ public class Db implements AutoCloseable {
 				String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
 				updateQuery.append(" WHERE ").append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
 				
-				executeUpdate(updateQuery.toString());
+				executeUpdate(false, updateQuery.toString());
 			}
 			catch (Exception e) {
 				throw new JaquError(e, e.getMessage());
@@ -1226,6 +1257,22 @@ public class Db implements AutoCloseable {
 			executeUpdate(builder.toString());
 		}
 	}
+	
+	int executeUpdate(boolean cleanRenentrent, String sql) {
+    	if (this.closed)
+    		throw new JaquError("IllegalState - Session is closed!!!");
+    	if (factory.isShowSQL())
+			StatementLogger.update(sql);
+    	try (Statement stat = conn.createStatement()) {            
+            int updateCount = stat.executeUpdate(sql);
+            if (cleanRenentrent)
+            	this.multiCallCache.clearReEntrent();
+            return updateCount;
+        }
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
+    }
 	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#finalize()
@@ -1359,7 +1406,7 @@ public class Db implements AutoCloseable {
 	}
 
 	private void handleO2MRelationship(FieldDefinition field, Object table, Object obj, String primaryKey, String relationPK) {
-		if (field.relationDefinition.relationTableName == null) {
+		if (null == field.relationDefinition.relationTableName) {
 			// We have a relationship without a relationTable. We might have a two sided O2M relationship, or a single sided relationship
 			try {
 				Field realtedField = ClassUtils.findField(table.getClass(), field.relationDefinition.relationFieldName);
@@ -1380,7 +1427,7 @@ public class Db implements AutoCloseable {
 				// we assume that our table has a single column primary key.
 				updateQuery.append(" WHERE ").append(def.getPrimaryKeyFields().get(0).columnName).append(" = ").append(primaryKey);
 				
-				executeUpdate(updateQuery.toString());
+				executeUpdate(false, updateQuery.toString());
 			}
 			catch (Exception e) {
 				throw new JaquError(e, e.getMessage());
@@ -1391,7 +1438,7 @@ public class Db implements AutoCloseable {
 		// field has a relation table. In relation table we do a merge (i.e insert only if missing update if exists)
 		mergeRelationTable(field, primaryKey, relationPK);
 	}
-
+	
 	/**
 	 * Create a relation if it does not exist between a One side and the many. Information coming from the many side.
 	 * @param field - the field holding the relationship
@@ -1410,6 +1457,7 @@ public class Db implements AutoCloseable {
 	
 	/**
 	 * Create a relation table entry for the relationship if one does not exist.
+	 * 
 	 * @param field
 	 * @param primaryKey
 	 * @param relationPK
@@ -1426,7 +1474,7 @@ public class Db implements AutoCloseable {
 				insertStmnt.append(" (").append(field.relationDefinition.relationColumnName).append(',').append(field.relationDefinition.relationFieldName).append(") ");
 				insertStmnt.append(" VALUES (").append(primaryKey).append(',').append(relationPK).append(')');
 				
-				executeUpdate(insertStmnt.toString());
+				executeUpdate(false, insertStmnt.toString());
 			}
 			return null;
 		});
@@ -1452,7 +1500,7 @@ public class Db implements AutoCloseable {
     	TableDefinition<?> tDef = define(clazz);
 		try {
 			for (FieldDefinition fDef: tDef.getFields()) {
-				if (fDef.isSilent)
+				if (fDef.isSilent || fDef.isExtension)
 					continue; // this field can not be selected upon.
 				if (!params.getExcludeProps().contains(fDef.field.getName())) {
 					fDef.field.setAccessible(true);
