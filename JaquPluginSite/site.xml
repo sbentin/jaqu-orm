@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-   <feature url="features/com.centimia.orm.jaqu.feature_5.6.0.202010020840.jar" id="com.centimia.orm.jaqu.feature" version="5.6.0.202010020840">
+   <description name="Jaqu Plugin" url="http://www.centimia.com/JaquPluginSite/site.xml">
+      
+   </description>
+   <feature url="features/com.centimia.orm.jaqu.feature_6.0.1.202207161644.jar" id="com.centimia.orm.jaqu.feature" version="6.0.1.202207161644">
       <category name="jaqu-orm"/>
    </feature>
-   <category-def name="jaqu-orm" label="jaQu-orm"/>
+   <category-def name="jaqu-orm" label="jaqu-orm"/>
 </site>
