@@ -22,10 +22,9 @@ package com.centimia.orm.jaqu;
 
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.Utils;
@@ -39,7 +38,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	private static final long	serialVersionUID	= 3249922548306321787L;
 	
 	protected Collection<E> originalList;
-	List<E> internalDeleteMapping;
+	Map<E, E> internalDeleteMapping;
 	
 	protected transient WeakReference<Db> db;
 	protected transient FieldDefinition definition;
@@ -88,9 +87,9 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			originalList.clear();
 		}
 		else {
-			if (internalDeleteMapping == null)
-				internalDeleteMapping = Utils.newArrayList();
-			internalDeleteMapping.addAll(originalList);
+			if (null == internalDeleteMapping)
+				internalDeleteMapping = Utils.newHashMap();
+			originalList.forEach(item -> internalDeleteMapping.put(item, null));
 			originalList.clear();
 		}
 			
@@ -134,8 +133,8 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			}
 			else {
 				if (null == internalDeleteMapping)
-					internalDeleteMapping = Utils.newArrayList();
-				internalDeleteMapping.add((E)o);
+					internalDeleteMapping = Utils.newHashMap();
+				internalDeleteMapping.put((E)o, null);
 			}
 		}
 		return removed;
@@ -237,8 +236,8 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			else {
 				AbstractJaquCollection<E> col = ((AbstractJaquCollection<E>)AbstractJaquCollection.this);
 				if (col.internalDeleteMapping == null)
-					col.internalDeleteMapping = new ArrayList<E>();
-				col.internalDeleteMapping.add((E) current);
+					col.internalDeleteMapping = Utils.newHashMap();
+				col.internalDeleteMapping.put((E) current, null);
 			}
 		}
 	}
@@ -254,10 +253,29 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	void setParentPk(Object parentPk) {
 		this.parentPk = parentPk;
 	}
+	
 	/*
 	 * Merge the list to the open db session
 	 */
-	abstract void merge();
+	@SuppressWarnings("resource")
+	void merge() {
+		if (internalDeleteMapping != null) {
+			for (E oldValue: internalDeleteMapping.keySet()) {
+				E newValue = internalDeleteMapping.get(oldValue);
+				if (null == newValue) {
+					if (null != db.get().factory.getPrimaryKey(oldValue))
+						db.get().deleteChildRelation(definition, oldValue, parentPk);
+				}
+				else {
+					Object oldPk = db.get().factory.getPrimaryKey(oldValue);
+					Object newPk = db.get().factory.getPrimaryKey(newValue);
+					if (null != oldPk && !oldPk.equals(newPk))
+						db.get().deleteChildRelation(definition, oldValue, parentPk);
+				}
+			}
+		}
+		internalDeleteMapping = null;
+	}
 	
 	/*
 	 * (non-Javadoc)

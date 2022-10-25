@@ -30,6 +30,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
+import com.centimia.orm.jaqu.util.Utils;
 
 /**
  * A List implementation of the Jaqu Collection. This list should not be invoked by a User it is invoked by the framework only
@@ -154,8 +155,8 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		}
 		else {
 			if (null == internalDeleteMapping)
-				internalDeleteMapping = new ArrayList<E>();
-			internalDeleteMapping.add(element);
+				internalDeleteMapping = Utils.newHashMap();
+			internalDeleteMapping.put(element, null);
 		}
 		return element;
 	}
@@ -169,15 +170,19 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		// get the current element
 		E e = ((List<E>)originalList).set(index, element);
 		if (!dbClosed()) {
-			e = db.get().checkSession(element);				
-			if (null != db.get().factory.getPrimaryKey(e))
-				db.get().deleteChildRelation(definition, e, parentPk);			
+			// only when the instances are not of the same database row we need to actually delete an instance from the db.
+			Object oldPk = db.get().factory.getPrimaryKey(e);
+			Object newPk = db.get().factory.getPrimaryKey(element);
+			if (null != oldPk && !oldPk.equals(newPk)) {
+				e = db.get().checkSession(element);				
+				db.get().deleteChildRelation(definition, e, parentPk);
+			}
 		}
 		else {
-			// we're no in session we need to take care of this replaced element when entering a session
+			// we're not in session we need to take care of this replaced element when entering a session
 			if (null == internalDeleteMapping)
-				internalDeleteMapping = new ArrayList<E>();
-			internalDeleteMapping.add(e);
+				internalDeleteMapping = Utils.newHashMap();
+			internalDeleteMapping.put(e, element);
 		}
 		return e;
 	}
@@ -256,14 +261,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	
 	@SuppressWarnings("resource")
 	void merge() {
-		if (internalDeleteMapping != null) {
-			for (E child: internalDeleteMapping) {
-				if (null != db.get().factory.getPrimaryKey(child))
-					db.get().deleteChildRelation(definition, child, parentPk);
-			}
-		}		
-		
-		internalDeleteMapping = null;
+		super.merge();
 		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toList());
 	}
 	
@@ -345,7 +343,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	     * @see java.util.List#remove(java.lang.Object)
 	     */
 	    public boolean remove(Object o) {
-	    	int index = indexOf(o); // o may be in the parent list butr not in the sublist
+	    	int index = indexOf(o); // o may be in the parent list but not in the sublist
 	    	if (-1 != index) {
 	    		remove(index);
 	    		return true;

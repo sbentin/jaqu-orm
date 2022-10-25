@@ -41,14 +41,7 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 	
 	@SuppressWarnings("resource")
 	void merge() {
-		if (internalDeleteMapping != null) {
-			for (E child: internalDeleteMapping) {
-				if (null != db.get().factory.getPrimaryKey(child))
-					db.get().deleteChildRelation(definition, child, parentPk);
-			}
-		}		
-		
-		internalDeleteMapping = null;
+		super.merge();
 		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toSet());
 	}
 }

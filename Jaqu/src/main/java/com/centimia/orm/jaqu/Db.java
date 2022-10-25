@@ -519,10 +519,20 @@ public class Db implements AutoCloseable {
      * @return Db
      */
     public Db applyExternal(boolean externalCommit, boolean externalClose) {
-    	if (null == this.factory.tm) {
-    		this.commitExternal = externalCommit;
-    		this.closeExternal = externalClose;
-    	}
+   		this.commitExternal = externalCommit;
+    	this.closeExternal = externalClose;
+    	return this;
+    }
+    
+    /**
+     * resets the external commit and external close to false.
+     * 
+     * @see #applyExternal(boolean, boolean)
+     * @return Db
+     */
+    public Db resetExternal() {
+    	this.closeExternal = false;
+    	this.commitExternal = false;
     	return this;
     }
     
@@ -924,7 +934,7 @@ public class Db implements AutoCloseable {
 		if (null != pk) {
 			Object o = multiCallCache.checkReEntrent(t.getClass(), pk);
 			if (null != o) {
-				if (!o.equals(t)) {
+				if (o != t) {
 					// we have the object in cache but it is not the same instance. Something is wrong.
 					throw new JaquError("Object %s with PrimaryKey %s already exists in this session's cache, but is a different instance. "
 							+ "Use the cached instance to perform changes within the same session!!", t.getClass(), pk.toString());
