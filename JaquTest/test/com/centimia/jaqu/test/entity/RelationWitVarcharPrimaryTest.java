@@ -24,6 +24,7 @@ import java.util.List;
 import junit.framework.TestResult;
 
 import com.centimia.jaqu.test.JaquTest;
+import com.centimia.orm.jaqu.Db;
 
 /**
  * @author shai
@@ -59,7 +60,7 @@ public class RelationWitVarcharPrimaryTest extends JaquTest {
 			
 			db.insert(pr);
 			PrimaryRelation prDesc = new PrimaryRelation();
-			prDesc = db.from(prDesc).where(prDesc.getPrimary()).is(vp).selectFirst();
+			prDesc = db.from(prDesc).where(Db.asPrimaryKey(prDesc.getPrimary(), String.class)).is(vp.getPrimary()).selectFirst();
 			assertNotNull(prDesc);
 			
 			List<PrimaryRelation> prelations = db.selectByExample(pr);

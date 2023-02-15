@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -26,11 +26,11 @@ public class SQLStatement {
 	private Db db;
     private StringBuilder buff = new StringBuilder();
     private String sql;
-    private ArrayList<Object> params = new ArrayList<Object>();
+    private ArrayList<Object> params = new ArrayList<>();
 
     // used only in batch...
     private PreparedStatement prep;
-    
+
     SQLStatement(Db db) {
         this.db = db;
     }
@@ -68,7 +68,7 @@ public class SQLStatement {
     	log.append("]");
     	return log.toString();
     }
-    
+
     SQLStatement addParameter(Object o) {
         params.add(o);
         return this;
@@ -80,12 +80,12 @@ public class SQLStatement {
         try (PreparedStatement ps = prepare(EMPTY_PK)) {
         	try (ResultSet rs = ps.executeQuery()) {
         		return processor.processResult(rs);
-        	}        	
-        } 
+        	}
+        }
         catch (SQLException e) {
         	db.factory.dialect.dialect.handleDeadlockException(e);
         	return null;
-        }        
+        }
     }
 
     void prepareBatch() {
@@ -102,7 +102,7 @@ public class SQLStatement {
 			throw new JaquError(e, e.getMessage());
 		}
     }
-    
+
     int[] executeBatch(boolean clean) {
     	try {
 			int[] result = prep.executeBatch();
@@ -117,17 +117,17 @@ public class SQLStatement {
         	return null;
 		}
     }
-    
+
 	int executeUpdate() {
 		try (PreparedStatement ps = prepare(EMPTY_PK)) {
         	return ps.executeUpdate();
-        } 
+        }
         catch (SQLException e) {
         	db.factory.dialect.dialect.handleDeadlockException(e);
         	return -1;
         }
     }
-	
+
 	Long executeUpdateWithId(String[] idColumnNames) {
 		try (PreparedStatement ps = prepare(idColumnNames)) {
 			int size = ps.executeUpdate();
@@ -141,13 +141,13 @@ public class SQLStatement {
 	}
 
 	<T> T executeUnion(SQLStatement unionStatement, IResultProcessor<T> processor){
-		if (null != unionStatement) {		
+		if (null != unionStatement) {
 			this.buff.append(" union ").append(unionStatement.buff);
 			this.params.addAll(unionStatement.params);
 		}
 		return this.executeQuery(processor);
 	}
-	
+
     private Long getGeneratedKeys(ResultSet generatedKeys, int size) {
 		try {
 			if (generatedKeys.next()) {
@@ -164,7 +164,7 @@ public class SQLStatement {
         	if (x instanceof java.util.Date)
         		x = new Timestamp(((java.util.Date) x).getTime());
             prep.setObject(parameterIndex, x);
-        } 
+        }
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         }

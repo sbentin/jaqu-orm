@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -57,14 +57,14 @@ class OrderExpression<T> {
 			if (desc) {
 				if (nullsFirst)
 					stat.appendSQL("(CASE WHEN " + expression + " IS NULL THEN 0 ELSE 1 END), ");
-				
+
 				query.appendSQL(stat, expression, false, null);
 				stat.appendSQL(" DESC");
 			}
 			else {
 				if (nullsLast)
 					stat.appendSQL("(CASE WHEN " + expression + " IS NULL THEN 0 ELSE 1 END) DESC, ");
-				
+
 				query.appendSQL(stat, expression, false, null);
 				stat.appendSQL(" ASC");
 			}

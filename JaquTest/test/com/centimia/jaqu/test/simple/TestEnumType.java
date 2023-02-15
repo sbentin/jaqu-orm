@@ -44,7 +44,7 @@ public class TestEnumType extends JaquTest {
 			db.commit();
 			
 			EnumUser d = new EnumUser();
-			EnumUser otherUser = db.from(d).where(d.getId()).is("SP").and(d.getSeason()).in(new SEASON[] {SEASON.SPRING}).selectFirst();
+			EnumUser otherUser = db.from(d).wrap().where(d.getId()).is("SP").and(d.getSeason()).in(new SEASON[] {SEASON.SPRING}).endWrap().selectFirst();
 			assertEquals(SEASON.SPRING, otherUser.getSeason());
 			
 			db.from(d).set(d.getSeason(), SEASON.SUMMER).where(d.getId()).is("SP").update();

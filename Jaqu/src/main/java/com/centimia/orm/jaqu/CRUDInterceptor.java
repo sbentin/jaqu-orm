@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -25,7 +25,7 @@ import com.centimia.orm.jaqu.annotation.Interceptor;
 /**
  * Implementations of this interface are used for intercepting CRUD operations on Entities {@link Entity}. It can also be used with POJOs.<br>
  * In order to use this interceptor you must mark your bean with the @interceptor {@link Interceptor} annotation.
- * 
+ *
  * @author shai
  * @since 2.0.0
  */
@@ -36,19 +36,19 @@ public interface CRUDInterceptor<K> {
 	 * @param t
 	 */
 	public abstract void onInsert(K t);
-	
+
 	/**
 	 * executes on entities before the entity is merged
 	 * @param t
 	 */
 	public abstract void onMerge(K t);
-	
+
 	/**
 	 * executes on entities before the entity is updated
 	 * @param t
 	 */
 	public abstract void onUpdate(K t);
-	
+
 	/**
 	 * executes on entities before the entity is deleted
 	 * @param t

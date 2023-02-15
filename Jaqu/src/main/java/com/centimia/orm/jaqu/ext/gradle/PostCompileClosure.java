@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.gradle.api.Task;
-import org.gradle.api.logging.LogLevel;
 import org.gradle.api.plugins.JavaPluginExtension;
 
 import com.centimia.orm.jaqu.ext.common.BuildStats;
@@ -44,6 +43,7 @@ public class PostCompileClosure extends Closure<String>{
 		super(owner);
 	}
 	
+	@Override
 	public String call() {
 		Task postCompileTask = (Task)getOwner();
 		LocationExtension location = (LocationExtension) postCompileTask.getExtensions().getByName("location");
@@ -59,20 +59,22 @@ public class PostCompileClosure extends Closure<String>{
 		}
 		for (File outputDir: outputDirs) {
 			if (!outputDir.exists()) {
-				postCompileTask.getLogger().error(String.format("Post Compile for Output dir %s failed directory does not exist!!!", outputDir.getAbsolutePath()));
+				postCompileTask.getLogger().error("Post Compile for Output dir {} failed directory does not exist!!!", outputDir.getAbsolutePath());
 				continue;
 			}
-			StringBuilder report = new StringBuilder();
-			BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
+			StringBuilder successReport = new StringBuilder();
+			StringBuilder failedReport = new StringBuilder();
+			BuildStats stats = CommonAssembly.assembleFiles(outputDir, successReport, failedReport);
 			boolean failed = stats.getFailure() > 0;
 			if (failed) {
 				postCompileTask.getLogger().lifecycle("POST COMPILE FAILED for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored() + " files, failed to convert " + stats.getFailure() + " files");
+				postCompileTask.getLogger().lifecycle(failedReport.toString());
 			}
 			else {
 				postCompileTask.getLogger().lifecycle("POST COMPILE SUCCESSFUL for " + outputDir.getAbsolutePath() + " - converted " + stats.getSuccess() + " files, ignored " + stats.getIgnored());
 			}
-			if (postCompileTask.getLogger().isEnabled(LogLevel.DEBUG)) {
-				postCompileTask.getLogger().debug(report.toString());
+			if (postCompileTask.getLogger().isDebugEnabled()) {
+				postCompileTask.getLogger().debug(successReport.toString());
 			}
 		}
 		return "success";

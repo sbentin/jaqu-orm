@@ -85,10 +85,10 @@ publishing {
 		classifier "sources"
 		from sourceSets.main.allJava
 	}
-	task javadocJar(type: Jar, dependsOn: javadoc) {
-      classifier = 'javadoc'
-      from javadoc.destinationDir
-    }
+//	task javadocJar(type: Jar, dependsOn: javadoc) {
+//      classifier = 'javadoc'
+//      from javadoc.destinationDir
+//    }
 	publications {
 		source(MavenPublication) {
 			artifactId = "jaqu"
@@ -146,11 +146,11 @@ publishing {
 		    }
 			artifact extJar
 		}
-		javaDoc(MavenPublication) {
-			artifactId = "jaqu"
-			version = "${mainJarVersion}"
-			artifact javadocJar
-		}
+//		javaDoc(MavenPublication) {
+//			artifactId = "jaqu"
+//			version = "${mainJarVersion}"
+//			artifact javadocJar
+//		}
 	}
 	
 	repositories {

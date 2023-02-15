@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -38,24 +38,24 @@ import com.centimia.orm.jaqu.util.Utils;
  * Utility to work with prepared statements (especially for batching) independently from regular jaQu work but using the same connection.
  * These utils work only on pojo's and ignore relationships. The update and insert statements use all fields, delete only primary keys.
  * Hense, the pojos must have primary keys for these functions to work.
- * 
+ *
  * @author shai
  */
 public class PojoUtils {
 
 	private final Db	db;
-	private final HashMap<Class<?>, PreparedStatement> insertStatements = new HashMap<Class<?>, PreparedStatement>();
-	private final HashMap<Class<?>, PreparedStatement> updateStatements = new HashMap<Class<?>, PreparedStatement>();
-	private final HashMap<Class<?>, PreparedStatement> deleteStatements = new HashMap<Class<?>, PreparedStatement>();
-	
+	private final HashMap<Class<?>, PreparedStatement> insertStatements = new HashMap<>();
+	private final HashMap<Class<?>, PreparedStatement> updateStatements = new HashMap<>();
+	private final HashMap<Class<?>, PreparedStatement> deleteStatements = new HashMap<>();
+
 	PojoUtils(Db db) {
 		this.db = db;
 	}
-	
+
 	/**
      * Insert the array of pojo objects in batch mode.<p>
      * <b>NOTE: using batch insert only works on pojos or {@link Entity} that has no relationship.<br>When relationships exist on the {@link Entity} it will insert but relationships are disregarded</b>
-     * 
+     *
      * @param batchSize - battch interval size
      * @param tArray
      */
@@ -69,7 +69,7 @@ public class PojoUtils {
 
 		definition.insertBatch(db, batchSize, tArray);
     }
-    
+
     /**
      * returns a PreparedStatement backed up by the current Db session. It is the developers responsibility to populate, execute, and close this statement.
      * @param statement
@@ -78,11 +78,11 @@ public class PojoUtils {
     public PreparedStatement getPreparedStatement(String statement, String ... idColumnNames) {
     	return db.prepare(statement, idColumnNames);
     }
-    
+
     /**
      * This function executes a 'SELECT' preparedStatement and returns a list of resultClass type.
-     * Matching between returned columns and existing type is done in the JaQu way. 
-     * 
+     * Matching between returned columns and existing type is done in the JaQu way.
+     *
      * @param stmnt
      * @param resultClazz
      * @return List<T>
@@ -98,20 +98,20 @@ public class PojoUtils {
                 db.addSession(item);
                 result.add(item);
             }
-        } 
+        }
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
-        } 
+        }
         finally {
             JdbcUtils.closeSilently(rs);
-        }        
+        }
         return result;
     }
-    
+
     /**
      * Returns a preparedStatement for the "pojo" given based on the statement type (UPDATE, INSERT, DELETE).
      * This method always returns the same {@link PreparedStatement} object when running in the same db session.
-     * 
+     *
      * @param clazz
      * @param type
      * @return {@link PreparedStatement}
@@ -119,11 +119,11 @@ public class PojoUtils {
     public <T> PreparedStatement getPreparedStatement(Class<T> clazz, StatementType type) {
     	return getPreparedStatement(clazz, type, false);
     }
-    
+
     /**
      * Returns a preparedStatement for the pojo given based on the statement type (UPDATE, INSERT, DELETE).
      * This method always returns the same {@link PreparedStatement} object when running in the same db session.
-     * 
+     *
      * @param clazz
      * @param type
      * @parm externalizePk - if true utils assumes the PK is injected by the user externally even if the PK is Identity type
@@ -143,7 +143,7 @@ public class PojoUtils {
     /**
      * Prerpares the data on the prepared Statement. If the preparedStatement does not exist it will be created.
      * The statement returned is ready for execution but had not been executed.
-     * 
+     *
      * @param obj
      * @return {@link PreparedStatement}
      * @throws JaquError
@@ -151,11 +151,11 @@ public class PojoUtils {
     public <T> PreparedStatement prepareStatement(T obj, StatementType type) {
     	return prepareStatement(obj, type, false);
     }
-    
+
     /**
      * Prerpares the data on the prepared Statement. If the preparedStatement does not exist it will be created.
      * The statement returned is ready for execution but had not been executed.
-     * 
+     *
      * @param obj
      * @parm externalizePk - if true utils assumes the PK is injected by the user externally even if the PK is Identity type
      * @return {@link PreparedStatement}
@@ -171,7 +171,7 @@ public class PojoUtils {
     		default : return null;
     	}
     }
-    
+
     /**
      * Adds the object into the batch of executions. If the preparedStatement does not yet exist it will be created.
      * @param obj
@@ -181,7 +181,7 @@ public class PojoUtils {
     public <T> PreparedStatement addBatch(T obj, StatementType type) {
     	return addBatch(obj, type, false);
     }
-    
+
     /**
      * Adds the object into the batch of executions. If the preparedStatement does not yet exist it will be created.
      * @param obj
@@ -199,7 +199,7 @@ public class PojoUtils {
     		case DELETE: ps = prepareDeleteStatement(obj); break;
     		default : ps = null; break;
     	}
-    	
+
     	if (null != ps) {
     		try {
 				ps.addBatch();
@@ -210,10 +210,10 @@ public class PojoUtils {
     	}
     	return ps;
     }
-    
+
     /**
      * Submits all batch of commands to the database for execution no matter the type. Does not return an array
-     * 
+     *
      * @param clazz
      * @return boolean success if any type update was executed.
      */
@@ -226,12 +226,12 @@ public class PojoUtils {
     	}
     	return success;
     }
-    
+
     /**
-     * Submits a batch of commands to the database for execution and if all commands execute successfully, returns an array of update counts. 
-     * The int elements of the array that is returned are ordered to correspond to the commands in the batch, 
+     * Submits a batch of commands to the database for execution and if all commands execute successfully, returns an array of update counts.
+     * The int elements of the array that is returned are ordered to correspond to the commands in the batch,
      * which are ordered according to the order in which they were added to the batch.
-     * 
+     *
      * @param clazz
      * @param type
      * @return
@@ -246,10 +246,10 @@ public class PojoUtils {
     		case DELETE: ps = deleteStatements.get(clazz); break;
     		default: ps = null; break;
     	}
-    	
+
     	if (null == ps)
     		return new int[0];
-    	
+
     	try {
 			return ps.executeBatch();
 		}
@@ -257,7 +257,7 @@ public class PojoUtils {
 			return new int[0];
 		}
     }
-    
+
     /**
      * Returns an insert preparedStatement for the pojo given. This method always returns the same {@link PreparedStatement} object when running in the same db session.
      * @param clazz
@@ -273,11 +273,11 @@ public class PojoUtils {
     	}
     	return ps;
     }
-    
+
     /**
-     * Returns an update preparedStatement which updates all the fields (accept the primaryKey) for the pojo given. This method always returns the same {@link PreparedStatement} 
+     * Returns an update preparedStatement which updates all the fields (accept the primaryKey) for the pojo given. This method always returns the same {@link PreparedStatement}
      * object when running in the same db session.
-     * 
+     *
      * @param clazz
      * @return {@link PreparedStatement}
      */
@@ -296,11 +296,11 @@ public class PojoUtils {
     	}
     	return ps;
     }
-    
+
     /**
-     * Returns an update preparedStatement which updates all the fields (accept the primaryKey) for the pojo given. This method always returns the same {@link PreparedStatement} 
+     * Returns an update preparedStatement which updates all the fields (accept the primaryKey) for the pojo given. This method always returns the same {@link PreparedStatement}
      * object when running in the same db session.
-     * 
+     *
      * @param clazz
      * @return {@link PreparedStatement}
      */
@@ -331,17 +331,17 @@ public class PojoUtils {
 			if (!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == definition.getGenerationtype())
 				// skip identity types because these are auto incremented
         		continue;
-			
+
 			if (field.isSilent || field.isExtension)
 				// skip silent fields because they don't really exist.
         		continue;
-        	
+
 			if (field.fieldType == FieldType.FK) {
 				setValue(ps, i, getFkValue(obj, field));
 				i++;
-				continue;				
+				continue;
 			}
-			
+
         	if (field.fieldType != FieldType.NORMAL)
         		// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
@@ -370,7 +370,7 @@ public class PojoUtils {
 			return pkValue;
 		}
 	}
-    
+
     /*
      * prepares the updateStatement for this object with data from the given object
      */
@@ -390,7 +390,7 @@ public class PojoUtils {
 				if (field.fieldType == FieldType.FK) {
 					setValue(ps, i, getFkValue(obj, field));
 					i++;
-					continue;				
+					continue;
 				}
 				if (!field.isSilent) {
 					Object value = field.getValue(obj);
@@ -399,7 +399,7 @@ public class PojoUtils {
 				}
 			}
     	}
-    	
+
 		for (FieldDefinition field : definition.getPrimaryKeyFields()) {
 			Object value = field.getValue(obj);
         	setValue(ps, i, value);
@@ -407,7 +407,7 @@ public class PojoUtils {
 		}
     	return ps;
     }
-    
+
     /*
      * prepares the deleteStatement for this object with data from the given object
      */
@@ -419,7 +419,7 @@ public class PojoUtils {
     		ps = getPreparedDeleteStatement(tClazz);
     	}
     	TableDefinition<?> definition = JaquSessionFactory.define(tClazz, db);
-		int i = 1;    	
+		int i = 1;
 		for (FieldDefinition field : definition.getPrimaryKeyFields()) {
 			Object value = field.getValue(obj);
         	setValue(ps, i, value);
@@ -427,18 +427,18 @@ public class PojoUtils {
 		}
     	return ps;
     }
-    
+
 	private void setValue(PreparedStatement prep, int parameterIndex, Object x) {
         try {
         	if (x instanceof java.util.Date)
         		x = new Timestamp(((java.util.Date) x).getTime());
             prep.setObject(parameterIndex, x);
-        } 
+        }
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         }
     }
-	
+
 	private StatementBuilder getInsertStatement(TableDefinition<?> def, boolean externalizePk) {
     	StatementBuilder buff = new StatementBuilder("INSERT INTO ");
 		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
@@ -454,18 +454,15 @@ public class PojoUtils {
 			if (!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == def.getGenerationtype())
 				// skip identity types because these are auto incremented
         		continue;
-			
-			if (field.isSilent || field.isExtension)
+
+			if (field.isSilent || field.isExtension || (field.fieldType != FieldType.FK && field.fieldType != FieldType.NORMAL))
 				// skip silent fields because they don't really exist.
+				// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
-			
-			if (field.fieldType != FieldType.FK && field.fieldType != FieldType.NORMAL)
-        		// skip everything which is not a plain field (i.e any type of relationship)
-        		continue;
-        	
+
         	fieldTypes.appendExceptFirst(", ");
         	fieldTypes.append(field.columnName);
-        	
+
         	valueTypes.appendExceptFirst(", ");
         	valueTypes.append('?');
         }
@@ -474,7 +471,7 @@ public class PojoUtils {
 			StatementLogger.info(buff.toString());
 		return buff;
     }
-	
+
 	private StatementBuilder getUpdateStatement(TableDefinition<?> def, Class<?> clazz) {
 		Object alias = Utils.newObject(clazz);
 		Query<Object> query = Query.from(db, alias);
@@ -504,7 +501,7 @@ public class PojoUtils {
 				if (!firstCondition) {
 					buff.append(" AND ");
 				}
-				buff.append(field.columnName).append(" = ?");				
+				buff.append(field.columnName).append(" = ?");
 				firstCondition = false;
 			}
 		}
@@ -533,14 +530,14 @@ public class PojoUtils {
 			if (!firstCondition) {
 				buff.append(" AND ");
 			}
-			buff.append(field.columnName).append(" = ?");				
+			buff.append(field.columnName).append(" = ?");
 			firstCondition = false;
 		}
 		if (db.factory.isShowSQL())
 			StatementLogger.info(buff.toString());
 		return buff;
 	}
-	
+
 	/*
 	 * Close all the statements and clean the maps.
 	 */

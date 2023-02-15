@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 28/02/2010		shai				 create
@@ -26,11 +26,11 @@ package com.centimia.orm.jaqu;
  * 	<li>TABLE_PER_CLASS - each child class has its own table with all the fields from the parent</li>
  * 	<li>DISCRIMINATOR - Single table for all children and parent, each discriminated using its own discriminator letter. </li>
  * </ol>
- * 
+ *
  * @author shai
  */
 public enum InheritedType {
 	NONE,
-	TABLE_PER_CLASS, 
+	TABLE_PER_CLASS,
 	DISCRIMINATOR
 }

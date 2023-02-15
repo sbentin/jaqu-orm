@@ -16,7 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.centimia.jaqu.test.JaquTest;
-import com.centimia.orm.jaqu.util.Utils;
+import com.centimia.orm.jaqu.Db;
 
 import junit.framework.TestResult;
 
@@ -58,8 +58,9 @@ public class UtilsAsPrimaryTest extends JaquTest {
 			TableA defA = new TableA();
 			TableC defC = new TableC();
 			
-			defA = db.from(defA).innerJoin(defC).on(defA.getId()).is(Utils.asPrimaryKey(defC.getaId()))
+			defA = db.from(defA).innerJoin(defC).on(Db.asPrimaryKey(defC.getaId(), Long.class)).is(defA.getId())
 					.where(defC.getId()).is(tableC.getId()).selectFirst();
+
 			assertNotNull(defA);
 			assertEquals(defA.getId().longValue(), 1);
 			

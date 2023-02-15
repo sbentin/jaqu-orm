@@ -36,7 +36,6 @@ import com.centimia.orm.jaqu.util.StatementBuilder;
 /**
  * 
  * @author Shai Bentin
- *
  */
 public class H2Dialect implements SQLDialect{
 

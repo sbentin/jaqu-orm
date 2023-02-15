@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 09/02/2010		Shai Bentin			 create
@@ -21,35 +21,35 @@
 package com.centimia.orm.jaqu;
 
 /**
- * All DB types supported by Jaqu. Corresponds with the Dialect classes 
- * 
+ * All DB types supported by Jaqu. Corresponds with the Dialect classes
+ *
  * @see SQLDialect
  * @author Shai Bentin
  */
 public enum Types {
 	NONE,
-	INTEGER, 
-	LONG, 
-	FLOAT, 
-	DOUBLE, 
-	BOOLEAN, 
-	BIGDECIMAL, 
-	STRING, 
-	UTIL_DATE, 
-	SQL_DATE, 
-	TIMESTAMP, 
-	BYTE, 
-	SHORT, 
-	BLOB, 
-	CLOB, 
-	ARRAY, 
-	TIME, 
-	COLLECTION, 
-	FK, 
-	ENUM, 
-	ENUM_INT, 
-	UUID, 
-	LOCALDATE, 
+	INTEGER,
+	LONG,
+	FLOAT,
+	DOUBLE,
+	BOOLEAN,
+	BIGDECIMAL,
+	STRING,
+	UTIL_DATE,
+	SQL_DATE,
+	TIMESTAMP,
+	BYTE,
+	SHORT,
+	BLOB,
+	CLOB,
+	ARRAY,
+	TIME,
+	COLLECTION,
+	FK,
+	ENUM,
+	ENUM_INT,
+	UUID,
+	LOCALDATE,
 	LOCALDATETIME,
 	ZONEDDATETIME,
 	LOCALTIME

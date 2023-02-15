@@ -22,10 +22,10 @@ public class Alias implements Serializable {
 
 	/** Holds the entity descriptor for the table being aliased */
 	public Object aliasEntity;
-	
+
 	/** Holds the alias table name in the query */
 	public String alias;
-	
+
 	public Alias(Object aliasEntity, String as) {
 		this.aliasEntity = aliasEntity;
 		this.alias = as;
@@ -46,13 +46,9 @@ public class Alias implements Serializable {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (null == obj)
+		if ((null == obj) || !(obj instanceof Alias) || (null == this.aliasEntity))
 			return false;
-		if (!(obj instanceof Alias))
-			return false;
-		if (null == this.aliasEntity)
-			return false;
-		
+
 		return this.aliasEntity.equals(((Alias)obj).aliasEntity);
 	}
 

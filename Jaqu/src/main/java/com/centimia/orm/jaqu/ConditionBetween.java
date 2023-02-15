@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 22/02/2010		Shai Bentin			 create
@@ -26,10 +26,16 @@ package com.centimia.orm.jaqu;
  */
 class ConditionBetween<A> implements Token {
 
-    A x, y, z;
+	Object key;
+    A y, z;
 
-	public ConditionBetween(A x, A y, A z) {
-		this.x = x;
+	@SuppressWarnings("rawtypes")
+	public ConditionBetween(Object x, A y, A z) {
+		if (x instanceof GenericMask) {
+			this.key = ((GenericMask)x).orig();
+		}
+		else
+			this.key = x;
 		this.y = y;
 		this.z = z;
 	}
@@ -37,8 +43,9 @@ class ConditionBetween<A> implements Token {
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
+	@Override
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		query.appendSQL(stat, x, false, null);
+		query.appendSQL(stat, key, false, null);
 		stat.appendSQL(" BETWEEN ");
 		query.appendSQL(stat, y, false, null);
 		stat.appendSQL(" AND ");

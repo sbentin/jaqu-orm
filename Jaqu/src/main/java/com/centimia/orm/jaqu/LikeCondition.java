@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -28,11 +28,18 @@ import com.centimia.orm.jaqu.annotation.MappedSuperclass;
  */
 class LikeCondition<A> implements Token {
 
-	A x,y;
+	A y;
+	Object key;
 	LikeMode	mode;
-	
-	public LikeCondition(A x, A y, LikeMode mode) {
-		this.x = x;
+
+	@SuppressWarnings("rawtypes")
+	public LikeCondition(Object x, A y, LikeMode mode) {
+		if (x instanceof GenericMask) {
+        	this.key = ((GenericMask)x).orig();
+        }
+        else {
+        	this.key = x;
+        }
 		this.y = y;
 		this.mode = mode;
 	}
@@ -40,17 +47,18 @@ class LikeCondition<A> implements Token {
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
+	@Override
 	@SuppressWarnings("resource")
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		if (null != x && (null != x.getClass().getAnnotation(Entity.class) || null != x.getClass().getAnnotation(MappedSuperclass.class))) {
-			Object pk = query.getDb().factory.getPrimaryKey(x);
+		if (null != key && (null != key.getClass().getAnnotation(Entity.class) || null != key.getClass().getAnnotation(MappedSuperclass.class))) {
+			Object pk = query.getDb().factory.getPrimaryKey(key);
 			if (null == pk)
-				query.appendSQL(stat, x, false, null);
+				query.appendSQL(stat, key, false, null);
 			else
 				query.appendSQL(stat, pk, false, null);
 		}
 		else
-			query.appendSQL(stat, x, false, null);
+			query.appendSQL(stat, key, false, null);
 		stat.appendSQL(" LIKE ");
         // check if a relation type
         if (y != null && (null != y.getClass().getAnnotation(Entity.class) || null != y.getClass().getAnnotation(MappedSuperclass.class))) {
@@ -59,7 +67,7 @@ class LikeCondition<A> implements Token {
 	    		query.appendSQL(stat, y, false, null);
 	    	else
 	    		query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y), false, null);
-        }        	
+        }
         else {
         	switch(mode) {
         		case ANYWHERE: stat.appendSQL("'%"); stat.appendSQL((String)y); stat.appendSQL("%'"); break;

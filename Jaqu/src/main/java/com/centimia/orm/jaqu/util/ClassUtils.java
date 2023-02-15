@@ -22,7 +22,7 @@ import com.centimia.orm.jaqu.annotation.Inherited;
  */
 public class ClassUtils {
 
-	private static HashMap<Class<?>, Class<?>> map = new HashMap<Class<?>, Class<?>>();
+	private static HashMap<Class<?>, Class<?>> map = new HashMap<>();
 	static {
 	    map.put(boolean.class, Boolean.class);
 	    map.put(byte.class, Byte.class);

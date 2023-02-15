@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 15/07/2011		shai				 create
@@ -21,7 +21,7 @@
 package com.centimia.orm.jaqu;
 
 /**
- * 
+ *
  * @author shai
  */
 public class JaquError extends RuntimeException {
@@ -29,7 +29,7 @@ public class JaquError extends RuntimeException {
 	private static final long serialVersionUID = 2818663786498065024L;
 
 	/**
-	 * 
+	 *
 	 */
 	JaquError() {
 		super();
@@ -56,7 +56,7 @@ public class JaquError extends RuntimeException {
 	public JaquError(Throwable cause) {
 		super(cause);
 	}
-	
+
 	/**
 	 * @return true if this error is a deadlock error
 	 */

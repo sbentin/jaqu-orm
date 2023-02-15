@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -21,9 +21,9 @@ import com.centimia.orm.jaqu.TableDefinition.FieldType;
  */
 public class BasicExampleOptions extends GeneralExampleOptions {
 
-	public BasicExampleOptions(Object example, Db db) {		
+	public BasicExampleOptions(Object example, Db db) {
 		super(null);
-		
+
 		TableDefinition<?> tDef = JaquSessionFactory.define(example.getClass(), db);
 		for (FieldDefinition fDef: tDef.getFields()) {
 			if (fDef.isSilent || fDef.isExtension)

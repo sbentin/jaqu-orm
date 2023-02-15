@@ -40,7 +40,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.centimia.orm.jaqu.GenericMask;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 
@@ -300,20 +299,15 @@ public class Utils {
 		throw new RuntimeException("Can not convert the value " + o + " from " + currentType + " to " + targetType);
 	}
 	
-	@SuppressWarnings("unchecked")
-	public static GenericMask asPrimaryKey(final Object o) {
-		return new GenericMask() {
-			@Override
-			public <T> T mask() {
-				return (T)o;
-			}
-		};
-	}
-	
 	static void makeAccessible(Field field) throws Exception {
 	    field.setAccessible(true);
 	    Field modifiersField = Field.class.getDeclaredField("modifiers");
 	    modifiersField.setAccessible(true);
 	    modifiersField.setInt(field, field.getModifiers() & ~ Modifier.FINAL);
+	}
+	
+	public static void main(String[] args) {
+		int test = Integer.valueOf(Integer.MAX_VALUE);
+		System.out.println(test);
 	}
 }

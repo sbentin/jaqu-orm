@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -25,7 +25,11 @@ public class QueryJoin<T> {
         this.join = join;
     }
 
+    public <A> QueryJoinCondition<T, A> on(GenericMask<T, A> x) {
+        return new QueryJoinCondition<>(query, join, x);
+    }
+
     public <A> QueryJoinCondition<T, A> on(A x) {
-        return new QueryJoinCondition<T, A>(query, join, x);
+        return new QueryJoinCondition<>(query, join, x);
     }
 }

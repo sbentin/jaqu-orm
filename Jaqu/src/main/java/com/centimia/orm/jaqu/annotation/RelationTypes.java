@@ -24,6 +24,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface RelationTypes {
-	/** ths types of inherited classes that can fit into the parent calss that is the accepting type */
+	/** the types of inherited classes that can fit into the parent class that is the accepting type */
 	Class<?>[] value();
 }

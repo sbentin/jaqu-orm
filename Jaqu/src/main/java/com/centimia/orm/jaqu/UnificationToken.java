@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -25,19 +25,20 @@ package com.centimia.orm.jaqu;
  */
 class UnificationToken implements Token {
 
-	enum UNIFICATION_MODE {UNION, INTERESCT};
-	
+	enum UNIFICATION_MODE {UNION, INTERESCT}
+
 	private final UNIFICATION_MODE mode;
 	private final String queryString;
-	
+
 	public UnificationToken(String queryString, UNIFICATION_MODE mode) {
 		this.queryString = queryString;
-		this.mode = mode;		
+		this.mode = mode;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
+	@Override
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		if (null != queryString && queryString.length() > 0) {
 			stat.appendSQL(" ");
