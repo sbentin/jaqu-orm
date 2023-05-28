@@ -12,43 +12,12 @@
  */
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 group = 'com.centimia'
-
-buildscript {
-	dependencies {
-		classpath "org.jfrog.buildinfo:build-info-extractor-gradle:latest.release"
-	}
-	
-	repositories {
-        maven {
-            url "${artifactory_contextUrl}/jcenter"
-            credentials {
-                username = "${artifactory_user}"
-                password = "${artifactory_password}"
-            }
-        } 
-        maven {
-            url "${artifactory_contextUrl}/plugins-release"
-            credentials {
-                username = "${artifactory_user}"
-                password = "${artifactory_password}"
-            }
-        } 
-        maven {
-            url "${artifactory_contextUrl}/plugins-release-local"
-            credentials {
-                username = "${artifactory_user}"
-                password = "${artifactory_password}"
-            }
-        }        
-    }
-}
 
 dependencies {
 	implementation 'javax.transaction:jta:1.1'
@@ -67,7 +36,18 @@ javadoc {
     options.addStringOption('encoding', 'UTF-8')
     options.bottom = "Copyright (c) 2008-2012 Shai Bentin & Centimia Inc.."
 }
-	
+
+repositories {
+	mavenCentral()
+	maven {
+        url "${artifactory_contextUrl}/libs-release-local"
+        credentials {
+            username = "${artifactory_user}"
+            password = "${artifactory_password}"
+        }
+    }
+}
+
 publishing {		
 	task binJar(type: Jar) {
 		from sourceSets.main.output		
@@ -160,26 +140,6 @@ publishing {
                 username = "${artifactory_user}"
                 password = "${artifactory_password}"
             }
-        }
-    }
-}
-
-artifactory {
-    contextUrl = "${artifactory_contextUrl}"   //The base Artifactory URL if not overridden by the publisher/resolver
-    publish {
-        repository {
-            repoKey = 'libs-release-local'
-            username = "${artifactory_user}"
-            password = "${artifactory_password}"
-            maven = true           
-        }
-    }
-    resolve {
-        repository {
-            repoKey = 'libs-release'
-            username = "${artifactory_user}"
-            password = "${artifactory_password}"
-            maven = true            
         }
     }
 }
