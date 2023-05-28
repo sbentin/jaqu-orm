@@ -68,7 +68,7 @@ import com.centimia.orm.jaqu.util.Utils;
 class TableDefinition<T> {
 	private static final String TO_DB = "toDb";
 
-	static enum FieldType {
+	enum FieldType {
 		NORMAL, FK, M2M, O2M, M2O;
 
 		boolean isCollectionRelation() {
@@ -83,6 +83,8 @@ class TableDefinition<T> {
 	 * The meta data of a field.
 	 */
 	static class FieldDefinition implements Comparable<FieldDefinition> {
+		private static final String OBJECT_VALUE = "[Object: %s], [value: %s]\t";
+		
 		String columnName;
 		Field field;
 		String dataType;
@@ -90,14 +92,14 @@ class TableDefinition<T> {
 		boolean isPrimaryKey;
 		FieldType fieldType = FieldType.NORMAL;
 		RelationDefinition relationDefinition;
-		public boolean isSilent = false;
+		boolean isSilent = false;
 		boolean noUpdateField = false;
 		Types type;
 		Method getter;
-		public boolean unique;
-		public boolean notNull;
-		public boolean isVersion = false;
-		public boolean isExtension = false;
+		boolean unique;
+		boolean notNull;
+		boolean isVersion = false;
+		boolean isExtension;
 
 		@SuppressWarnings("rawtypes")
 		Object getValue(Object obj) {
@@ -137,14 +139,25 @@ class TableDefinition<T> {
 					field.set(obj, newEnum);
 				}
 				catch (IllegalArgumentException | IllegalAccessException e) {
-					e.printStackTrace();
+					String objectString = (null == obj) ? "null" : obj.getClass().getName();
+					String valueString = newEnum.toString();
+					String msg = String.format(OBJECT_VALUE, objectString, valueString);
+					throw new JaquError(e, msg + e.getMessage());
 				}
 				return newEnum;
 			}
 			else if (Types.UUID == type) {
-				String sUUID = UUID.randomUUID().toString();
-				setValue(obj, sUUID, null);
-				return sUUID;
+				UUID sUUID = UUID.randomUUID();
+				try {					
+					field.set(obj, sUUID);
+					return sUUID.toString();
+				}
+				catch (IllegalArgumentException | IllegalAccessException e) {
+					String objectString = (null == obj) ? "null" : obj.getClass().getName();
+					String valueString = sUUID.toString();
+					String msg = String.format(OBJECT_VALUE, objectString, valueString);
+					throw new JaquError(e, msg + e.getMessage());
+				}
 			}
 			else if (Types.FK == type) {
 				// this is a O2O relation. Must be an entity and thus must have an empty constructor.
@@ -166,27 +179,27 @@ class TableDefinition<T> {
 		}
 
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		void setValue(final Object objToSet, Object fieldValueFronDb, final Db db) {
+		void setValue(final Object objToSet, Object fieldValueFromDb, final Db db) {
 			try {
-				Object tmp = fieldValueFronDb;
+				Object tmp = fieldValueFromDb;
 				switch (fieldType) {
 					case NORMAL:
 						// if 'o' equals null then setting the 'enum' will cause a nullPointerException
-						if ((Types.ENUM_INT == type || Types.ENUM == type) && null != fieldValueFronDb) {
+						if ((Types.ENUM_INT == type || Types.ENUM == type) && null != fieldValueFromDb) {
 							Class enumClass = field.getType();
 							if (Types.ENUM_INT == type) {
-								field.set(objToSet, enumClass.getEnumConstants()[(Integer)fieldValueFronDb]);
+								field.set(objToSet, enumClass.getEnumConstants()[(Integer)fieldValueFromDb]);
 							}
 							else {
-								field.set(objToSet, Enum.valueOf(enumClass, (String)fieldValueFronDb));
+								field.set(objToSet, Enum.valueOf(enumClass, (String)fieldValueFromDb));
 							}
 						}
-						else if (Types.UUID == type && null != fieldValueFronDb) {
+						else if (Types.UUID == type && null != fieldValueFromDb) {
 							// object from DB should be a String by mapping
-							field.set(objToSet, UUID.fromString((String)fieldValueFronDb));
+							field.set(objToSet, UUID.fromString((String)fieldValueFromDb));
 						}
 						else
-							field.set(objToSet, fieldValueFronDb);
+							field.set(objToSet, fieldValueFromDb);
 						break;
 					case M2O: {
 						if (null != db) {
@@ -202,7 +215,7 @@ class TableDefinition<T> {
 							if (null != result) {
 								// field from db would have a 'null' which in this case is in correct so we have to set it up.
 								// create the object to hold the data (I could use field.getType() but this way we can find mistakes
-								fieldValueFronDb = Utils.newObject(relationDefinition.dataType[0]);
+								fieldValueFromDb = Utils.newObject(relationDefinition.dataType[0]);
 								tmp = result;
 								// if parent was found we continue to FK
 							}
@@ -211,6 +224,7 @@ class TableDefinition<T> {
 						}
 						else
 							break;
+						// we don't explicitly break as there is a possibility case where we continue to FK choice
 					}
 					case FK: {
 						if (null == field.getAnnotation(Lazy.class)) {
@@ -223,23 +237,21 @@ class TableDefinition<T> {
 
 							boolean found = false;
 							for (Class<?> innerType: types) {
-								fieldValueFronDb = Utils.convert(fieldValueFronDb, innerType);
-								if (fieldValueFronDb != null && !innerType.isInstance(tmp)) {
-									Object reEntrant = db.reEntrantCache.checkReEntrent(fieldValueFronDb.getClass(), tmp);
-									if (reEntrant != null) {
-										fieldValueFronDb = reEntrant;
+								fieldValueFromDb = Utils.convert(fieldValueFromDb, innerType);
+								if (null != fieldValueFromDb && !innerType.isInstance(tmp)) {
+									Object reEntrant = db.reEntrantCache.checkReEntrent(fieldValueFromDb.getClass(), tmp);
+									if (null != reEntrant) {
+										fieldValueFromDb = reEntrant;
 										found = true;
 										break;
 									}
 									else {
-										db.reEntrantCache.prepareReEntrent(objToSet);
-										List<?> result = db.from(fieldValueFronDb).primaryKey().is(tmp.toString()).select();
+										List<?> result = db.from(fieldValueFromDb).primaryKey().is(tmp.toString()).select();
 										if (!result.isEmpty()) {
-											fieldValueFronDb = result.get(0);
+											fieldValueFromDb = result.get(0);
 											found = true;
 											break;
 										}
-										// db.reEntrantCache.removeReEntrent(objToSet);
 									}
 								}
 								else {
@@ -250,15 +262,15 @@ class TableDefinition<T> {
 							if (!found)
 								throw new JaquError("\nData Consistency error - Foreign relation does not exist!!\nError column was {%s}"
 										+ " with value %s in table %s"
-										+ "\nmissing in table %s", field.getName(), tmp, objToSet.getClass().getName(), fieldValueFronDb.getClass().getName());
-							field.set(objToSet, fieldValueFronDb);
+										+ "\nmissing in table %s", field.getName(), tmp, objToSet.getClass().getName(), fieldValueFromDb.getClass().getName());
+							field.set(objToSet, fieldValueFromDb);
 						}
 						else {
 							// should be marked as lazy loaded
 							if (null != field.getType().getAnnotation(Entity.class) ||
 									null != field.getType().getAnnotation(MappedSuperclass.class)) {
 								Class<?> innerType;
-								Boolean isAbstract = Modifier.isAbstract(field.getType().getModifiers());
+								boolean isAbstract = Modifier.isAbstract(field.getType().getModifiers());
 								if (isAbstract && null != field.getAnnotation(RelationTypes.class)) {
 									// take the first class and use that as an instance
 									innerType = field.getAnnotation(RelationTypes.class).value()[0];
@@ -269,20 +281,19 @@ class TableDefinition<T> {
 								else
 									throw new JaquError("Can not instanciate a class of type %s on class %s because it is abstract!", field.getType().getName(), objToSet.getClass().getName());
 								Field lazyfield = innerType.getField(Constants.IS_LAZY);
-								fieldValueFronDb = innerType.getConstructor().newInstance();
-					 			lazyfield.setBoolean(fieldValueFronDb, true);
-								field.set(objToSet, fieldValueFronDb);
+								fieldValueFromDb = innerType.getConstructor().newInstance();
+					 			lazyfield.setBoolean(fieldValueFromDb, true);
+								field.set(objToSet, fieldValueFromDb);
 							}
 						}
 						break;
 					}
 					case O2M: {
 						if (relationDefinition.eagerLoad && db != null) {
-							db.reEntrantCache.prepareReEntrent(objToSet);
 							if (relationDefinition.relationTableName != null) {
 								List resultList = Utils.newArrayList();
-								for (Class<?> dataType: relationDefinition.dataType) {
-									resultList.addAll(db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet), dataType));
+								for (Class<?> lDataType: relationDefinition.dataType) {
+									resultList.addAll(db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet), lDataType));
 								}
 
 								if (!resultList.isEmpty()) {
@@ -290,50 +301,46 @@ class TableDefinition<T> {
 										resultList.sort(new FieldComperator(relationDefinition.dataType[0], relationDefinition.orderByField));
 									}
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										fieldValueFronDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));
+										fieldValueFromDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));
 									else {
 										// only when the type is a Set type we will be here
 										HashSet set = Utils.newHashSet();
 										set.addAll(resultList);
-										fieldValueFronDb = new JaquSet(set, db, this, db.factory.getPrimaryKey(objToSet));
+										fieldValueFromDb = new JaquSet(set, db, this, db.factory.getPrimaryKey(objToSet));
 									}
 								}
 								else {
-									// on eager loading if no result exists we set to an empty collection;
+									// on eager loading if no result exists we set to an empty collection
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										fieldValueFronDb = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(objToSet)) ;
+										fieldValueFromDb = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(objToSet)) ;
 									else
-										fieldValueFronDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
+										fieldValueFromDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
 								}
 							}
 							else {
 								List resultList = Utils.newArrayList();
-								for (Class<?> dataType: relationDefinition.dataType) {
-									Object descriptor = Utils.newObject(dataType);
-									QueryWhere<?> where = db.from(descriptor).where(new StringFilter() {
+								for (Class<?> lDataType: relationDefinition.dataType) {
+									Object descriptor = Utils.newObject(lDataType);
+									QueryWhere<?> where = db.from(descriptor).where(st -> {
+										FieldDefinition fdef = ((SelectTable)st).getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
+										Object myPrimaryKey = db.factory.getPrimaryKey(objToSet);
+										String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
 
-										@Override
-										public String getConditionString(ISelectTable<?> st) {
-											FieldDefinition fdef = ((SelectTable)st).getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
-											Object myPrimaryKey = db.factory.getPrimaryKey(objToSet);
-											String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
-
-											if (null != fdef)
-												// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
-												// different we use the columnName property.
-												return st.getAs() + "." + fdef.columnName + " = " + pk;
-											// This is the case of one sided relationship. In this case the name of the FK is given to us in the relationFieldName
-											return st.getAs() + "." + relationDefinition.relationFieldName + " = " + pk;
-										}
+										if (null != fdef)
+											// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
+											// different we use the columnName property.
+											return st.getAs() + "." + fdef.columnName + " = " + pk;
+										// This is the case of one sided relationship. In this case the name of the FK is given to us in the relationFieldName
+										return st.getAs() + "." + relationDefinition.relationFieldName + " = " + pk;
 									});
 									String orderByField = relationDefinition.orderByField;
 									if (null != orderByField) {
-										Field field = ClassUtils.findField(dataType, relationDefinition.orderByField);
-										field.setAccessible(true);
+										Field lField = ClassUtils.findField(lDataType, relationDefinition.orderByField);
+										lField.setAccessible(true);
 										if ("DESC".equals(relationDefinition.direction))
-											resultList.addAll(where.orderByDesc(field.get(descriptor)).select());
+											resultList.addAll(where.orderByDesc(lField.get(descriptor)).select());
 										else
-											resultList.addAll(where.orderBy(field.get(descriptor)).select());
+											resultList.addAll(where.orderBy(lField.get(descriptor)).select());
 									}
 									else
 										resultList.addAll(where.select());
@@ -343,23 +350,22 @@ class TableDefinition<T> {
 										resultList.sort(new FieldComperator(relationDefinition.dataType[0], relationDefinition.orderByField));
 									}
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										fieldValueFronDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));
+										fieldValueFromDb = new JaquList(resultList, db, this, db.factory.getPrimaryKey(objToSet));
 									else {
 										// only when the type is a Set type we will be here
 										HashSet set = Utils.newHashSet();
 										set.addAll(resultList);
-										fieldValueFronDb = new JaquSet(set, db, this, db.factory.getPrimaryKey(objToSet));
+										fieldValueFromDb = new JaquSet(set, db, this, db.factory.getPrimaryKey(objToSet));
 									}
 								}
 								else {
-									// on eager loading if no result exists we set to an empty collection;
+									// on eager loading if no result exists we set to an empty collection
 									if (this.field.getType().isAssignableFrom(resultList.getClass()))
-										fieldValueFronDb = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(objToSet)) ;
+										fieldValueFromDb = new JaquList(Utils.newArrayList(), db, this, db.factory.getPrimaryKey(objToSet)) ;
 									else
-										fieldValueFronDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
+										fieldValueFromDb = new JaquSet(Utils.newHashSet(), db, this, db.factory.getPrimaryKey(objToSet));
 								}
 							}
-							// db.reEntrantCache.removeReEntrent(objToSet);
 						}
 						else {
 							// instrument this instance of the class
@@ -367,9 +373,9 @@ class TableDefinition<T> {
 							// put the open connection on the object. As long as the connection is open calling the getter method on the
 							// 'obj' will produce the relation
 							dbField.set(objToSet, db);
-							fieldValueFronDb = null;
+							fieldValueFromDb = null;
 						}
-						field.set(objToSet, fieldValueFronDb);
+						field.set(objToSet, fieldValueFromDb);
 						break;
 					}
 					case M2M: {
@@ -378,7 +384,6 @@ class TableDefinition<T> {
 						// put the open connection on the object. As long as the connection is open calling the getter method on the 'obj'
 						// will produce the relation
 						dbField.set(objToSet, db);
-						fieldValueFronDb = null;
 						break;
 					}
 					default:
@@ -386,20 +391,38 @@ class TableDefinition<T> {
 				}
 			}
 			catch (Exception e) {
-				String objectString = (objToSet == null) ? "null" : objToSet.getClass().getName();
-				String valueString = (fieldValueFronDb == null) ? null : fieldValueFronDb.toString();
-				String msg = String.format("[Object: %s], [value: %s]\t", objectString, valueString);
+				String objectString = (null == objToSet) ? "null" : objToSet.getClass().getName();
+				String valueString = (null == fieldValueFromDb) ? null : fieldValueFromDb.toString();
+				String msg = String.format(OBJECT_VALUE, objectString, valueString);
 				throw new JaquError(e, msg + e.getMessage());
 			}
 		}
 
-		Object read(ResultSet rs, Dialect DIALECT) {
+		Object read(ResultSet rs, Dialect dialect) {
 			try {
-				return DIALECT.getValueByType(type, rs, this.columnName);
+				return dialect.getValueByType(type, rs, this.columnName);
 			}
 			catch (SQLException e) {
 				throw new JaquError(e, e.getMessage());
 			}
+		}
+
+		/*
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			return super.hashCode();
+		}
+
+		/*
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (!(obj instanceof FieldDefinition))
+				return false;
+			return columnName.equals(((FieldDefinition)obj).columnName);
 		}
 
 		/**
@@ -440,7 +463,7 @@ class TableDefinition<T> {
 		String direction = "ASC";
 	}
 
-	final Dialect DIALECT;
+	final Dialect dialect;
 	final String tableName;
 	private final Class<T> clazz;
 	private HashMap<String, FieldDefinition> fieldMap = Utils.newHashMap();
@@ -457,16 +480,15 @@ class TableDefinition<T> {
 	private CRUDInterceptor	interceptor;
 	private Event[]	interceptorEvents;
 
-	TableDefinition(Class<T> clazz, Dialect DIALECT) {
-		this.DIALECT = DIALECT;
+	TableDefinition(Class<T> clazz, Dialect dialect) {
+		this.dialect = dialect;
 		this.clazz = clazz;
 		String nameOfTable = clazz.getSimpleName();
 		// Handle table annotation if entity and Table annotations exist
 
 		com.centimia.orm.jaqu.annotation.Table tableAnnotation = clazz.getAnnotation(com.centimia.orm.jaqu.annotation.Table.class);
-		if (tableAnnotation != null) {
-			if (tableAnnotation.name() != null && !"".equals(tableAnnotation.name()))
-				nameOfTable = tableAnnotation.name();
+		if (tableAnnotation != null && tableAnnotation.name() != null && !"".equals(tableAnnotation.name())) {
+			nameOfTable = tableAnnotation.name();
 		}
 		if (clazz.getAnnotation(Entity.class) != null || (!Modifier.isAbstract(clazz.getModifiers()) && null != clazz.getAnnotation(MappedSuperclass.class))) {
 			// we must have primary keys
@@ -507,8 +529,8 @@ class TableDefinition<T> {
 			return null;
 		Interceptor interceptorAnnot = getInterceptorAnnotation(clazz.getSuperclass());
 
-		Interceptor interceptor = clazz.getAnnotation(Interceptor.class);
-		return null == interceptor ? interceptorAnnot : interceptor;
+		Interceptor lInterceptor = clazz.getAnnotation(Interceptor.class);
+		return null == lInterceptor ? interceptorAnnot : lInterceptor;
 	}
 
 	List<FieldDefinition> getFields() {
@@ -629,21 +651,19 @@ class TableDefinition<T> {
 			def.relationFieldName = relationFieldName;
 		}
 
-		if (db.factory.createTable) {
+		if (db.factory.createTable && one2ManyAnnotation.joinTableName() != null && !"".equals(one2ManyAnnotation.joinTableName())) {
 			// add relation table creation
-			if (one2ManyAnnotation.joinTableName() != null && !"".equals(one2ManyAnnotation.joinTableName())) {
-				// Try to get the primary key of the relationship
-				Class<?> childPkType = one2ManyAnnotation.childPkType();
-				if (Object.class.equals(childPkType)) {
-					try {
-						childPkType = extractPrimaryKeyFromClass(childType[0]); // all child types must share the same kind of primary key
-					}
-					catch (Exception e) {
-						throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
-					}
+			// Try to get the primary key of the relationship
+			Class<?> childPkType = one2ManyAnnotation.childPkType();
+			if (Object.class.equals(childPkType)) {
+				try {
+					childPkType = extractPrimaryKeyFromClass(childType[0]); // all child types must share the same kind of primary key
 				}
-				createRelationTable(childType[0], one2ManyAnnotation.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
+				catch (Exception e) {
+					throw new JaquError(e, "You declared a join table, but JaQu was not able to find your child Primary Key. Try setting the 'childPkType' property on the @one2Many annotation");
+				}
 			}
+			createRelationTable(childType[0], one2ManyAnnotation.joinTableName(), relationFieldName, childPkType, def.relationColumnName, db);
 		}
 	}
 
@@ -655,7 +675,7 @@ class TableDefinition<T> {
 		Field[] classFields = getAllFields(clazz);
 		for (Field f : classFields) {
 			if (Modifier.isTransient(f.getModifiers()) || Modifier.isFinal(f.getModifiers()) || Modifier.isStatic(f.getModifiers()) || Constants.IS_LAZY.equals(f.getName()))
-				// we ignore this specially generated field for marking lazy O2O relations;
+				// we ignore this specially generated field for marking lazy O2O relations
 				continue;
 
 			// don't persist ignored fields.
@@ -663,6 +683,9 @@ class TableDefinition<T> {
 				continue;
 
 			Class<?> classType = f.getType();
+			if (classType.isPrimitive()) {
+				throw new JaquError("Jaqu does not allow primitive types. See documentation! Field %s was decalred %s", f.getName(), f.getType());
+			}
 			Converter converter = f.getAnnotation(Converter.class);
 			if (null != converter) {
 				Method[] methods = converter.value().getMethods();
@@ -691,7 +714,7 @@ class TableDefinition<T> {
 			if (java.time.temporal.Temporal.class.isAssignableFrom(classType) || java.util.Date.class.isAssignableFrom(classType) || java.lang.Number.class.isAssignableFrom(classType)
 					|| String.class.isAssignableFrom(classType) || Boolean.class.isAssignableFrom(classType)
 					|| Blob.class.isAssignableFrom(classType) || Clob.class.isAssignableFrom(classType)
-					|| UUID.class.isAssignableFrom(classType) || classType.isEnum() || classType.isPrimitive()) {
+					|| UUID.class.isAssignableFrom(classType) || classType.isEnum()) {
 
 				if (null != f.getAnnotation(Version.class)) {
 					if (null == this.version) {
@@ -739,7 +762,7 @@ class TableDefinition<T> {
 									"field requires a single column primary key. For uniqueness consider unique indexs in your table");
 						}
 						if (genType == GeneratorType.IDENTITY)
-							fieldDef.dataType = DIALECT.getIdentityType();
+							fieldDef.dataType = dialect.getIdentityType();
 						else if (this.genType == GeneratorType.SEQUENCE) {
 							if (pkAnnotation.seqName() == null)
 								throw new JaquError("IllegalArgument - GeneratorType.SEQUENCE must supply a sequence name!!!");
@@ -777,7 +800,6 @@ class TableDefinition<T> {
 					Many2Many many2ManyAnnotation = f.getAnnotation(Many2Many.class);
 					if (many2ManyAnnotation != null) {
 						addManyToMany(fieldDef, many2ManyAnnotation, db);
-						continue;
 					}
 				}
 			}
@@ -788,9 +810,8 @@ class TableDefinition<T> {
 				if (null != entity || null != mapped) {
 					// this class is a table
 					Column columnAnnotation = f.getAnnotation(Column.class);
-					if (columnAnnotation != null) {
-						if (!StringUtils.isNullOrEmpty(columnAnnotation.name()))
-							fieldDef.columnName = columnAnnotation.name();
+					if (columnAnnotation != null && !StringUtils.isNullOrEmpty(columnAnnotation.name())) {
+						fieldDef.columnName = columnAnnotation.name();
 					}
 					fieldDef.type = Types.FK;
 					Many2One many2one = f.getAnnotation(Many2One.class);
@@ -833,7 +854,7 @@ class TableDefinition<T> {
 				}
 				else {
 					// this will be stored as a blob...
-					fieldDef.dataType = DIALECT.getDataType(Blob.class);
+					fieldDef.dataType = dialect.getDataType(Blob.class);
 					fieldDef.type = Types.BLOB;
 
 					// handle column name on annotation
@@ -858,11 +879,11 @@ class TableDefinition<T> {
 		if (Types.ENUM == fieldDef.type) {
 			 if (null != columnAnnotation && Types.ENUM_INT == columnAnnotation.enumType()) {
 				 fieldDef.type = Types.ENUM_INT;
-				 fieldDef.dataType = DIALECT.getDataType(Integer.class);
+				 fieldDef.dataType = dialect.getDataType(Integer.class);
 				 fieldDef.maxLength = 0; // make sure that integer type does not get a length value when creating tables
 			 }
 			 else {
-				 fieldDef.dataType = DIALECT.getDataType(String.class);
+				 fieldDef.dataType = dialect.getDataType(String.class);
 			 }
 			 return true;
 		}
@@ -880,7 +901,7 @@ class TableDefinition<T> {
 			Field[] superFields = null;
 			Class<? super A> superClazz = clazz.getSuperclass();
 			superFields = addSuperClassFields(superClazz);
-			if (superFields != null) {
+			if (null != superFields) {
 				Field[] childFields = clazz.getDeclaredFields();
 				classFields = new Field[superFields.length + childFields.length];
 				System.arraycopy(superFields, 0, classFields, 0, superFields.length);
@@ -905,7 +926,7 @@ class TableDefinition<T> {
 		if (!shouldMap)
 			return superSuperFields;
 
-		if (superSuperFields == null) {
+		if (null == superSuperFields) {
 			// super class is Object.class or not mapped. However this class is mapped so we can get its fields
 			return superClazz.getDeclaredFields();
 		}
@@ -948,18 +969,14 @@ class TableDefinition<T> {
 			else if (def.primaryKeyColumnNames.size() > 1)
 				throw new JaquError("UnsupportedOperation - Entity relationship is not supported for complex primary keys. Found in %s", classType);
 			else {
-				// Single primary key is here we find out the type and move on....
-				Field primaryKeyDataType = null;
-				int primaryKeyMaxSize = 0;
+				// Single primary key. Here we find out the type and move on....
 				for (FieldDefinition innerDef : def.fields) {
 					if (innerDef.isPrimaryKey) {
-						primaryKeyDataType = innerDef.field;
-						primaryKeyMaxSize = innerDef.maxLength;
+						fdef.dataType = getDataType(innerDef.field.getType());
+						fdef.maxLength = innerDef.maxLength;
 						break;
 					}
-				}
-				fdef.dataType = getDataType(primaryKeyDataType.getType());
-				fdef.maxLength = primaryKeyMaxSize;
+				}				
 			}
 		}
 	}
@@ -969,7 +986,7 @@ class TableDefinition<T> {
 			fieldClass = ClassUtils.getWrapperClass(fieldClass);
 		else if (fieldClass == java.util.UUID.class)
 			fieldClass = java.lang.String.class;
-		return DIALECT.getDataType(fieldClass);
+		return dialect.getDataType(fieldClass);
 	}
 
 	/*
@@ -979,7 +996,8 @@ class TableDefinition<T> {
 		// first we build an insert statement
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
-		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
+		StatementBuilder fieldTypes = new StatementBuilder();
+		StatementBuilder valueTypes = new StatementBuilder();
 		buff.append(tableName).append('(');
 		if (InheritedType.DISCRIMINATOR == this.inheritedType) {
 			// the inheritance is based on a single table with a discriminator
@@ -1021,11 +1039,12 @@ class TableDefinition<T> {
 	}
 
 	void insert(Db db, Object obj) {
-		if (db.reEntrantCache.checkReEntrent(obj) || db.multiCallCache.checkReEntrent(obj))
+		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
-		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
+		StatementBuilder fieldTypes = new StatementBuilder();
+		StatementBuilder valueTypes = new StatementBuilder();
 		buff.append(tableName).append('(');
 		if (InheritedType.DISCRIMINATOR == this.inheritedType) {
 			// the inheritance is based on a single table with a discriminator
@@ -1053,7 +1072,7 @@ class TableDefinition<T> {
 				}
 				catch (IllegalArgumentException | IllegalAccessException e) {
 					// Nothing to do here
-					e.printStackTrace();
+					StatementLogger.debug("problem in reflection setting field " + field.field.getName());
 				}
         	}
         	fieldTypes.appendExceptFirst(", ");
@@ -1075,11 +1094,8 @@ class TableDefinition<T> {
 				updateWithId(obj, stat);
 			}
 			else
-				stat.executeUpdate();
-			// put object in multicall cache.
-			db.multiCallCache.prepareReEntrent(obj);
+				stat.executeUpdate();			
 			update(db, obj);
-			db.reEntrantCache.removeReEntrent(obj);
 		}
 		else {
 			// an object with no primary key fields can not have relationships or silent fields so we can just execute the simple db update
@@ -1190,16 +1206,16 @@ class TableDefinition<T> {
 				firstCondition = false;
 				query.addConditionToken(new Condition<>(aliasValue, primaryKey, CompareType.EQUAL));
 			}
-			StatementBuilder buff = DIALECT.wrapUpdateQuery(innerUpdate, tableName, as);
+			StatementBuilder buff = dialect.wrapUpdateQuery(innerUpdate, tableName, as);
 			stat.setSQL(buff.toString());
 			Number aliasValue = null;
-			Number version = null;
+			Number lVersion = null;
 			if (null != this.version) {
 				// if this table is versioned we must find a row that matches our current
 				query.addConditionToken(ConditionAndOr.AND);
 				aliasValue = (Number)this.version.getValue(alias);
-				version = (Number)this.version.getValue(obj);
-				query.addConditionToken(new Condition<>(aliasValue, version, CompareType.EQUAL));
+				lVersion = (Number)this.version.getValue(obj);
+				query.addConditionToken(new Condition<>(aliasValue, lVersion, CompareType.EQUAL));
 			}
 			query.appendWhere(stat);
 			if (db.factory.isShowSQL())
@@ -1211,23 +1227,19 @@ class TableDefinition<T> {
 				// an sql error would be a -1 and a successful update will have a number higher than 0
 				if (null != this.version && null != version) {
 					db.rollback();
-					throw new JaquConcurrencyException(tableName, obj.getClass(), primaryKey, version);
+					throw new JaquConcurrencyException(tableName, obj.getClass(), primaryKey, lVersion);
 				}
 			}
 			else if (null != this.version && null != version) {
 				// we need to update the instance with the new version
 				try {
-					this.version.field.set(obj, version.intValue() + 1);
+					this.version.field.set(obj, lVersion.intValue() + 1);
 				}
 				catch (IllegalArgumentException | IllegalAccessException e) {
 					// Nothing to do here
 				}
 			}
-			// store in multi call cache
-			db.multiCallCache.prepareReEntrent(obj);
-			db.reEntrantCache.removeReEntrent(obj);
 		}
-
 		// if the object inserted successfully and is a Table add the session to it.
 		db.addSession(obj);
 	}
@@ -1289,7 +1301,7 @@ class TableDefinition<T> {
 			firstCondition = false;
 			query.addConditionToken(new Condition<>(aliasValue, value, CompareType.EQUAL));
 		}
-		StatementBuilder buff = DIALECT.wrapDeleteQuery(null, tableName, as);
+		StatementBuilder buff = dialect.wrapDeleteQuery(null, tableName, as);
 		stat.setSQL(buff.toString());
 		query.appendWhere(stat);
 		if (db.factory.isShowSQL())
@@ -1304,19 +1316,20 @@ class TableDefinition<T> {
 	 * The last identity called using this connection would be the one that inserted the parameter 'obj'. we use it to set the value
 	 */
 	private void updateWithId(Object obj, SQLStatement stat) {
-		String[] idColumnNames;
-		idColumnNames =  null != primaryKeyColumnNames ? primaryKeyColumnNames.stream().map(fd -> fd.columnName).toArray(String[]::new) : new String[0];
-		Long generatedId = stat.executeUpdateWithId(idColumnNames);
-		if (null != generatedId) {
-			try {
-				primaryKeyColumnNames.get(0).field.set(obj, generatedId);
+		if (null != primaryKeyColumnNames) {
+			String[] idColumnNames =  primaryKeyColumnNames.stream().map(fd -> fd.columnName).toArray(String[]::new);
+			Long generatedId = stat.executeUpdateWithId(idColumnNames);
+			if (null != generatedId) {
+				try {
+					primaryKeyColumnNames.get(0).field.set(obj, generatedId);
+				}
+				catch (Exception e) {
+					throw new JaquError(e, e.getMessage());
+				}
 			}
-			catch (Exception e) {
-				throw new JaquError(e, e.getMessage());
+			else {
+				throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
 			}
-		}
-		else {
-			throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
 		}
 	}
 
@@ -1372,12 +1385,12 @@ class TableDefinition<T> {
 				// value is a table
 				if (value != null) {
 					// if this object exists it updates if not it is inserted. ForeignKeys are always table
-					if (!field.noUpdateField) {
+					Object pk = db.factory.getPrimaryKey(value);
+					if (null == pk || !field.noUpdateField) {
 						db.reEntrantCache.prepareReEntrent(obj);
 						db.merge(value);
-						//db.reEntrantCache.removeReEntrent(obj);
 					}
-					stat.addParameter(db.factory.getPrimaryKey(value));
+					stat.addParameter(pk);
 				}
 				else
 					stat.addParameter(null);
@@ -1388,20 +1401,20 @@ class TableDefinition<T> {
 				// value is a list of tables (we got here only when merge was called from db by outside user
 				if (value != null && !((Collection<?>) value).isEmpty()) {
 					// value is a Collection type
-					for (Object table : (Collection<?>) value) {
+					for (Object table : (Collection<?>) value) {						
 						db.reEntrantCache.prepareReEntrent(obj);
-						if(!field.noUpdateField)
+						Object pk = db.factory.getPrimaryKey(table);
+						if (null == pk || !field.noUpdateField)
 							db.merge(table);
 						db.updateRelationship(field, table, obj); // here object can only be a entity
-						//db.reEntrantCache.removeReEntrent(obj);
 					}
-					if (!AbstractJaquCollection.class.isInstance(value)) {
+					if (!(value instanceof AbstractJaquCollection)) {
 						try {
-							if (List.class.isAssignableFrom(field.field.getType())) {
+							if (value instanceof List) {
 								JaquList<?> list = new JaquList<>((List<?>)value, db, field, db.getPrimaryKey(obj));
 								field.field.set(obj, list);
 							}
-							else if (Set.class.isInstance(field.field.getType())) {
+							else if (value instanceof Set) {
 								JaquSet<?> list = new JaquSet<>((Set<?>)value, db, field, db.getPrimaryKey(obj));
 								field.field.set(obj, list);
 							}
@@ -1417,10 +1430,10 @@ class TableDefinition<T> {
 				// this is the many side of a join table managed O2M relationship.
 				if (value != null) {
 					db.reEntrantCache.prepareReEntrent(obj);
-					if(!field.noUpdateField)
+					Object pk = db.factory.getPrimaryKey(value);
+					if (null == pk || !field.noUpdateField)
 						db.merge(value);
 					db.updateRelationship(field, obj, value); // the parent(value) is still the one side as 'obj' is the many side
-					//db.reEntrantCache.removeReEntrent(obj);
 				}
 				break;
 			}
@@ -1428,37 +1441,30 @@ class TableDefinition<T> {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private Object getOne2OneFromDb(Db db, Object obj, List<FieldDefinition> primaryKeyColumnNames, FieldDefinition fdef) {
-		try {
-			Object parent = Utils.newObject(obj.getClass());
-			Object desc = Utils.newObject(fdef.field.getType());
+	private Object getOne2OneFromDb(Db db, Object obj, List<FieldDefinition> primaryKeyColumnNames, FieldDefinition fdef) throws IllegalArgumentException, IllegalAccessException {
+		Object parent = Utils.newObject(obj.getClass());
+		Object desc = Utils.newObject(fdef.field.getType());
 
-			Query query = (Query) db.from(desc);
-			QueryJoinWhere queryJoin = query.innerJoin(parent).on(fdef.field.get(parent)).is(desc);
+		Query query = (Query) db.from(desc);
+		QueryJoinWhere queryJoin = query.innerJoin(parent).on(fdef.field.get(parent)).is(desc);
 
-			boolean firstCondition = true;
-			for (FieldDefinition field : primaryKeyColumnNames) {
-				Object value = field.getValue(obj);
-				if (null == value) {
-					// I don't have a primary key so I can't delete from the underlying db
-					return null;
-				}
-				Object aliasValue = field.getValue(parent);
-				if (!firstCondition) {
-					query.addConditionToken(ConditionAndOr.AND);
-				}
-				firstCondition = false;
-				query.addConditionToken(new Condition<>(aliasValue, value, CompareType.EQUAL));
+		boolean firstCondition = true;
+		for (FieldDefinition field : primaryKeyColumnNames) {
+			Object value = field.getValue(obj);
+			if (null == value) {
+				// I don't have a primary key so I can't delete from the underlying db
+				return null;
 			}
-			SQLStatement stat = new SQLStatement(db);
-			query.appendWhere(stat);
-			return queryJoin.selectFirst();
+			Object aliasValue = field.getValue(parent);
+			if (!firstCondition) {
+				query.addConditionToken(ConditionAndOr.AND);
+			}
+			firstCondition = false;
+			query.addConditionToken(new Condition<>(aliasValue, value, CompareType.EQUAL));
 		}
-		catch (Exception e) {
-			if (e instanceof RuntimeException)
-				throw (RuntimeException)e;
-			throw new RuntimeException(e.getMessage(), e);
-		}
+		SQLStatement stat = new SQLStatement(db);
+		query.appendWhere(stat);
+		return queryJoin.selectFirst();
 	}
 
 	int deleteAll(Db db) {
@@ -1467,7 +1473,7 @@ class TableDefinition<T> {
 		Query<Object> query = Query.from(db, alias);
 		String as = query.getSelectTable().getAs();
 
-		StatementBuilder buff = DIALECT.wrapDeleteQuery(new StatementBuilder(), tableName, as);
+		StatementBuilder buff = dialect.wrapDeleteQuery(new StatementBuilder(), tableName, as);
 		stat.setSQL(buff.toString());
 		if (db.factory.isShowSQL())
 			StatementLogger.delete(stat.logSQL());
@@ -1475,10 +1481,10 @@ class TableDefinition<T> {
 	}
 
 	TableDefinition<T> createTableIfRequired(Db db) {
-		if (DIALECT.checkTableExists(tableName, db))
+		if (dialect.checkTableExists(tableName, db))
 			return this;
 		SQLStatement stat = new SQLStatement(db);
-		StatementBuilder buff = new StatementBuilder(DIALECT.getCreateTableStatment(tableName));
+		StatementBuilder buff = new StatementBuilder(dialect.getCreateTableStatment(tableName));
 		buff.append('(');
 		for (FieldDefinition field : fields) {
 			if (!field.isSilent && !field.isExtension) {
@@ -1486,7 +1492,7 @@ class TableDefinition<T> {
 				buff.append(field.columnName).append(' ').append(field.dataType);
 				if (field.isPrimaryKey && field.field.getAnnotation(PrimaryKey.class).generatorType() == GeneratorType.IDENTITY) {
 					// add identity info
-					buff.append(' ').append(this.DIALECT.getIdentitySuppliment());
+					buff.append(' ').append(this.dialect.getIdentitySuppliment());
 				}
 				else if (field.maxLength != 0) {
 					buff.append('(').append(field.maxLength).append(')');
@@ -1510,10 +1516,10 @@ class TableDefinition<T> {
 		try {
 			createIndices(db);
 		}
-		catch (Throwable any){
+		catch (Exception any){
 			StatementLogger.log("Unable to create indices [May be they exist]. " + any.getMessage());
 		}
-		AlterTableDiscriminatorIfRequired(db);
+		alterTableDiscriminatorIfRequired(db);
 		return this;
 	}
 
@@ -1522,7 +1528,7 @@ class TableDefinition<T> {
 		Indices indices = this.clazz.getAnnotation(Indices.class);
 		if (null != indices){
 			for (Index index: indices.value()){
-				String query = DIALECT.getIndexStatement(index.name(), this.tableName, index.unique(), index.columns());
+				String query = dialect.getIndexStatement(index.name(), this.tableName, index.unique(), index.columns());
 				SQLStatement stat = new SQLStatement(db);
 				StatementBuilder buff = new StatementBuilder(query);
 				stat.setSQL(buff.toString());
@@ -1533,16 +1539,14 @@ class TableDefinition<T> {
 		}
 	}
 
-	private void AlterTableDiscriminatorIfRequired(Db db) {
-		if (inheritedType == InheritedType.DISCRIMINATOR) {
-			if (!DIALECT.checkDiscriminatorExists(tableName, discriminatorColumn, db)) {
-				SQLStatement stat = new SQLStatement(db);
-				StatementBuilder buff = new StatementBuilder(DIALECT.getDiscriminatorStatment(tableName, discriminatorColumn));
-				stat.setSQL(buff.toString());
-				if (db.factory.isShowSQL())
-					StatementLogger.alter(stat.logSQL());
-				stat.executeUpdate();
-			}
+	private void alterTableDiscriminatorIfRequired(Db db) {
+		if (inheritedType == InheritedType.DISCRIMINATOR && !dialect.checkDiscriminatorExists(tableName, discriminatorColumn, db)) {
+			SQLStatement stat = new SQLStatement(db);
+			StatementBuilder buff = new StatementBuilder(dialect.getDiscriminatorStatment(tableName, discriminatorColumn));
+			stat.setSQL(buff.toString());
+			if (db.factory.isShowSQL())
+				StatementLogger.alter(stat.logSQL());
+			stat.executeUpdate();
 		}
 	}
 
@@ -1556,12 +1560,13 @@ class TableDefinition<T> {
 
 	@SuppressWarnings("unchecked")
 	T readRow(ResultSet rs, Db db) {
+		T item = Utils.newObject(clazz);
 		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
 			// this class has a primary key
 			// 1. get the primaryKey value, 2. check if we have an object with such value in cache, 3. if so return it
-			// if not continue.
+			// if not continue.			
 			for (FieldDefinition def: primaryKeyColumnNames) {
-				Object key = def.read(rs, DIALECT);
+				Object key = def.read(rs, dialect);
 				Object o = db.multiCallCache.checkReEntrent(clazz, key);
 				if (null == o)
 					o = db.reEntrantCache.checkReEntrent(clazz, key);
@@ -1573,37 +1578,20 @@ class TableDefinition<T> {
 						// This error should not happen. For now we just ignore it.
 					}
 				}
+				else {					
+					doRead(rs, db, item, def);
+				}
 			}
 		}
-		T item = Utils.newObject(clazz);
 		for (FieldDefinition def: fields) {
-			if (StatementLogger.isDebugEnabled())
-				StatementLogger.debug("Working on Field: " + def.field.getName());
-			if (!def.isSilent) {
-				Object o;
-				try {
-					o = def.read(rs, DIALECT);
-				}
-				catch (JaquError sqle) {
-					if (def.isExtension)
-						continue;
-					throw sqle;
-				}
-				Converter converter = def.field.getAnnotation(Converter.class);
-				if (null != converter) {
-					@SuppressWarnings("rawtypes")
-					JaquConverter convert = Utils.newObject(converter.value());
-					o = convert.fromDb(o);
-				}
-				def.setValue(item, o, db);
+			if (!def.isPrimaryKey) {
+				db.reEntrantCache.prepareReEntrent(item);
+				doRead(rs, db, item, def);
+				db.reEntrantCache.removeReEntrent(item);
 			}
-			else
-				// probably a relation is loaded
-				def.setValue(item, null, db);
 		}
 		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
-			db.multiCallCache.prepareReEntrent(item);
-			db.reEntrantCache.removeReEntrent(item);
+			db.multiCallCache.prepareReEntrent(item);			
 		}
 		return item;
 	}
@@ -1652,9 +1640,35 @@ class TableDefinition<T> {
 		return primaryKeyColumnNames;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private void doRead(ResultSet rs, Db db, T item, FieldDefinition def) {
+		if (StatementLogger.isDebugEnabled())
+			StatementLogger.debug("Working on Field: " + def.field.getName());
+		if (!def.isSilent) {
+			Object o;
+			try {
+				o = def.read(rs, dialect);
+			}
+			catch (JaquError sqle) {
+				if (def.isExtension)
+					return;
+				throw sqle;
+			}
+			Converter converter = def.field.getAnnotation(Converter.class);
+			if (null != converter) {				
+				JaquConverter convert = Utils.newObject(converter.value());
+				o = convert.fromDb(o);
+			}
+			def.setValue(item, o, db);
+		}
+		else
+			// probably a relation is loaded
+			def.setValue(item, null, db);
+	}
+	
 	private Class<?> extractPrimaryKeyFromClass(Class<?> childType) {
-		Field[] fields = getAllFields(childType);
-		for (Field field: fields) {
+		Field[] lFields = getAllFields(childType);
+		for (Field field: lFields) {
 			if (null != field.getAnnotation(PrimaryKey.class))
 				return field.getType();
 		}
@@ -1673,15 +1687,15 @@ class TableDefinition<T> {
 	private void createRelationTable(Class<?> childType, String joinTableName, String myColumnNameInRelation, Class<?> relationPkClass,
 			String relationColumnName, Db db) {
 		try {
-			if (DIALECT.checkTableExists(joinTableName, db))
+			if (dialect.checkTableExists(joinTableName, db))
 				return;
 			FieldDefinition myPkDef = this.getPrimaryKeyFields().get(0);
 			String myPkLength = myPkDef.maxLength != 0 ? "(" + myPkDef.maxLength + ")" : "";
 
 			// Locate the pk field of the target relation
-			Field[] fields = getAllFields(childType);
+			Field[] lFields = getAllFields(childType);
 			String relationPkLength = "";
-			for (Field f : fields) {
+			for (Field f : lFields) {
 				if (f.getAnnotation(PrimaryKey.class) != null) {
 					// this is the primary key
 					Column columnAnnotation = f.getAnnotation(Column.class);
@@ -1692,9 +1706,9 @@ class TableDefinition<T> {
 				}
 			}
 
-			StatementBuilder builder = new StatementBuilder(DIALECT.getCreateTableStatment(joinTableName)).append(" (").append(myColumnNameInRelation).append(" ");
+			StatementBuilder builder = new StatementBuilder(dialect.getCreateTableStatment(joinTableName)).append(" (").append(myColumnNameInRelation).append(" ");
 			builder.append(getDataType(primaryKeyColumnNames.get(0).field.getType())).append(myPkLength + ", ").append(relationColumnName).append(" ");
-			builder.append(DIALECT.getDataType(relationPkClass)).append(relationPkLength + ")");
+			builder.append(dialect.getDataType(relationPkClass)).append(relationPkLength + ")");
 			db.executeUpdate(false, builder.toString());
 		}
 		catch (Exception e) {

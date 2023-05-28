@@ -60,7 +60,7 @@ public class JaquAssemblyTask extends Task {
 			throw new BuildException(String.format("Output dir %s does not exist!!!", classOutputDirectory));
 		
 		StringBuilder report = new StringBuilder();
-		BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
+		BuildStats stats = CommonAssembly.assembleFiles(outputDir, report, report);
 		if (stats.getFailure() > 0) {
 			report.insert(0, "BUILD FAILED - converted " + stats.getSuccess() + " files, failed to convert " + stats.getFailure() + " files\n");
 			throw new BuildException(report.toString());

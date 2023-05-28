@@ -25,10 +25,25 @@ public class QueryJoin<T> {
         this.join = join;
     }
 
-    public <A> QueryJoinCondition<T, A> on(GenericMask<T, A> x) {
+    /**
+     * Use this method when the object questioned holds an Object and you want to save a join and use the other sides
+     * primaryKey instead.
+     * 
+     * @param <A>
+     * @param x - the mask used to retrieve the PrimaryKey from the object
+     * @return QueryJoinCondition&lt;T, A&gt;
+     */
+    public <A> QueryJoinCondition<T, A> on(GenericMask<?, A> x) {
         return new QueryJoinCondition<>(query, join, x);
     }
 
+    /**
+     * Use this method when connecting on an entity object
+     * 
+     * @param <A>
+     * @param x - the target object entity to join on
+     * @return QueryJoinCondition&lt;T, A&gt;
+     */
     public <A> QueryJoinCondition<T, A> on(A x) {
         return new QueryJoinCondition<>(query, join, x);
     }

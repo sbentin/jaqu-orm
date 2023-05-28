@@ -37,14 +37,23 @@ final class CacheManager {
      * @param obj
      */
     void prepareReEntrent(Object obj) {
-		Map<String, Object> innerMap = cache.get(obj.getClass());
-		if (null == innerMap) {
-			innerMap = Utils.newHashMap();
-			cache.put(obj.getClass(), innerMap);
+		try {
+			Object pmKey = factory.getPrimaryKey(obj);
+			if (null == pmKey)
+				return;
+			String primaryKey = pmKey.toString();
+			Map<String, Object> innerMap = cache.get(obj.getClass());
+			if (null == innerMap) {
+				innerMap = Utils.newHashMap();
+				cache.put(obj.getClass(), innerMap);
+			}
+			
+			if (null != primaryKey)
+				innerMap.computeIfAbsent(primaryKey, k -> obj);
 		}
-		String primaryKey = factory.getPrimaryKey(obj).toString();
-		if (null == innerMap.get(primaryKey))
-			innerMap.put(primaryKey, obj);
+		catch (JaquError je) {
+			// no primaryKey... we can't cache, but can continue
+		}
 	}
 
     /**
@@ -58,7 +67,9 @@ final class CacheManager {
     	if (null == innerMap)
     		// all is removed
     		return;
-    	innerMap.remove(factory.getPrimaryKey(obj).toString());
+    	Object pmKey = factory.getPrimaryKey(obj);
+    	if (null != pmKey)
+    		innerMap.remove(pmKey.toString());
     	if (innerMap.isEmpty()) {
     		cache.remove(obj.getClass());
     	}
@@ -83,7 +94,7 @@ final class CacheManager {
      * @return Object
      */
 	Object checkReEntrent(Class<?> clazz, Object key) {
-		if (null != key){
+		if (null != key) {
 			key = key.toString();
 			Map<String, ?> innerMap = cache.get(clazz);
 			if (null != innerMap) {

@@ -86,32 +86,33 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * this method visitor changes the name of the relation getter to $orig_[originalName]
 	 */
 	@Override
-	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+	public MethodVisitor visitMethod(int access, String methodName, String desc, String signature, String[] exceptions) {
 		// 1. if name is in the list of o2m and return type is collection instrument add call to db.getRelationFromDb or db.getRelationArrayFromDb, only if value of field is null;
-		 if ((isEntityAnnotationPresent || isMappedSupperClass) && name.startsWith("get")) {
-			// this is a getter check if it is a relation getter
-			if (relationFields.contains(name.substring(3).toLowerCase())) {
+		 if ((isEntityAnnotationPresent || isMappedSupperClass) && methodName.startsWith("get")) {
+			final String checkName = methodName.substring(3).toLowerCase();
+			 // this is a getter check if it is a relation getter
+			if (relationFields.contains(checkName)) {
 				// this is a relationship.
-				String newName = $ORIG + name;
-				String fieldName = camelCase(name);
+				String newMethodName = $ORIG + methodName;
+				String fieldName = camelCase(methodName);
 				
-				generateNewMethodBody(access, desc, signature, exceptions, name, newName, fieldName);
+				generateNewMethodBody(access, desc, signature, exceptions, methodName, newMethodName, fieldName);
 				
-				return super.visitMethod(access, newName, desc, signature, exceptions);
+				return super.visitMethod(access, newMethodName, desc, signature, exceptions);
 			}
-			else if (lazyLoadFields.contains(name.substring(3).toLowerCase())) {
+			else if (lazyLoadFields.contains(checkName)) {
 				// this is a O2O relationship which should be lazy loaded
-				String newName = $ORIG + name;
-				String fieldName = camelCase(name);
+				String newMethodName = $ORIG + methodName;
+				String fieldName = camelCase(methodName);
 				
-				generateLazyRelation(access, desc, exceptions, name, newName, fieldName);
-				return super.visitMethod(access, newName, desc, signature, exceptions);
+				generateLazyRelation(access, desc, exceptions, methodName, newMethodName, fieldName);
+				return super.visitMethod(access, newMethodName, desc, signature, exceptions);
 			}
 			else
-				return super.visitMethod(access, name, desc, signature, exceptions);
+				return super.visitMethod(access, methodName, desc, signature, exceptions);
 		}
 		else if (isEntityAnnotationPresent || isMappedSupperClass)
-			return super.visitMethod(access, name, desc, signature, exceptions);
+			return super.visitMethod(access, methodName, desc, signature, exceptions);
 		
 		else
 			return null;
@@ -194,8 +195,8 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * @param desc
 	 * @param signature
 	 * @param exceptions
-	 * @param name
-	 * @param newName
+	 * @param name - currentMethodName
+	 * @param newName - the new Method name (orig_[currentMethodName]);
 	 * @param fieldName
 	 */
 	private void generateNewMethodBody(int access, String desc, String signature, String[] exceptions, String name, String newName, String fieldName) {
@@ -344,12 +345,12 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * @param access
 	 * @param desc
 	 * @param exceptions
-	 * @param name - current method name
-	 * @param newName - new method name (the orig...)
+	 * @param methodName - current method name
+	 * @param newMthodName - new method name (the $orig_[current method name])
 	 * @param fieldName
 	 */
-	public void generateLazyRelation(int access, String desc, String[] exceptions, String name, String newName, String fieldName) {
-		MethodVisitor mv = cv.visitMethod(access, name, desc, null, exceptions);
+	public void generateLazyRelation(int access, String desc, String[] exceptions, String methodName, String newMethodName, String fieldName) {
+		MethodVisitor mv = cv.visitMethod(access, methodName, desc, null, exceptions);
 		String fieldSignature = desc.substring(desc.indexOf(')') + 1);
 		String fieldClassName = desc.substring(desc.indexOf(')') + 2, desc.length() - 1);
 		
@@ -509,7 +510,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		mv.visitLabel(l5);
 		mv.visitFrame(Opcodes.F_CHOP,1, null, 0, null);
 		mv.visitVarInsn(ALOAD, 0);
-		mv.visitMethodInsn(INVOKEVIRTUAL, className, newName, desc, false);
+		mv.visitMethodInsn(INVOKEVIRTUAL, className, newMethodName, desc, false);
 		mv.visitInsn(ARETURN);
 		mv.visitMaxs(4, 10);
 		mv.visitEnd();

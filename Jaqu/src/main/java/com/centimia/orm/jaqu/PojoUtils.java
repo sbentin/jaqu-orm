@@ -491,7 +491,7 @@ public class PojoUtils {
 				}
 			}
 		}
-		StatementBuilder buff = def.DIALECT.wrapUpdateQuery(innerUpdate, def.tableName, as);
+		StatementBuilder buff = def.dialect.wrapUpdateQuery(innerUpdate, def.tableName, as);
 		buff.append(" WHERE ");
 		if (hasNoSilent) {
 			// if all fields were silent there would be noting to update here so we disregard the whole thing
@@ -523,7 +523,7 @@ public class PojoUtils {
 
 		StatementBuilder innerUpdate = new StatementBuilder();
 		innerUpdate.resetCount();
-		StatementBuilder buff = def.DIALECT.wrapDeleteQuery(innerUpdate, def.tableName, as);
+		StatementBuilder buff = def.dialect.wrapDeleteQuery(innerUpdate, def.tableName, as);
 		buff.append(" WHERE ");
 		boolean firstCondition = true;
 		for (FieldDefinition field : def.getPrimaryKeyFields()) {

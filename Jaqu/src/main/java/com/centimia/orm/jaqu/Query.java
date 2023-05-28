@@ -27,9 +27,13 @@ import com.centimia.orm.jaqu.util.Utils;
  *
  * @param <T> the return type
  */
-public class Query<T> implements FullQueryInterface<T> {
+public class Query<T> implements QueryInterface<T> {
 
-    private Db db;
+    private static final String TO_GET_A_SUBSET = "To get a subset of the fields or a mix of the fields using mapping use the"
+    		+ " 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods";
+	private static final String ILLEGAL_STATE_0 = "IllegalState 0 Entity based on %s must be part of a join query!!";
+	
+	private Db db;
     private SelectTable<T> from;
     private ArrayList<Token> conditions = Utils.newArrayList();
     private ArrayList<Token> setTokens = Utils.newArrayList();
@@ -344,7 +348,7 @@ public class Query<T> implements FullQueryInterface<T> {
 			}
 			stat = new SQLStatement(db);
 			// Nasty hack for MYSQL
-			if (def.DIALECT == Dialect.MYSQL)
+			if (def.dialect == Dialect.MYSQL)
 				stat.appendSQL("DELETE " + from.getAs() + " FROM ");
 			else
 				stat.appendSQL("DELETE FROM ");
@@ -402,7 +406,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	 * @see com.centimia.orm.jaqu.FullQueryInterface#where(com.centimia.orm.jaqu.StringFilter)
 	 */
     @Override
-	public <A> QueryWhere<T> where(final StringFilter whereCondition){
+	public QueryWhere<T> where(final StringFilter whereCondition){
     	Token conditionCode = new Token() {
 
 			@Override
@@ -449,7 +453,7 @@ public class Query<T> implements FullQueryInterface<T> {
 
     	// def will not be null here
     	List<TableDefinition.FieldDefinition> primaryKeys = def.getPrimaryKeyFields();
-    	if (primaryKeys == null || primaryKeys.size() == 0) {
+    	if (primaryKeys == null || primaryKeys.isEmpty()) {
             throw new JaquError("IllegalState - No primary key columns defined for table %s - no update possible", def.tableName);
         }
     	if (primaryKeys.size() > 1)
@@ -727,7 +731,6 @@ public class Query<T> implements FullQueryInterface<T> {
     }
 
     void appendWhere(SQLStatement stat) {
-    	boolean useDiscriminator = true;
     	if (!conditions.isEmpty()) {
             if (!(conditions.get(0) instanceof HavingToken))
             	// if the first token is not a "having" sql clause then we print WHERE
@@ -738,13 +741,13 @@ public class Query<T> implements FullQueryInterface<T> {
             }
 
             // add the discriminator if 'T' is a part of an inheritance tree.
-            if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType && useDiscriminator) {
+            if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType) {
             	stat.appendSQL(" AND " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "='" + from.getAliasDefinition().discriminatorValue + "' ");
             }
         }
     	else {
     		// add the discriminator if 'T' is a part of an inheritance tree.
-            if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType && useDiscriminator) {
+            if (InheritedType.DISCRIMINATOR == from.getAliasDefinition().inheritedType) {
             	stat.appendSQL(" WHERE " + from.getAs() + "." + from.getAliasDefinition().discriminatorColumn + "='" + from.getAliasDefinition().discriminatorValue + "' ");
             }
     	}
@@ -842,7 +845,7 @@ public class Query<T> implements FullQueryInterface<T> {
     private String getSQL(boolean distinct) {
     	TableDefinition<T> def = from.getAliasDefinition();
         SQLStatement selectList = def.getSelectList(db, from.getAs());
-        return prepare(selectList, false).logSQL().trim();
+        return prepare(selectList, distinct).logSQL().trim();
     }
 
     @SuppressWarnings("unchecked")
@@ -852,7 +855,7 @@ public class Query<T> implements FullQueryInterface<T> {
     		clazz = (Class<X>) clazz.getSuperclass();
     	TableDefinition<X> def = JaquSessionFactory.define(clazz, db, false);
         SQLStatement selectList = def.getSelectList(this, x);
-        return prepare(selectList, false).logSQL().trim();
+        return prepare(selectList, distinct).logSQL().trim();
     }
 
     private List<T> select(boolean distinct) {
@@ -872,9 +875,9 @@ public class Query<T> implements FullQueryInterface<T> {
     }
 
     private <U> List<T> union(Query<U> unionQuery, boolean distinct) {
-    	if (null == unionQuery)
+    	if (null == unionQuery) {
 			return this.select();
-
+    	}
     	List<T> result = Utils.newArrayList();
     	TableDefinition<T> def = from.getAliasDefinition();
     	SQLStatement selectList = def.getSelectList(db, from.getAs());
@@ -926,9 +929,9 @@ public class Query<T> implements FullQueryInterface<T> {
 	@SuppressWarnings("unchecked")
 	private <U> List<U> selectRightHandJoin(U tableClass, boolean distinct) {
     	if (tableClass.getClass().isAnonymousClass())
-    		throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+    		throw new JaquError(TO_GET_A_SUBSET);
     	if (this.joins == null || this.joins.isEmpty())
-    		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getClass().getName());
+    		throw new JaquError(ILLEGAL_STATE_0, tableClass.getClass().getName());
 
     	TableDefinition<U> definition = null;
     	String as = null;
@@ -939,6 +942,8 @@ public class Query<T> implements FullQueryInterface<T> {
     			break;
     		}
     	}
+    	if (null == definition)
+    		throw new JaquError(ILLEGAL_STATE_0, tableClass.getClass().getName());
     	final TableDefinition<U> def = definition;
     	SQLStatement selectList = def.getSelectList(db, as);
     	List<U> result = Utils.newArrayList();
@@ -957,9 +962,9 @@ public class Query<T> implements FullQueryInterface<T> {
 	@SuppressWarnings("unchecked")
 	private <U, Z> List<Z> selectRightHandJoin(U tableClass, boolean distinct, Z x) {
     	if (tableClass.getClass().isAnonymousClass())
-    		throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+    		throw new JaquError(TO_GET_A_SUBSET);
     	if (this.joins == null || this.joins.isEmpty())
-    		throw new JaquError("IllegalState 0 Entity based on %s must be part of a join query!!", tableClass.getClass().getName());
+    		throw new JaquError(ILLEGAL_STATE_0, tableClass.getClass().getName());
 
     	List<Z> result = Utils.newArrayList();
     	if (null != x) {
@@ -988,7 +993,7 @@ public class Query<T> implements FullQueryInterface<T> {
 	        	});
 	        }
 	        else
-	        	throw new JaquError("To get a subset of the fields or a mix of the fields using mapping use the 'select(Z)' or 'selectFirst(Z)' or 'selectDistinct(Z)' methods");
+	        	throw new JaquError(TO_GET_A_SUBSET);
     	}
     	return result;
     }

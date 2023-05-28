@@ -49,11 +49,14 @@ public class OracleDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#getDataType(java.lang.Class)
 	 */
 	public String getDataType(Class<?> fieldClass) {
+		final String VARCHAR2 = "VARCHAR2";
+		final String TIMESTAMP_6 = "TIMESTAMP(6)";
+		
 		if (fieldClass == Integer.class) {
 			return "NUMBER(10)";
 		}
 		else if (fieldClass == String.class) {
-			return "VARCHAR2";
+			return VARCHAR2;
 		}
 		else if (fieldClass == Double.class) {
 			return "NUMBER(38,15)";
@@ -62,7 +65,7 @@ public class OracleDialect implements SQLDialect {
 			return "NUMBER(38,15)";
 		}
 		else if (fieldClass == java.util.Date.class) {
-			return "TIMESTAMP(6)";
+			return TIMESTAMP_6;
 		}
 		else if (fieldClass == java.sql.Date.class) {
 			return "DATE";
@@ -71,10 +74,10 @@ public class OracleDialect implements SQLDialect {
 			return "DATE";
 		}
 		else if (fieldClass == java.time.LocalDateTime.class) {
-			return "TIMESTAMP(6)";
+			return TIMESTAMP_6;
 		}
 		else if (fieldClass == java.time.ZonedDateTime.class) {
-			return "TIMESTAMP(6)";
+			return TIMESTAMP_6;
 		}
 		else if (fieldClass == java.time.LocalTime.class) {
 			return "DATE";
@@ -114,9 +117,9 @@ public class OracleDialect implements SQLDialect {
 			return "BLOB";
 		}
 		else if (fieldClass.isEnum()) {
-			return "VARCHAR2";
+			return VARCHAR2;
 		}
-		return "VARCHAR2";
+		return VARCHAR2;
 	}
 
 	/** 
@@ -131,11 +134,7 @@ public class OracleDialect implements SQLDialect {
 	 */
 	public boolean checkTableExists(String tableName, Db db) {
 		String query = "SELECT 1 FROM USER_TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
-		return db.executeQuery(query, rs -> {
-			if (rs.next())
-				return true;
-			return false;
-		});		
+		return db.executeQuery(query, ResultSet::next);
 	}
 	
 	/**
@@ -148,7 +147,7 @@ public class OracleDialect implements SQLDialect {
     		case INTEGER: return (rs.getObject(columnName) != null) ? rs.getInt(columnName): null;
     		case LONG: return (rs.getObject(columnName) != null) ? rs.getLong(columnName): null;
     		case BIGDECIMAL: return rs.getBigDecimal(columnName);
-    		case BOOLEAN: return (rs.getObject(columnName) != null) ? rs.getBoolean(columnName): null;
+    		case BOOLEAN: return (rs.getObject(columnName) != null) && rs.getBoolean(columnName);
     		case BLOB: return rs.getObject(columnName);
     		case CLOB: return rs.getClob(columnName);
     		case BYTE: return (rs.getObject(columnName) != null) ? rs.getByte(columnName): null;
@@ -201,7 +200,7 @@ public class OracleDialect implements SQLDialect {
     		case INTEGER: return (rs.getObject(columnNumber) != null) ? rs.getInt(columnNumber): null;
     		case LONG: return (rs.getObject(columnNumber) != null) ? rs.getLong(columnNumber): null;
     		case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
-    		case BOOLEAN: return (rs.getObject(columnNumber) != null) ? rs.getBoolean(columnNumber): null;
+    		case BOOLEAN: return (rs.getObject(columnNumber) != null) && rs.getBoolean(columnNumber);
     		case BLOB: return rs.getObject(columnNumber);
     		case CLOB: return rs.getClob(columnNumber);
     		case BYTE: return (rs.getObject(columnNumber) != null) ? rs.getByte(columnNumber): null;
@@ -280,11 +279,7 @@ public class OracleDialect implements SQLDialect {
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "Select 1 from user_tab_columns c where c.table_name = '" + tableName + "' and c.column_name = '" + discriminatorName + "'";
-		return db.executeQuery(query, rs -> {
-			if (rs.next())
-				return true;
-			return false;
-		});
+		return db.executeQuery(query, ResultSet::next);
 	}
 
 	/*
@@ -299,22 +294,23 @@ public class OracleDialect implements SQLDialect {
 	}
 
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
-		String query;
+		StringBuilder query = new StringBuilder();
 		if (name.length() == 0){
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query = "CREATE UNIQUE INDEX " + tableName + "." + name + " ON (";
+			query.append("CREATE UNIQUE INDEX ");
 		else
-			query = "CREATE INDEX " + tableName + "." + name + " ON (";
+			query.append("CREATE INDEX ");
+		query.append(tableName).append(".").append(name).append(" ON (");
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
-				query += ",";
+				query.append(",");
 			}
-			query += columns[i] + " ASC";
+			query.append(columns[i]).append(" ASC");
 		}
-		query += ")";
-		return query;
+		query.append(")");
+		return query.toString();
 	}
 	
 	/*
@@ -357,11 +353,6 @@ public class OracleDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
 	 */
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
-		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
-		return buff;
-	}
-	
-	public static void main(String[] args) {
-		System.out.println(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()));
+		return new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 	}
 }

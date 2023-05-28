@@ -191,7 +191,7 @@ public interface QueryInterface<T> {
 	 * @param groupBy
 	 * @return FullQueryInterface<T>
 	 */
-	public abstract FullQueryInterface<T> groupBy(Object... groupBy);
+	public abstract QueryInterface<T> groupBy(Object... groupBy);
 
 
 	/**
@@ -422,4 +422,63 @@ public interface QueryInterface<T> {
 	 * @return Query<T>
 	 */
 	public Query<T> limit(int limitNum);
+	
+	/**
+	 * Select only distinct results in the table
+	 *
+	 * @return List<T>
+	 */
+	public abstract List<T> selectDistinct();
+
+	/**
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     *
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
+	public abstract <U> List<U> selectDistinctRightHandJoin(U tableClass);
+
+	/**
+     * A convenience method to a field of the object representing the right hand side of the join relationship only. Based on a single field only
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     *
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
+	public <U, Z> List<Z> selectDistinctRightHandJoin(U tableClass, Z x);
+
+	/**
+	 * Perform the update requested by the specific where clause
+	 * <b>Note</b> Since update executes without objects the multi reEntrent cache is cleared
+	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
+	 *
+	 * @return int - number of lines updated.
+	 */
+	public abstract int update();
+
+	/**
+	 * Returns distinct results of type X using a query on object Z
+	 *
+	 * @param <X> - The type of object returned after the specific object is built from results.
+	 * @param <Z> - The type of the Object used for describing the query
+	 * @param x - A descriptor instance of type Z
+	 * @return List<X>
+	 */
+	public abstract <X, Z> List<X> selectDistinct(Z x);
+
+	/**
+	 * returns the query of an sql
+	 * @return String
+	 */
+	public String getDistinctSQL();
+
+	/**
+	 * returns the query of a distinct select based on the given object
+	 * @param z
+	 * @return String
+	 */
+	public <Z> String getDistinctSQL(Z z);
 }

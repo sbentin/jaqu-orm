@@ -48,7 +48,13 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
  */
 public class Db implements AutoCloseable {
 
-    /*
+    private static final String COM_CENTIMIA_ORM = "com.centimia.orm";
+	private static final String SET = " SET ";
+	private static final String UPDATE = "UPDATE ";
+	private static final String WHERE = " WHERE ";
+	private static final String SESSION_IS_CLOSED = "IllegalState - Session is closed!!!";
+
+	/*
      * A list of objects this specific DB call has already visited. This list is cleared after each call.
      * Keeps a different list per thread.
      *
@@ -68,7 +74,7 @@ public class Db implements AutoCloseable {
 	// determines if the Db connection is closed. This gets value of true only when the underlying connection is closed on invalid
 	private volatile boolean closed = true;
 
-	private final Map<Object, Token> TOKENS = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
+	private final Map<Object, Token> tokens = Collections.synchronizedMap(new WeakIdentityHashMap<Object, Token>());
 
 	private Connection conn;
 
@@ -95,13 +101,14 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void insert(T t) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	t = checkSession(t);
         Class<?> clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onInsert(t);
         definition.insert(this, t);
+        clearReEntrentCache();
     }
 
     /**
@@ -117,7 +124,7 @@ public class Db implements AutoCloseable {
 	@SuppressWarnings("unchecked")
 	public <T,X> X insertAndGetPK(T t) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	t = checkSession(t);
         Class<T> clazz = (Class<T>) t.getClass();
         TableDefinition<T> td = define(clazz);
@@ -137,12 +144,14 @@ public class Db implements AutoCloseable {
 		try {
 			pk = (X) primaryKeys.get(0).field.get(t);
 		}
+		catch (JaquError je) {
+			throw je;
+		}
 		catch (Exception e) {
-			if (e instanceof JaquError)
-				throw (JaquError)e;
-			// unable to retrieve the key, however the object was inserted to the db so we return anyway but with null;
+			// unable to retrieve the key, however the object was inserted to the db so we return anyway but with null
 			throw new JaquError(e, e.getMessage());
 		}
+		clearReEntrentCache();
         return pk;
     }
 
@@ -158,7 +167,7 @@ public class Db implements AutoCloseable {
 	 */
 	public <T, X> X getPrimaryKey(T t) {
 		if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
 		return factory.getPrimaryKey(t);
 	}
 
@@ -171,7 +180,7 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void insert(T ... tArray) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t : tArray) {
             insert(t);
         }
@@ -185,10 +194,11 @@ public class Db implements AutoCloseable {
      */
     public <T> void insertAll(List<T> list) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
         for (T t : list) {
             insert(t);
         }
+        clearReEntrentCache();
     }
 
     /**
@@ -200,13 +210,14 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void merge(T t) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	t = checkSession(t);
         Class<?> clazz = t.getClass();
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onMerge(t);
         definition.merge(this, t);
+        clearReEntrentCache();
     }
 
     /**
@@ -217,10 +228,11 @@ public class Db implements AutoCloseable {
      */
     public <T> void merge(List<T> list) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: list){
     		merge(t);
     	}
+    	clearReEntrentCache();
     }
 
     /**
@@ -232,10 +244,11 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void merge(T ... tArray) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: tArray){
     		merge(t);
     	}
+    	clearReEntrentCache();
     }
 
     /**
@@ -250,7 +263,7 @@ public class Db implements AutoCloseable {
      */
 	public <T> void delete(T t) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	if (null == factory.getPrimaryKey(t))
     		// if I don't have a primary key I can't delete the object, don't know how
     		return;
@@ -258,6 +271,7 @@ public class Db implements AutoCloseable {
     	Class<?> clazz = t.getClass();
     	TableDefinition<?> tdef = define(clazz);
     	tdef.delete(this, t);
+    	clearReEntrentCache();
     }
 
     /**
@@ -272,10 +286,11 @@ public class Db implements AutoCloseable {
      */
     public <T> void delete(List<T> list) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: list){
     		delete(t);
     	}
+    	clearReEntrentCache();
     }
 
     /**
@@ -291,10 +306,11 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void delete(T ... tArray) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: tArray){
     		delete(t);
     	}
+    	clearReEntrentCache();
     }
 
     /**
@@ -327,9 +343,9 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void update(T t) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	if (null == factory.getPrimaryKey(t))
-    		// if I don't have a primary key I can't delete the object, don't know how
+    		// if I don't have a primary key I can't update the object, don't know how
     		return;
     	t = checkSession(t);
         Class< ? > clazz = t.getClass();
@@ -337,9 +353,10 @@ public class Db implements AutoCloseable {
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onUpdate(t);
         definition.update(this, t);
+        clearReEntrentCache();
     }
 
-    /**
+	/**
      * Update all the given objects of the same type. Updates in the order the given list is iterated upon.
      * <b>Note: </b> This update works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
      * <pre>
@@ -352,10 +369,11 @@ public class Db implements AutoCloseable {
      */
     public <T> void update(List<T> list){
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: list){
     		update(t);
     	}
+    	clearReEntrentCache();
     }
 
     /**
@@ -372,10 +390,11 @@ public class Db implements AutoCloseable {
     @SuppressWarnings("unchecked")
 	public <T> void update(T ... tArray){
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: tArray){
     		update(t);
     	}
+    	clearReEntrentCache();
     }
 
     /**
@@ -513,7 +532,7 @@ public class Db implements AutoCloseable {
      */
     public <T extends Object> QueryInterface<T> from(T alias) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
         return Query.from(this, alias);
     }
 
@@ -524,7 +543,7 @@ public class Db implements AutoCloseable {
      */
     public <T> void createTable(Class<T> clazz) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
         define(clazz);
     }
 
@@ -566,21 +585,21 @@ public class Db implements AutoCloseable {
      */
     public void rollback() {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
 		try {
 			try {
-				if (null != this.factory.tm && null != this.factory.tm.getTransaction()) {
-					if (hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
-						try {
-							this.factory.tm.getTransaction().setRollbackOnly();
-							return;
-						}
-						catch (IllegalStateException e) {
-							StatementLogger.error("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
-						}
-						catch (SystemException e) {
-							StatementLogger.error("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
-						}
+				if (null != this.factory.tm && null != this.factory.tm.getTransaction() && 
+					hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
+						
+					try {
+						this.factory.tm.getTransaction().setRollbackOnly();
+						return;
+					}
+					catch (IllegalStateException e) {
+						StatementLogger.error("trying to roll back transaction when it is not allowed [" + e.getMessage() + "]");
+					}
+					catch (SystemException e) {
+						StatementLogger.error("unable to mark connection for rollback for an unknown reason. [" + e.getMessage() + "]");
 					}
 				}
 			}
@@ -603,15 +622,15 @@ public class Db implements AutoCloseable {
      */
 	public void commit() {
 		if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
 		try {
 			try {
 				if (commitExternal)
 					return;
-				if (null != this.factory.tm && null != this.factory.tm.getTransaction()) {
+				if (null != this.factory.tm && null != this.factory.tm.getTransaction()
+					&& hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
 					// if we're in a running transaction it is up to the transaction manager to commit not me.
-					if (hasRunningTransaction(this.factory.tm.getTransaction().getStatus()))
-						return;
+					return;
 				}
 			}
 			catch (SystemException e) {
@@ -679,42 +698,22 @@ public class Db implements AutoCloseable {
      * Run a SQL query directly against the database.
      *
      * @param sql the SQL statement
-     * @return the result set
-     */
-    public <T> T executeQuery(String sql, IResultProcessor<T> processor) {
-    	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-       	if (factory.isShowSQL())
-			StatementLogger.select(sql);
-       	try (Statement s = conn.createStatement()) {
-       		try (ResultSet rs = s.executeQuery(sql)) {
-       			return processor.processResult(rs);
-       		}
-        }
-        catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        }
-    }
-
-    /**
-     * Run a SQL query directly against the database.
-     *
-     * @param sql the SQL statement
      * @param processor
      * @param args
      * @return the result set
      */
     public <T> T executeQuery(String sql, IResultProcessor<T> processor, Object ... args) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
-			StatementLogger.select(sql);
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	
     	try (PreparedStatement stmnt = this.prepare(sql)) {
     		if (null != args && 0 < args.length) {
 				for (int i = 0; i < args.length; i++){
 					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
 				}
 	    	}
+    		if (factory.isShowSQL())
+    			StatementLogger.select(sql);
 	    	try (ResultSet rs = stmnt.executeQuery()) {
 	    		return processor.processResult(rs);
 	    	}
@@ -722,25 +721,6 @@ public class Db implements AutoCloseable {
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
         }
-    }
-
-    /**
-     * A utility method that executes the String query and returns the result class
-     * @param sql
-     * @param clazz
-     * @return List<T>
-     */
-    public <T> List<T> executeQuery(String sql, Class<T> clazz) {
-    	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
-			StatementLogger.select(sql);
-    	return executeQuery(sql, rs -> {
-    		if (null != rs) {
-        		return selectByResultSet(rs, clazz);
-        	}
-    		return null;
-    	});
     }
 
     /**
@@ -754,50 +734,18 @@ public class Db implements AutoCloseable {
      */
     public <T> List<T> executeQuery(String sql, Class<T> clazz, Object ... args) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	
+    	if (factory.isShowSQL()) {
 			StatementLogger.select(sql);
-    	try (PreparedStatement stmnt = this.prepare(sql)) {
-    		if (null != args && 0 < args.length) {
-				for (int i = 0; i < args.length; i++){
-					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
-				}
-	    	}
-	    	try (ResultSet rs = stmnt.executeQuery()) {
+    	}
+    	
+    	return executeQuery(sql, rs -> {
+    		if (null != rs) {
         		return selectByResultSet(rs, clazz);
-	    	}
-    	}
-    	catch (SQLException e) {
-            throw new JaquError(e, e.getMessage());
-        }
-    }
-
-    /**
-     * A utility that builds a prepared statement out of the given string, sets the arguments calls the statement and returns the object values.
-     *
-     * @param preparedStmnt
-     * @param clazz
-     * @param args
-     * @return List<T>
-     */
-    public <T> List<T> executeStatement(String preparedStmnt, Class<T> clazz, Object ... args) {
-    	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
-			StatementLogger.select(preparedStmnt);
-    	try (PreparedStatement stmnt = this.prepare(preparedStmnt)) {
-    		if (null != args && 0 < args.length) {
-				for (int i = 0; i < args.length; i++){
-					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
-				}
-	    	}
-	    	try (ResultSet rs = stmnt.executeQuery()) {
-				return selectByResultSet(rs, clazz);
-	    	}
-    	}
-		catch (SQLException e) {
-			throw new JaquError(e, e.getMessage());
-		}
+        	}
+    		return null;
+    	}, args);
     }
 
     /**
@@ -814,7 +762,7 @@ public class Db implements AutoCloseable {
      */
     public <T> List<T> executeCallable(String callableStmnt, Class<T> clazz, Object ... args) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	try (CallableStatement stmnt = this.conn.prepareCall(callableStmnt)) {
     		if (null != args && 0 < args.length) {
 				for (int i = 0; i < args.length; i++) {
@@ -835,16 +783,14 @@ public class Db implements AutoCloseable {
      * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure
 	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
 	 *
-     * @param <T>
      * @param preparedStmnt
      * @param args
      * @return int
      */
-    public <T> int executeUpdate(String preparedStmnt, Object ... args) {
+    public int executeUpdate(String preparedStmnt, Object ... args) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
-			StatementLogger.update(preparedStmnt);
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	
     	try (PreparedStatement stmnt = this.prepare(preparedStmnt)) {
     		if (null != args && 0 < args.length) {
 				for (int i = 0; i < args.length; i++){
@@ -852,6 +798,8 @@ public class Db implements AutoCloseable {
 				}
 	    	}
     		this.multiCallCache.clearReEntrent();
+    		if (factory.isShowSQL())
+    			StatementLogger.update(preparedStmnt);
 	    	return stmnt.executeUpdate();
     	}
 		catch (SQLException e) {
@@ -922,7 +870,7 @@ public class Db implements AutoCloseable {
 
 	public PojoUtils pojoUtils() {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
 
 		if (null == this.pojoUtils)
 			this.pojoUtils = new PojoUtils(this);
@@ -956,7 +904,7 @@ public class Db implements AutoCloseable {
     @SuppressWarnings({ "unchecked" })
 	Object attach(Object t) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
+    		throw new JaquError(SESSION_IS_CLOSED);
     	this.addSession(t);
     	// get the relations, through a reflection get (not to do anything by lazy loading)
     	TableDefinition<?> tdef = define(t.getClass());
@@ -1010,7 +958,7 @@ public class Db implements AutoCloseable {
 						fdef.field.setAccessible(true);
 						Collection<?> col = (Collection<?>) fdef.field.get(t);
 						if (col != null) {
-							if (AbstractJaquCollection.class.isInstance(col)) {
+							if (col instanceof AbstractJaquCollection) {
 								// set all transient fields (These are session related and mean nothing outside the session so we don't carry them)
 								((AbstractJaquCollection<?>) col).setDb(this);
 								((AbstractJaquCollection<?>) col).setFieldDefinition(fdef);
@@ -1084,7 +1032,7 @@ public class Db implements AutoCloseable {
 				result.sort(new FieldComperator(definition.relationDefinition.dataType[0], definition.relationDefinition.orderByField));
 			}
 			if (definition.field.getType().isAssignableFrom(result.getClass()))
-				return new JaquList<T>(result, this, definition, factory.getPrimaryKey(myObject));
+				return new JaquList<>(result, this, definition, factory.getPrimaryKey(myObject));
 			else {
 				// only when the type is a Set type we will be here
 				HashSet<T> set = Utils.newHashSet();
@@ -1114,12 +1062,12 @@ public class Db implements AutoCloseable {
     }
 
     <X> X registerToken(X x, Token token) {
-    	TOKENS.put(x, token);
+    	tokens.put(x, token);
         return x;
     }
 
     Token getToken(Object x) {
-        return TOKENS.get(x);
+        return tokens.get(x);
     }
 
     /**
@@ -1197,7 +1145,7 @@ public class Db implements AutoCloseable {
 		switch (field.fieldType) {
 			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
 			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
-			case M2O: handleM2ORelationship(field, table, obj, primaryKey, relationPK); return;
+			case M2O: handleM2ORelationship(field, primaryKey, relationPK); return;
 			case FK:
 			case NORMAL: return;
 		}
@@ -1232,17 +1180,15 @@ public class Db implements AutoCloseable {
 			// since the relationFieldName should be the sa,e for the hierarchy we can just get the first
 			TableDefinition<?> tdef = define(fdef.relationDefinition.dataType[0]);
 			// the following code runs only if we have not deleted our objects and we have an update interceptor.
-			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE)) {
-				if (relations != null) {
-					for (Object o: relations)
-						tdef.getInterceptor().onUpdate(o);
-				}
+			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE) && relations != null) {
+				for (Object o: relations)
+					tdef.getInterceptor().onUpdate(o);
 			}
 			if (fdef.relationDefinition.relationTableName == null) { // if it's cascade delete these objects where deleted already so we can skip
 				// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists,
 				// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
 				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-				StatementBuilder builder = new StatementBuilder("UPDATE ").append(tdef.tableName).append(" SET ").append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
+				StatementBuilder builder = new StatementBuilder(UPDATE).append(tdef.tableName).append(SET).append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
 				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
 				executeUpdate(false, builder.toString());
 				return;
@@ -1253,7 +1199,7 @@ public class Db implements AutoCloseable {
 		// this code runs also for cascade deletes because the normal delete removes the object, the following also removes the reference from the relationtable.
 		if (fdef.relationDefinition.relationTableName != null) {
 			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
+			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(WHERE);
 			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
 			executeUpdate(builder.toString());
 		}
@@ -1284,11 +1230,11 @@ public class Db implements AutoCloseable {
 
 				// Calling define here costs very little since this table's definition is cached.
 				TableDefinition<?> def = define(child.getClass());
-				StatementBuilder updateQuery = new StatementBuilder("UPDATE ").append(def.tableName);
-				updateQuery.append(" SET ").append(fdef.relationDefinition.relationFieldName).append(" = ").append("null");
+				StatementBuilder updateQuery = new StatementBuilder(UPDATE).append(def.tableName);
+				updateQuery.append(SET).append(fdef.relationDefinition.relationFieldName).append(" = ").append("null");
 				// we assume that our table has a single column primary key.
 				String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
-				updateQuery.append(" WHERE ").append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
+				updateQuery.append(WHERE).append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
 
 				executeUpdate(false, updateQuery.toString());
 			}
@@ -1300,7 +1246,7 @@ public class Db implements AutoCloseable {
 		if (fdef.relationDefinition.relationTableName != null) {
 			String pk = (factory.getPrimaryKey(child) instanceof String) ? "'" + factory.getPrimaryKey(child).toString() + "'" : factory.getPrimaryKey(child).toString();
 			String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
-			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(" WHERE ");
+			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(WHERE);
 			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pPk).append(" AND ").append(fdef.relationDefinition.relationColumnName);
 			builder.append(" = ").append(pk);
 			executeUpdate(builder.toString());
@@ -1309,10 +1255,11 @@ public class Db implements AutoCloseable {
 
 	int executeUpdate(boolean cleanRenentrent, String sql) {
     	if (this.closed)
-    		throw new JaquError("IllegalState - Session is closed!!!");
-    	if (factory.isShowSQL())
-			StatementLogger.update(sql);
+    		throw new JaquError(SESSION_IS_CLOSED);
     	try (Statement stat = conn.createStatement()) {
+        	if (factory.isShowSQL()) {
+    			StatementLogger.update(sql);
+        	}
             int updateCount = stat.executeUpdate(sql);
             if (cleanRenentrent)
             	this.multiCallCache.clearReEntrent();
@@ -1323,32 +1270,19 @@ public class Db implements AutoCloseable {
         }
     }
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#finalize()
-	 */
-	@Override
-	protected void finalize() throws Throwable {
-		if (null != conn && !conn.isClosed()) {
-			InternalLogger.debug("Closing connection for you!!!, please make sure you close the connection yourself");
-			close();
-		}
+	private void clearReEntrentCache() {
+		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+		if (null != stackTrace[3] && stackTrace[3].getClassName().indexOf(COM_CENTIMIA_ORM) == -1)
+			reEntrantCache.clearReEntrent();
 	}
-
-	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws Exception {
+	
+	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws NoSuchFieldException, IllegalAccessException {
 		T descriptor = Utils.newObject(type);
 		List<T> result;
 		if (def.relationDefinition.relationTableName == null) {
-			QueryWhere<T> where = this.from(descriptor).where(new StringFilter() {
-
-				/*
-				 * (non-Javadoc)
-				 * @see com.centimia.orm.jaqu.StringFilter#getConditionString(com.centimia.orm.jaqu.SelectTable)
-				 */
-				@Override
-				public String getConditionString(ISelectTable<?> st) {
-					String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());
-					return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;
-				}
+			QueryWhere<T> where = this.from(descriptor).where(st -> {
+				String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());
+				return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;
 			});
 			if (null != def.relationDefinition.orderByField) {
 				Field field = ClassUtils.findField(type, def.relationDefinition.orderByField);
@@ -1382,23 +1316,22 @@ public class Db implements AutoCloseable {
 					this.conn.close();
 					StatementLogger.info("Invalid connection found!!! Cleaning up");
 				}
-				catch (Throwable sqle) {
+				catch (Exception sqle) {
 					// this means we have a serious problem with this connection. We will return false and send this object for clean up.
 				}
 			}
 			return valid;
 		}
-		catch (Throwable t) {
+		catch (Exception t) {
 			// many jdbc driver implementations don't actually implement this method so we catch this error and try to validate the connection our selves.
 		}
-		try {
-			Statement stmnt = conn.createStatement();
+		try (Statement stmnt = conn.createStatement()) {
 			stmnt.setQueryTimeout(1);
 			if (factory.isShowSQL())
 				StatementLogger.info("select 1");
 			stmnt.executeQuery("select 1");
 		}
-		catch (Throwable t) {
+		catch (Exception t) {
 			// catching any throwable here means the connection is not valid any more
 			try {
 				// this is an open invalid connection. A connection that was not closed by the user
@@ -1408,7 +1341,7 @@ public class Db implements AutoCloseable {
 				this.conn.close();
 				StatementLogger.info("Invalid connection found!!! Cleaning up");
 			}
-			catch (Throwable sqle) {
+			catch (Exception sqle) {
 				// this means we have a serious problem with this connection. We will return false and send this object for clean up.
 			}
 			return false;
@@ -1425,7 +1358,7 @@ public class Db implements AutoCloseable {
 		this.factory = null;
 		reEntrantCache.clearReEntrent();
 		multiCallCache.clearReEntrent();
-		TOKENS.clear();
+		tokens.clear();
 	}
 
 	/**
@@ -1472,10 +1405,10 @@ public class Db implements AutoCloseable {
 
 				// Calling define here costs very little since this table's definition is cached.
 				TableDefinition<?> def = define(table.getClass());
-				StatementBuilder updateQuery = new StatementBuilder("UPDATE ").append(def.tableName);
-				updateQuery.append(" SET ").append(field.relationDefinition.relationFieldName).append(" = ").append(relationPK);
+				StatementBuilder updateQuery = new StatementBuilder(UPDATE).append(def.tableName);
+				updateQuery.append(SET).append(field.relationDefinition.relationFieldName).append(" = ").append(relationPK);
 				// we assume that our table has a single column primary key.
-				updateQuery.append(" WHERE ").append(def.getPrimaryKeyFields().get(0).columnName).append(" = ").append(primaryKey);
+				updateQuery.append(WHERE).append(def.getPrimaryKeyFields().get(0).columnName).append(" = ").append(primaryKey);
 
 				executeUpdate(false, updateQuery.toString());
 			}
@@ -1492,12 +1425,11 @@ public class Db implements AutoCloseable {
 	/**
 	 * Create a relation if it does not exist between a One side and the many. Information coming from the many side.
 	 * @param field - the field holding the relationship
-	 * @param table - the parent (one side) object
 	 * @param obj - the child object (many side)
 	 * @param primaryKey - the one side key
 	 * @param relationPK - the many side key.
 	 */
-	private void handleM2ORelationship(FieldDefinition field, Object table, Object obj, String primaryKey, String relationPK) {
+	private void handleM2ORelationship(FieldDefinition field, String primaryKey, String relationPK) {
 		// first determine the relation table name.
 		String relationTableName = field.relationDefinition.relationTableName;
 		if (null != relationTableName && !relationTableName.isEmpty()) {
@@ -1513,7 +1445,7 @@ public class Db implements AutoCloseable {
 	 * @param relationPK
 	 */
 	private void mergeRelationTable(FieldDefinition field, String primaryKey, String relationPK) {
-		StatementBuilder checkExistsQuery = new StatementBuilder("SELECT * FROM ").append(field.relationDefinition.relationTableName).append(" WHERE ");
+		StatementBuilder checkExistsQuery = new StatementBuilder("SELECT * FROM ").append(field.relationDefinition.relationTableName).append(WHERE);
 		checkExistsQuery.append(field.relationDefinition.relationColumnName).append(" = ").append(primaryKey).append(" AND ").append(field.relationDefinition.relationFieldName);
 		checkExistsQuery.append(" = ").append(relationPK);
 
@@ -1540,13 +1472,7 @@ public class Db implements AutoCloseable {
     	@SuppressWarnings("unchecked")
 		Class<T> clazz = (Class<T>)example.getClass();
     	T desc = Utils.newObject(clazz);
-    	QueryWhere<T> select = this.from(desc).where(new StringFilter() {
-
-			@Override
-			public String getConditionString(ISelectTable<?> selectTable) {
-				return "1=1";
-			}
-		});
+    	QueryWhere<T> select = this.from(desc).where(st -> "1=1");
 
     	TableDefinition<?> tDef = define(clazz);
 		try {
@@ -1559,16 +1485,13 @@ public class Db implements AutoCloseable {
 					boolean add = true;
 					if (params.getExcludeNulls() && null == val)
 						add = false;
-					if (params.getExcludeZeros()) {
-						if (null != val) {
-							if (val.getClass().isPrimitive()) {
-								if (0 == new BigDecimal(String.valueOf(val)).intValue())
-									add = false;
-							}
-							else if (Number.class.isAssignableFrom(val.getClass())) {
-								if (0 == ((Number)val).intValue())
-									add = false;
-							}
+					if (params.getExcludeZeros() && null != val) {
+						if (val.getClass().isPrimitive()) {
+							if (0 == new BigDecimal(String.valueOf(val)).intValue())
+								add = false;
+						}
+						else if (Number.class.isAssignableFrom(val.getClass()) && 0 == ((Number)val).intValue()) {
+							add = false;
 						}
 					}
 					if (add) {
