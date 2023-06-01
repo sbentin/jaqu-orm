@@ -1390,7 +1390,11 @@ class TableDefinition<T> {
 						db.reEntrantCache.prepareReEntrent(obj);
 						db.merge(value);
 					}
-					stat.addParameter(pk);
+					if (null == pk)
+						// now after the merge the object has a primary key value
+						stat.addParameter(db.factory.getPrimaryKey(value));
+					else
+						stat.addParameter(pk);
 				}
 				else
 					stat.addParameter(null);
@@ -1401,7 +1405,7 @@ class TableDefinition<T> {
 				// value is a list of tables (we got here only when merge was called from db by outside user
 				if (value != null && !((Collection<?>) value).isEmpty()) {
 					// value is a Collection type
-					for (Object table : (Collection<?>) value) {						
+					for (Object table : (Collection<?>) value) {
 						db.reEntrantCache.prepareReEntrent(obj);
 						Object pk = db.factory.getPrimaryKey(table);
 						if (null == pk || !field.noUpdateField)
