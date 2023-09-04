@@ -13,6 +13,7 @@
 package com.centimia.jaqu.test.entity;
 
 import com.centimia.orm.jaqu.GeneratorType;
+import com.centimia.orm.jaqu.annotation.Cascade;
 import com.centimia.orm.jaqu.annotation.Column;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Lazy;
@@ -30,6 +31,7 @@ public class TableD {
 	private String value;
 	
 	@Lazy
+	@Cascade
 	@Column(name="TABLE_C")
 	public TableC tableC;
 

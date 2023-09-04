@@ -19,7 +19,7 @@ public class JaquConcurrencyException extends JaquError {
 	private static final long serialVersionUID = -2668426367009536266L;
 
 	public JaquConcurrencyException(String tableName, Class<?> class1, Object primaryKey, Number version) {
-		super("Concurrency error on table: %s of %s with primaryKey %s. Looing for version %s but was different", 
+		super("Concurrency error on table: %s of %s with primaryKey %s. Looing for version %s but was different",
 				tableName, class1, primaryKey, version);
 	}
 }

@@ -19,11 +19,11 @@ package com.centimia.orm.jaqu;
 public class LimitToken implements Token {
 
 	private final int limit;
-	
+
 	LimitToken(int limitNum) {
 		this.limit = limitNum;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */

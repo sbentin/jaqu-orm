@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -14,7 +14,7 @@ package com.centimia.orm.jaqu;
 
 import com.centimia.orm.jaqu.util.Logger;
 import com.centimia.orm.jaqu.util.SimpleLogger;
-import com.centimia.orm.jaqu.util.slf4jLogger;
+import com.centimia.orm.jaqu.util.Slf4jLogger;
 
 /**
  * Utility class to optionally log generated statements to an output stream.<br>
@@ -30,22 +30,22 @@ class InternalLogger {
 	static {
 		try {
 			InternalLogger.class.getClassLoader().loadClass("org.slf4j.Logger");
-			logger = new slf4jLogger();
+			logger = new Slf4jLogger();
 		}
 		catch (Throwable t){
 			logger = new SimpleLogger();
 		}
 	}
-	
+
 	static void debug(String info) {
 		debug(info, null);
 	}
-    
+
 	static void debug(String info, Throwable t) {
 		if (null != t)
 			info = info + ": " + t.getMessage();
 		logger.debug(info);
-		
+
 		t.printStackTrace();
 	}
 }

@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -22,11 +22,18 @@ import com.centimia.orm.jaqu.annotation.MappedSuperclass;
  */
 class Condition<A> implements Token {
     CompareType compareType;
-    A x, y;
+    A y;
+    Object key;
 
-    Condition(A x, A y, CompareType compareType) {
+    @SuppressWarnings("rawtypes")
+	Condition(Object x, A y, CompareType compareType) {
         this.compareType = compareType;
-        this.x = x;
+        if (x instanceof GenericMask) {
+        	this.key = ((GenericMask)x).orig();
+        }
+        else {
+        	this.key = x;
+        }
         this.y = y;
     }
 
@@ -34,17 +41,18 @@ class Condition<A> implements Token {
      * @see com.centimia.orm.jaqu.Token#appendSQL(SQLStatement, Query)
      * TODO check  if new enum implementation can change the ugliness here
      */
-    @SuppressWarnings({ "rawtypes", "resource" })
+    @Override
+	@SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-    	if (null != x && (null != x.getClass().getAnnotation(Entity.class) || null != x.getClass().getAnnotation(MappedSuperclass.class))) {
-			Object pk = query.getDb().factory.getPrimaryKey(x);
+    	if (null != key && (null != key.getClass().getAnnotation(Entity.class) || null != key.getClass().getAnnotation(MappedSuperclass.class))) {
+			Object pk = query.getDb().factory.getPrimaryKey(key);
 			if (null == pk)
-				query.appendSQL(stat, x, false, null);
+				query.appendSQL(stat, key, false, null);
 			else
 				query.appendSQL(stat, pk, false, null);
 		}
 		else
-			query.appendSQL(stat, x, false, null);
+			query.appendSQL(stat, key, false, null);
         stat.appendSQL(" ");
         stat.appendSQL(compareType.getString());
         if (compareType.hasRightExpression()) {
@@ -52,18 +60,18 @@ class Condition<A> implements Token {
             // check if a relation type
             if (y != null && (null != y.getClass().getAnnotation(Entity.class) || null != y.getClass().getAnnotation(MappedSuperclass.class))) {
             	Object pk = query.getDb().factory.getPrimaryKey(y);
-            	if (null == pk)            		
+            	if (null == pk)
             		query.appendSQL(stat, y, false, null);
             	else
             		query.appendSQL(stat, pk, false, null);
             }
-            else if (y != null && (y.getClass().isEnum() || y.getClass().getSuperclass().isEnum())) {            	
-            	switch (query.getSelectColumn(x).getFieldDefinition().type) {
+            else if (y != null && (y.getClass().isEnum() || y.getClass().getSuperclass().isEnum())) {
+            	switch (query.getSelectColumn(key).getFieldDefinition().type) {
             		case ENUM: query.appendSQL(stat, y.toString(), false, null); break;
             		case ENUM_INT: query.appendSQL(stat, ((Enum)y).ordinal(), false, null); break;
             		case UUID: query.appendSQL(stat, y.toString(), false, null); break;
             		default: query.appendSQL(stat, y, false, null); break;
-            	}            	
+            	}
             }
             else
             	query.appendSQL(stat, y, false, null);

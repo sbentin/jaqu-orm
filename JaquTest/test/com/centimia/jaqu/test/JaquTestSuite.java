@@ -36,6 +36,7 @@ import com.centimia.jaqu.test.entity.O2OLazyLoadingTest;
 import com.centimia.jaqu.test.entity.RelationWitVarcharPrimaryTest;
 import com.centimia.jaqu.test.entity.TestInsertNoId;
 import com.centimia.jaqu.test.entity.TestMultiRef;
+import com.centimia.jaqu.test.entity.UtilsAsPrimaryTest;
 import com.centimia.jaqu.test.inheritance.TestDiscriminator;
 import com.centimia.jaqu.test.inheritance.TestInheritance;
 import com.centimia.jaqu.test.simple.TestEnumType;
@@ -53,6 +54,7 @@ import com.centimia.jaqu.test.simple.TestSimpleRightHandOuterJoin;
 import com.centimia.jaqu.test.simple.TestSimpleSelect;
 import com.centimia.jaqu.test.simple.TestUnificationMethods;
 import com.centimia.jaqu.test.transaction.TransactionTests;
+import com.centimia.jaqu.test.versioning.VersionTests;
 import com.centimia.orm.jaqu.StatementLogger;
 
 import junit.framework.TestCase;
@@ -84,7 +86,16 @@ public class JaquTestSuite {
 			Enumeration<TestFailure> enumeration = result.errors();
 			while (enumeration.hasMoreElements()) {
 				TestFailure failure = enumeration.nextElement();
-				System.out.println(((TestCase)failure.failedTest()).getName() + " --> " + failure.exceptionMessage() + "\n\t\t\t" + failure.trace());
+				String msg = ((TestCase)failure.failedTest()).getName();
+				try {
+					msg += failure.exceptionMessage();					
+				}
+				catch (Exception any) {}
+				try {
+					msg += "\n\t\t\t" + failure.trace();
+				}
+				catch (Exception any) {}
+				System.out.println(msg);
 				System.out.println("----------------------------------------------------------------------------------------------------------\n");
 			}
 		}
@@ -128,6 +139,7 @@ public class JaquTestSuite {
 		suite.addTest(new RelationWitVarcharPrimaryTest());
 		suite.addTest(new TestMultiRef());
 		suite.addTest(new O2OLazyLoadingTest());
+		suite.addTest(new UtilsAsPrimaryTest());
 		
 		// general test (work both on entities and pojos
 		suite.addTest(new TestQueryByExample());
@@ -138,6 +150,8 @@ public class JaquTestSuite {
 		
 		// Transactional Behavior Testing
 		suite.addTest(new TransactionTests());
+		
+		suite.addTest(new VersionTests());
 		
 		return suite;
 	}

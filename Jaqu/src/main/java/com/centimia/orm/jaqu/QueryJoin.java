@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -25,7 +25,26 @@ public class QueryJoin<T> {
         this.join = join;
     }
 
+    /**
+     * Use this method when the object questioned holds an Object and you want to save a join and use the other sides
+     * primaryKey instead.
+     * 
+     * @param <A>
+     * @param x - the mask used to retrieve the PrimaryKey from the object
+     * @return QueryJoinCondition&lt;T, A&gt;
+     */
+    public <A> QueryJoinCondition<T, A> on(GenericMask<?, A> x) {
+        return new QueryJoinCondition<>(query, join, x);
+    }
+
+    /**
+     * Use this method when connecting on an entity object
+     * 
+     * @param <A>
+     * @param x - the target object entity to join on
+     * @return QueryJoinCondition&lt;T, A&gt;
+     */
     public <A> QueryJoinCondition<T, A> on(A x) {
-        return new QueryJoinCondition<T, A>(query, join, x);
+        return new QueryJoinCondition<>(query, join, x);
     }
 }

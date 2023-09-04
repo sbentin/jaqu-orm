@@ -12,7 +12,6 @@
  */
 package com.centimia.orm.jaqu.ext.asm;
 
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -20,19 +19,16 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
-
-
 /**
  * A ClassWriter that computes the common super class of two classes without
  * actually loading them with a ClassLoader.
  * 
  * @author Eric Bruneton
  */
-public class SafeClassWriter extends ClassWriter {
-
-    private final ClassLoader loader;
-
-    
+public class SafeClassWriter extends ClassWriter {	
+	private static final String JAVA_LANG_OBJECT = "java/lang/Object";
+	private final ClassLoader loader;
+	
     public SafeClassWriter(ClassReader cr, ClassLoader loader, final int flags) {
         super(cr, flags);
         this.loader = loader != null ? loader : ClassLoader.getSystemClassLoader();
@@ -40,7 +36,7 @@ public class SafeClassWriter extends ClassWriter {
 
     @Override
 	protected String getCommonSuperClass(final String type1, final String type2) {
-		try {
+    	try {
 			ClassReader info1 = typeInfo(type1);
 			ClassReader info2 = typeInfo(type2);
 			if ((info1.getAccess() & Opcodes.ACC_INTERFACE) != 0) {
@@ -48,7 +44,7 @@ public class SafeClassWriter extends ClassWriter {
 					return type1;
 				}
 				else {
-					return "java/lang/Object";
+					return JAVA_LANG_OBJECT;
 				}
 			}
 			if ((info2.getAccess() & Opcodes.ACC_INTERFACE) != 0) {
@@ -56,12 +52,12 @@ public class SafeClassWriter extends ClassWriter {
 					return type2;
 				}
 				else {
-					return "java/lang/Object";
+					return JAVA_LANG_OBJECT;
 				}
 			}
 			StringBuilder b1 = typeAncestors(type1, info1);
 			StringBuilder b2 = typeAncestors(type2, info2);
-			String result = "java/lang/Object";
+			String result = JAVA_LANG_OBJECT;
 			int end1 = b1.length();
 			int end2 = b2.length();
 			while (true) {
@@ -104,7 +100,7 @@ public class SafeClassWriter extends ClassWriter {
      */
 	private StringBuilder typeAncestors(String type, ClassReader info) throws IOException {
 		StringBuilder b = new StringBuilder();
-		while (!"java/lang/Object".equals(type)) {
+		while (!JAVA_LANG_OBJECT.equals(type)) {
 			b.append(';').append(type);
 			type = info.getSuperName();
 			info = typeInfo(type);
@@ -124,7 +120,7 @@ public class SafeClassWriter extends ClassWriter {
      *             cannot be loaded.
      */
 	private boolean typeImplements(String type, ClassReader info, String itf) throws IOException {
-		while (!"java/lang/Object".equals(type)) {
+		while (!JAVA_LANG_OBJECT.equals(type)) {
 			String[] itfs = info.getInterfaces();
 			for (int i = 0; i < itfs.length; ++i) {
 				if (itfs[i].equals(itf)) {

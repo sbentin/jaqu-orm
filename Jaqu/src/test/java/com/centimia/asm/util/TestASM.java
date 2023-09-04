@@ -4,7 +4,6 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import com.centimia.orm.jaqu.Db;
-import com.centimia.orm.jaqu.QueryJoinCondition;
 import com.centimia.orm.jaqu.annotation.Transient;
 
 public class TestASM {
@@ -41,10 +40,10 @@ public class TestASM {
 		if (numB != null && numB.isLazy) {
 			try {
 				if (null == db || db.isClosed())
-					throw new RuntimeException("Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+					return null;
 				
 				TestASM parent = this.getClass().getConstructor().newInstance();
-				Class<?>[] innerTypes = new Class<?>[] {Object.class, TestB.class, Db.class, TestASM.class, Long.class, Double.class, Integer.class, String.class};
+				Class<?>[] innerTypes = new Class<?>[] {Object.class, TestB.class, Db.class, TestASM.class, Long.class};
 				// get the primary key
 				Object pk = db.getPrimaryKey(this);
 				TestB result = null;
@@ -70,8 +69,7 @@ public class TestASM {
 		if (children == null) {
 			try {
 				if (null == db || db.isClosed())
-					throw new RuntimeException(
-							"Cannot initialize 'Relation' outside an open session!!!. Try initializing field directly within the class.");
+					return $orig_getChildren();
 				Method method = db.getClass().getDeclaredMethod("getRelationFromDb", String.class, Object.class, Class.class);
 				method.setAccessible(true);
 				children = (List<TestB>) method.invoke(db, "children", this, TestB.class);

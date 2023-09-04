@@ -57,11 +57,15 @@ public class SQLServerDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#getDataType(java.lang.Class)
 	 */
 	public String getDataType(Class<?> fieldClass) {
+		final String VARCHAR = "VARCHAR";
+		final String DATETIME = "DATETIME";
+		final String TIME = "TIME";
+		
 		if (fieldClass == Integer.class) {
 			return "INTEGER";
 		}
 		else if (fieldClass == String.class) {
-			return "VARCHAR";
+			return VARCHAR;
 		}
 		else if (fieldClass == Character.class) {
 			return "CHAR";
@@ -73,28 +77,28 @@ public class SQLServerDialect implements SQLDialect {
 			return "DECIMAL(38,15)";
 		}
 		else if (fieldClass == java.util.Date.class) {
-			return "DATETIME";
+			return DATETIME;
 		}
 		else if (fieldClass == java.sql.Date.class) {
-			return "DATETIME";
+			return DATETIME;
 		}
 		else if (fieldClass == java.time.LocalDate.class) {
-			return "DATETIME";
+			return DATETIME;
 		}
 		else if (fieldClass == java.time.LocalDateTime.class) {
-			return "DATETIME";
+			return DATETIME;
 		}
 		else if (fieldClass == java.time.ZonedDateTime.class) {
-			return "DATETIME";
+			return DATETIME;
 		}
 		else if (fieldClass == java.time.LocalTime.class) {
-			return "TIME";
+			return TIME;
 		}
 		else if (fieldClass == java.sql.Time.class) {
-			return "TIME";
+			return TIME;
 		}
 		else if (fieldClass == java.sql.Timestamp.class) {
-			return "DATETIME";
+			return DATETIME;
 		}
 		else if (fieldClass == Byte.class) {
 			return "TINYINT";
@@ -125,9 +129,9 @@ public class SQLServerDialect implements SQLDialect {
 			return "VARBINARY(MAX)";
 		}
 		else if (fieldClass.isEnum()) {
-			return "VARCHAR";
+			return VARCHAR;
 		}
-		return "VARCHAR";
+		return VARCHAR;
 	}
 
 	/**
@@ -137,6 +141,7 @@ public class SQLServerDialect implements SQLDialect {
 		switch (type) {
 			case ENUM: return rs.getString(columnName);
 			case ENUM_INT: return rs.getInt(columnName);
+			case BOOLEAN: return (rs.getObject(columnName) != null) && rs.getBoolean(columnName);
 			case BIGDECIMAL: return rs.getBigDecimal(columnName);
 			case LOCALDATE: return null != rs.getDate(columnName) ? rs.getDate(columnName).toLocalDate() : null;
     		case LOCALDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null;
@@ -153,6 +158,7 @@ public class SQLServerDialect implements SQLDialect {
 		switch (type) {
 			case ENUM: return rs.getString(columnNumber);
 			case ENUM_INT: return rs.getInt(columnNumber);
+			case BOOLEAN: return (rs.getObject(columnNumber) != null) && rs.getBoolean(columnNumber);
 			case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
 			case LOCALDATE: return null != rs.getDate(columnNumber) ? rs.getDate(columnNumber).toLocalDate() : null;
     		case LOCALDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null;
@@ -174,11 +180,7 @@ public class SQLServerDialect implements SQLDialect {
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME = '" + discriminatorName + "'";
-		return db.executeQuery(query, rs -> {
-			if (rs.next())
-				return true;
-			return false;
-		});
+		return db.executeQuery(query, ResultSet::next);
 	}
 
 	/**
@@ -204,22 +206,23 @@ public class SQLServerDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#createIndexStatement(java.lang.String, java.lang.String, boolean, java.lang.String[])
 	 */
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
-		String query;
+		StringBuilder query = new StringBuilder();
 		if (name.length() == 0){
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + " (";
+			query.append("CREATE UNIQUE INDEX ");
 		else
-			query = "CREATE INDEX " + name + " ON " + tableName + " (";
+			query.append("CREATE INDEX ");
+		query.append(name).append(" ON ").append(tableName).append(" (");
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
-				query += ",";
+				query.append(",");
 			}
-			query += columns[i];
+			query.append(columns[i]);
 		}
-		query += ")";
-		return query;
+		query.append(")");
+		return query.toString();
 	}
 	
 	/*
@@ -237,7 +240,6 @@ public class SQLServerDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
 	 */
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
-		StatementBuilder buff = new StatementBuilder("DELETE ").append(as).append(" FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
-		return buff;
+		return new StatementBuilder("DELETE ").append(as).append(" FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 	}
 }

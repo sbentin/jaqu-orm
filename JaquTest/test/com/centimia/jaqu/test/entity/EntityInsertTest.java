@@ -27,7 +27,6 @@ import com.centimia.jaqu.test.JaquTest;
  * @author Shai Bentin
  */
 public class EntityInsertTest extends JaquTest {
-
 	
 	/* (non-Javadoc)
 	 * @see junit.framework.TestCase#getName()
@@ -50,6 +49,7 @@ public class EntityInsertTest extends JaquTest {
 			
 			// notice person is outside the DB session to start with.
 			db.insertAll(Person.getSomeData());
+			db.commit();
 			
 			Person descriptor = new Person();
 			Person me = db.from(descriptor).primaryKey().is(1L).selectFirst();

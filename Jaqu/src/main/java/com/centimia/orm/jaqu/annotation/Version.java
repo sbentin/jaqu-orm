@@ -20,8 +20,8 @@ import java.lang.annotation.Target;
 
 /**
  * This annotation goes on a field of type Number, usually Long or Integer, that will hold a version for the
- * entity. Version is used to determine concurrent changing of entities. When using the '@Version' anntoation
- * version handleing will be handled by Jaqu.
+ * entity. Version is used to determine concurrent changing of entities. When using the '@Version' annotation
+ * version handling will be handled by JaQu.
  * 
  * @author shai
  */

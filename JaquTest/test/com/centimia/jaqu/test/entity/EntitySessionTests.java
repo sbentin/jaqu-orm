@@ -87,28 +87,19 @@ public class EntitySessionTests extends TestCase {
 			setUp();
 			db = sessionFactory.getSession();
 			final Person pDesc = new Person();
-			try {
-				pDesc.getAddresses();
-				result.addError(this, null);
-			}
-			catch (Exception e) {
-				// an exception should be thrown as we don't have a session
-				System.err.println(getName() + " --> An Expected error occured as Person is not associated to a session yet - " + e.getMessage());
-			}
+			
+			// here we have not loaded out person from the db thus it returns what is in addresses which is null
+			assertNull(pDesc.getAddresses()); 
+
 			Person me = db.from(pDesc).primaryKey().is(1L).selectFirst();
 			assertNotNull(me);
 			
 			db.commit();
 			db.close();
-			// me is still alive, so are his relations but the session is gone.
-			try {
-				me.getAddresses();
-				result.addError(this, null);
-			}
-			catch (Exception e) {
-				// an exception should be thrown as we don't have a session
-				System.err.println(getName() + " --> An Expected error occured as db session was closed - " + e.getMessage());
-			}
+			
+			// me is still alive, so are his relations but the session is gone. Address are still empty
+			// since they are lazy loaded
+			assertNull(me.getAddresses());
 			
 			// lets do some address work anyway, like adding two new addresses.
 			List<Address> addrList = new ArrayList<Address>();

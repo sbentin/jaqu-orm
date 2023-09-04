@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 29/06/2010		shai				 create
@@ -29,28 +29,34 @@ import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 
 /**
- * 
- * @author shai
  *
+ * @author shai
  */
 class InCondition<A> implements Token {
 
 	CompareType compareType;
-    A x;
+	Object key;
     A[] y;
-    
-	InCondition(A x, A[] y, CompareType compareType) {
+
+	@SuppressWarnings("rawtypes")
+	InCondition(Object x, A[] y, CompareType compareType) {
 		this.compareType = compareType;
-		this.x = x;
+		if (x instanceof GenericMask) {
+        	this.key = ((GenericMask)x).orig();
+        }
+        else {
+        	this.key = x;
+        }
 		this.y = y;
 	}
 
 	/* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 */
+	@Override
 	@SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		query.appendSQL(stat, x, false, null);
+		query.appendSQL(stat, key, false, null);
 		stat.appendSQL(" ");
         stat.appendSQL(compareType.getString());
         StatementBuilder buff = new StatementBuilder(" (");
@@ -60,11 +66,11 @@ class InCondition<A> implements Token {
         		buff.append("'" + item.toString() + "'");
         	}
         	else if (item.getClass().isEnum()) {
-        		switch (query.getSelectColumn(x).getFieldDefinition().type) {
+        		switch (query.getSelectColumn(key).getFieldDefinition().type) {
             		case ENUM: buff.append("'" + item.toString() + "'"); break;
             		case ENUM_INT: buff.append(((Enum)item).ordinal()); break;
             		default: buff.append("'" + item.toString() + "'"); break;
-            	} 
+            	}
         	}
         	else if (item instanceof Date) {
         		query.getDb().factory.getDialect().getQueryStyleDate((Date)item);

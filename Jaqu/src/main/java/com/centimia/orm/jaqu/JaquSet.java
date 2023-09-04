@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 02/02/2010		Shai Bentin			 create
@@ -27,7 +27,7 @@ import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 
 /**
  * A set implementation of the Jaqu Collection
- * 
+ *
  * @see AbstractJaquCollection
  * @author Shai Bentin
  */
@@ -36,19 +36,12 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 	private static final long	serialVersionUID	= -1456310904754891892L;
 
 	public JaquSet(Set<E> origSet, Db db, FieldDefinition definition, Object parentPk) {
-		super(origSet, db, definition, parentPk);		
+		super(origSet, db, definition, parentPk);
 	}
-	
-	@SuppressWarnings("resource")
+
+	@Override
 	void merge() {
-		if (internalDeleteMapping != null) {
-			for (E child: internalDeleteMapping) {
-				if (null != db.get().factory.getPrimaryKey(child))
-					db.get().deleteChildRelation(definition, child, parentPk);
-			}
-		}		
-		
-		internalDeleteMapping = null;
+		super.merge();
 		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toSet());
 	}
 }

@@ -15,6 +15,29 @@ package com.centimia.orm.jaqu;
 /**
  * @author shai
  */
-public interface GenericMask {
-	public <T> T mask();
+public final class GenericMask<K, A> {
+
+	private final K o;
+	private final Class<A> primaryKeyClass;
+
+	public GenericMask(K o, Class<A> primaryKeyClass) {
+		this.o = o;
+		this.primaryKeyClass = primaryKeyClass;
+	}
+
+	/**
+	 * returns the primaryKey class
+	 * @return Class&lt;A&gt;
+	 */
+	public Class<A> mask() {
+		return this.primaryKeyClass;
+	}
+
+	/**
+	 *
+	 * @return K - the object
+	 */
+	public K orig() {
+		return this.o;
+	}
 }

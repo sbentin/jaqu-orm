@@ -43,11 +43,7 @@ public class PostgresDialect implements SQLDialect {
 	 */
 	public boolean checkTableExists(String tableName, Db db) {
 		String query = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "'";
-		return db.executeQuery(query, rs -> {
-			if (rs.next())
-				return true;
-			return false;
-		});
+		return db.executeQuery(query, ResultSet::next);
 	}
 
 	/**
@@ -61,11 +57,16 @@ public class PostgresDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#getDataType(java.lang.Class)
 	 */
 	public String getDataType(Class<?> fieldClass) {
+		final String VARCHAR = "VARCHAR";
+		final String TIMESTAMP = "TIMESTAMP";
+		final String DATE = "DATE";
+		final String TIME = "TIME";
+		
 		if (fieldClass == Integer.class) {
 			return "INTEGER";
 		}
 		else if (fieldClass == String.class) {
-			return "VARCHAR";
+			return VARCHAR;
 		}
 		else if (fieldClass == Double.class) {
 			return "FLOAT8";
@@ -74,28 +75,28 @@ public class PostgresDialect implements SQLDialect {
 			return "DECIMAL(38,15)";
 		}
 		else if (fieldClass == java.util.Date.class) {
-			return "TIMESTAMP";
+			return TIMESTAMP;
 		}
 		else if (fieldClass == java.sql.Date.class) {
-			return "DATE";
+			return DATE;
 		}
 		else if (fieldClass == java.time.LocalDate.class) {
-			return "DATE";
+			return DATE;
 		}
 		else if (fieldClass == java.time.LocalDateTime.class) {
-			return "TIMESTAMP";
+			return TIMESTAMP;
 		}
 		else if (fieldClass == java.time.ZonedDateTime.class) {
-			return "TIMASTAMP";
+			return TIMESTAMP;
 		}
 		else if (fieldClass == java.time.LocalTime.class) {
-			return "TIME";
+			return TIME;
 		}
 		else if (fieldClass == java.sql.Time.class) {
-			return "TIME";
+			return TIME;
 		}
 		else if (fieldClass == java.sql.Timestamp.class) {
-			return "TIMESTAMP";
+			return TIMESTAMP;
 		}
 		else if (fieldClass == Byte.class) {
 			return "TINYINT";
@@ -129,9 +130,9 @@ public class PostgresDialect implements SQLDialect {
 			}
 		}
 		else if (fieldClass.isEnum()) {
-			return "VARCHAR";
+			return VARCHAR;
 		}
-		return "VARCHAR";
+		return VARCHAR;
 	}
 
 	/**
@@ -148,6 +149,7 @@ public class PostgresDialect implements SQLDialect {
 		switch (type) {
 			case ENUM: return rs.getString(columnName);
 			case ENUM_INT: return rs.getInt(columnName);
+			case BOOLEAN: return (rs.getObject(columnName) != null) && rs.getBoolean(columnName);
 			case BIGDECIMAL: return rs.getBigDecimal(columnName);
 			case LOCALDATE: return null != rs.getDate(columnName) ? rs.getDate(columnName).toLocalDate() : null;
     		case LOCALDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null;
@@ -164,6 +166,7 @@ public class PostgresDialect implements SQLDialect {
 		switch (type) {
 			case ENUM: return rs.getString(columnNumber);
 			case ENUM_INT: return rs.getInt(columnNumber);
+			case BOOLEAN: return (rs.getObject(columnNumber) != null) && rs.getBoolean(columnNumber);
 			case BIGDECIMAL: return rs.getBigDecimal(columnNumber);
 			case LOCALDATE: return null != rs.getDate(columnNumber) ? rs.getDate(columnNumber).toLocalDate() : null;
     		case LOCALDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null;
@@ -185,11 +188,7 @@ public class PostgresDialect implements SQLDialect {
 	 */
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "select 1 from information_schema.columns where table_name = '" + tableName + "' and column_name = '" + discriminatorName + "'";
-		return db.executeQuery(query, rs -> {
-			if (rs.next())
-				return true;
-			return false;
-		});
+		return db.executeQuery(query, ResultSet::next);
 	}
 
 	/*
@@ -204,22 +203,23 @@ public class PostgresDialect implements SQLDialect {
 	}
 
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
-		String query;
+		StringBuilder query = new StringBuilder();
 		if (name.length() == 0){
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query = "CREATE UNIQUE INDEX " + name + " ON " + tableName + "(";
+			query.append("CREATE UNIQUE INDEX ");
 		else
-			query = "CREATE INDEX " + name + " ON " + tableName + "(";
+			query.append("CREATE INDEX ");
+		query.append(name).append(" ON ").append(tableName).append("(");
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
-				query += ",";
+				query.append(",");
 			}
-			query += columns[i];
+			query.append(columns[i]);
 		}
-		query += ")";
-		return query;
+		query.append(")");
+		return query.toString();
 	}
 	
 	/*
@@ -237,8 +237,7 @@ public class PostgresDialect implements SQLDialect {
 	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
 	 */
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
-		StatementBuilder buff = new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
-		return buff;
+		return new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 	}
 
 	@Override

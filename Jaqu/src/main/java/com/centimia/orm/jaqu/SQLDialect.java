@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 09/02/2010		Shai Bentin			 create
@@ -61,7 +61,7 @@ public interface SQLDialect {
 	 * @throws SQLException
 	 */
 	public abstract Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException;
-	
+
 	/**
 	 * Retrieves the value from the result set according to the appropriate java data type.
 	 * @param type
@@ -74,7 +74,7 @@ public interface SQLDialect {
 
 	/**
 	 * Checks if the table already exists. Some databases don't have this feature incorporated in their SQL language.
-	 * 
+	 *
 	 * @param tableName
 	 * @param db
 	 * @return boolean
@@ -94,7 +94,7 @@ public interface SQLDialect {
 	default String getIdentitySuppliment() {
 		return "NOT NULL AUTO_INCREMENT";
 	}
-	
+
 	/**
 	 * Because Alter table is different in every dialect we used this method to add a discriminator column
 	 * @param tableName
@@ -105,7 +105,7 @@ public interface SQLDialect {
 
 	/**
 	 * Check if the discriminator column exists
-	 * 
+	 *
 	 * @param tableName
 	 * @param discriminatorName
 	 * @param db
@@ -115,7 +115,7 @@ public interface SQLDialect {
 
 	/**
 	 * returns the function that is the right function syntax for this dialect
-	 * 
+	 *
 	 * @param functionName
 	 * @return String
 	 */
@@ -123,14 +123,14 @@ public interface SQLDialect {
 
 	/**
 	 * Creates and returns the proper Alter statement that will create the index given in this dialect.
-	 * 
+	 *
 	 * @param name
 	 * @param unique
 	 * @param columns
 	 * @return String
 	 */
 	public abstract String createIndexStatement(String name, String tableName, boolean unique, String[] columns);
-	
+
 	/**
 	 * wraps the correct form for writing the update statement for this dialect
 	 * @param innerUpdate
@@ -139,7 +139,7 @@ public interface SQLDialect {
 	 * @return StatementBuilder
 	 */
 	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as);
-	
+
 	/**
 	 * wraps the correct form for writing the delete statement for this dialect
 	 * @param innerDelete
@@ -148,7 +148,7 @@ public interface SQLDialect {
 	 * @return StatementBuilder
 	 */
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as);
-	
+
 	/**
 	 * Allows a dialect to handle a deadlock exception. Default behavior is to rethrow it as a Jaqu Error
 	 * @param e

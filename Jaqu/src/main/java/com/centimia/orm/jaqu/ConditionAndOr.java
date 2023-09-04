@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -25,7 +25,8 @@ enum ConditionAndOr implements Token {
         this.text = text;
     }
 
-    public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+    @Override
+	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
         stat.appendSQL(text);
     }
 

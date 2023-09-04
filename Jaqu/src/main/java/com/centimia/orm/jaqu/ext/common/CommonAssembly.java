@@ -20,9 +20,9 @@ Created		   May 6, 2012		shai
 package com.centimia.orm.jaqu.ext.common;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +31,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
 import com.centimia.orm.jaqu.ext.asm.JaquClassAdapter;
+import com.centimia.orm.jaqu.ext.asm.SafeClassWriter;
 
 /**
  * @author shai
@@ -38,35 +39,38 @@ import com.centimia.orm.jaqu.ext.asm.JaquClassAdapter;
  */
 public class CommonAssembly {
 
-	public static BuildStats assembleFiles(File outputDir, StringBuilder report) {
-		ArrayList<File> files = new ArrayList<File>();
+	private CommonAssembly() {}
+	
+	public static BuildStats assembleFiles(File outputDir, StringBuilder successReport, StringBuilder failedReport) {
+		ArrayList<File> files = new ArrayList<>();
 		getAllFiles(outputDir, files);
 		
 		int success = 0, failure = 0, ignored = 0;
 		for (File classFile: files) {
 			try {
 				if (assembleFile(classFile)) {
-					report.append(String.format("SUCCESS -- %s\n", classFile));
+					successReport.append(String.format("SUCCESS -- %s%n", classFile));
 					success++;
 				}
-				else
-					report.append(String.format("IGNORED -- %s\n", classFile));
+				else {
+					successReport.append(String.format("IGNORED -- %s%n", classFile));
 					ignored++;
+				}
 			}
 			catch (Exception e) {
-				report.append(String.format("FAILED -- %s --> %s\n", classFile, e.getMessage()));
+				failedReport.append(String.format("FAILED -- %s --> %s%n", classFile, e.getMessage()));
 				failure++;
 			}
 		}
 		return new BuildStats(success, failure, ignored);
 	}
 	
-	public static boolean assembleFile(File classFile) throws Exception {
+	public static boolean assembleFile(File classFile) throws IOException {
 		FileInputStream fis = new FileInputStream(classFile);
         byte[] b = null;       
        
     	ClassReader cr = new ClassReader(fis);
-        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+        ClassWriter cw = new SafeClassWriter(cr, null, ClassWriter.COMPUTE_FRAMES);
           		
         JaquClassAdapter jaquClassAdapter = new JaquClassAdapter(Opcodes.ASM9, cw);
         cr.accept(jaquClassAdapter, 0);
@@ -75,12 +79,13 @@ public class CommonAssembly {
 	        b = cw.toByteArray();
 	        fis.close();
 	        if (b != null) {
-	        	classFile.delete();
-	        	classFile.createNewFile();
-	            FileOutputStream fos = new FileOutputStream(classFile);
-	    		fos.write(b);
-	    		fos.flush();
-	    		fos.close();
+	        	if (classFile.delete()) {
+	        		classFile.createNewFile();
+		            try (FileOutputStream fos = new FileOutputStream(classFile)) {
+		            	fos.write(b);
+		            	fos.flush();
+		            }
+	        	}	        	
 	        }
 	        return true;
         }
@@ -91,14 +96,7 @@ public class CommonAssembly {
 	}
 
 	private static void getAllFiles(File outputDir, List<File> files){
-		File[] fileList = outputDir.listFiles(new FileFilter() {
-			
-			public boolean accept(File pathname) {
-				if (pathname.getName().endsWith(".class") || pathname.isDirectory())
-					return true;
-				return false;
-			}
-		});
+		File[] fileList = outputDir.listFiles(f -> f.getName().endsWith(".class") || f.isDirectory());
 		
 		for (File file: fileList) {
 			if (file.isDirectory()) {

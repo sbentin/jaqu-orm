@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -41,7 +41,8 @@ public class Function implements Token {
         this.x = x;
     }
 
-    public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+    @Override
+	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
         stat.appendSQL(name).appendSQL("(");
         int i = 0;
         for (Object o : x) {
@@ -60,7 +61,7 @@ public class Function implements Token {
     public static Long ignore() {
     	return IGNORE;
     }
-    
+
     /**
      * SQL Function 'LENGTH'
      * @param x
@@ -88,7 +89,8 @@ public class Function implements Token {
     public static Boolean isNull(Object x, Db db) {
         return db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
-                public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+                @Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 	query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                     stat.appendSQL(" IS NULL");
                 }
@@ -98,7 +100,8 @@ public class Function implements Token {
     public static Boolean isNotNull(Object x, Db db) {
         return db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
-                public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+                @Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 	query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                     stat.appendSQL(" IS NOT NULL");
                 }
@@ -108,7 +111,8 @@ public class Function implements Token {
     public static Boolean not(Boolean x, Db db) {
         return db.registerToken(
             Utils.newObject(Boolean.class), new Function("", x) {
-                public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+                @Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                     stat.appendSQL("NOT ");
                     query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                 }
@@ -119,7 +123,8 @@ public class Function implements Token {
         return db.registerToken(
                 Utils.newObject(Boolean.class),
                 new Function("", (Object[]) x) {
-            public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+            @Override
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 int i = 0;
                 for (Object o : x) {
                     if (i++ > 0) {
@@ -135,7 +140,8 @@ public class Function implements Token {
         return db.registerToken(
                 Utils.newObject(Boolean.class),
                 new Function("", (Object[]) x) {
-            public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+            @Override
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 int i = 0;
                 for (Object o : x) {
                     if (i++ > 0) {
@@ -149,7 +155,7 @@ public class Function implements Token {
 
     @SuppressWarnings("unchecked")
     public static <X> X min(X x, Db db) {
-        Class<X> clazz = (Class<X>) x.getClass();    
+        Class<X> clazz = (Class<X>) x.getClass();
         if (clazz.isEnum()) {
         	X o = handleEnum(x, clazz);
         	return db.registerToken(o, new Function("MIN", x));
@@ -175,22 +181,64 @@ public class Function implements Token {
         X o = Utils.newObject(clazz);
         return db.registerToken(o, new Function("AVG", x));
     }
-    
-    @SuppressWarnings("unchecked") // FIXME
-	public static <X> X concat(Db db, X ...x) {
-    	return (X) db.registerToken(x, new Function("CONCAT", x) {
 
-			@Override
-			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-				stat.appendSQL("(");
-				if (x.length > 2) {
-					
+    @SuppressWarnings("unchecked")
+	public static <X> String concat(Db db, String as, X ...x) {
+    	String o = Utils.newObject(String.class);
+    	if (Dialect.ORACLE == db.factory.getDialect()) {
+    		return db.registerToken(o, new Function("", x) {
+
+				@Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+					stat.appendSQL("(");
+					for (int i = 0; i < x.length ; i++) {
+						Object val = x[i];
+						if (val.equals(" "))
+							stat.appendSQL("' '");
+						else {
+							if (val.getClass().isEnum())
+								query.appendSQL(stat, val, true, val.getClass());
+							else
+								query.appendSQL(stat, val, false, null);
+						}
+
+						if (i < (x.length - 1))
+							stat.appendSQL(" || ");
+					}
+					stat.appendSQL(")");
+					if (null != as)
+						stat.appendSQL(" as " + as);
 				}
-			}
-    		
-    	});
+
+	    	});
+    	}
+    	else
+	    	return db.registerToken(o, new Function("CONCAT", x) {
+
+				@Override
+				public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+					stat.appendSQL(name).appendSQL("(");
+					for (int i = 0; i < x.length ; i++) {
+						Object val = x[i];
+						if (val.equals(" "))
+							stat.appendSQL("' '");
+						else {
+							if (val.getClass().isEnum())
+								query.appendSQL(stat, val, true, val.getClass());
+							else
+								query.appendSQL(stat, val, false, null);
+						}
+						if (i < (x.length - 1))
+							stat.appendSQL(",");
+					}
+					stat.appendSQL(")");
+					if (null != as)
+						stat.appendSQL(" as " + as);
+				}
+
+	    	});
     }
-    
+
     /**
      * This performs a like operation at column level and returns in that column a true or false value depending on what was checked.
      * @param x
@@ -200,7 +248,8 @@ public class Function implements Token {
     public static Boolean like(String x, String pattern, Db db) {
         Boolean o = Utils.newObject(Boolean.class);
         return db.registerToken(o, new Function("LIKE", x, pattern) {
-            public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+            @Override
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
                 stat.appendSQL("(");
                 query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
                 stat.appendSQL(" LIKE ");
@@ -212,7 +261,7 @@ public class Function implements Token {
 
     /**
      * creates a function that if 'checkExpression' is null then put 'replacementValue'
-     * 
+     *
      * @param <X>
      * @param checkExpression
      * @param replacementValue
@@ -221,10 +270,10 @@ public class Function implements Token {
 	public static <X> X ifNull(X checkExpression, final Object replacementValue, Db db){
     	return ifNull(checkExpression, replacementValue, false, db);
     }
-    
+
     /**
      * creates a function that if 'checkExpression' is null then put 'replacementValue'
-     * 
+     *
      * @param <X>
      * @param checkExpression
      * @param replacementValue
@@ -235,9 +284,10 @@ public class Function implements Token {
 	public static <X> X ifNull(X checkExpression, final Object replacementValue, final boolean isField, Db db){
     	Class<X> clazz = (Class<X>) checkExpression.getClass();
     	X o = Utils.newObject(clazz);
-    	
+
     	return db.registerToken(o, new ReplacementFunctions(isField, "IFNULL", checkExpression, replacementValue) {
-    		@SuppressWarnings("resource")
+    		@Override
+			@SuppressWarnings("resource")
 			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
     			Dialect d = query.getDb().factory.getDialect();
     			name = d.getFunction(Functions.IFNULL);
@@ -245,7 +295,7 @@ public class Function implements Token {
     			// check_expression
     			query.appendSQL(stat, x[0], x[0].getClass().isEnum(), x[0].getClass());
     			stat.appendSQL(", ");
-    			
+
     			// replacement value
     			if (null == replacementValue){
     				if (name.equals("COALESCE"))
@@ -266,7 +316,7 @@ public class Function implements Token {
     		}
     	});
     }
-    
+
     /**
 	 * @param x
 	 * @param clazz
@@ -276,7 +326,7 @@ public class Function implements Token {
 		X o = Utils.newObject(clazz);
 		if (o == x)
 			o = Utils.newEnum(clazz, 1);
-		
+
 		if (null == o)
 			throw new JaquError("Doing an aggragate function on an enum type with a single value makes no sense");
 		return o;

@@ -1,5 +1,14 @@
-/**
- * 
+/*
+ * Copyright (c) 2007-2010 Centimia Ltd.
+ * All rights reserved.  Unpublished -- rights reserved
+ *
+ * Use of a copyright notice is precautionary only, and does
+ * not imply publication or disclosure.
+ *
+ * Multiple-Licensed under the H2 License,
+ * Version 1.0, and under the Eclipse Public License, Version 2.0
+ * (http://h2database.com/html/license.html).
+ * Initial Developer: H2 Group, Centimia Inc.
  */
 package com.centimia.orm.jaqu;
 
@@ -11,20 +20,18 @@ import java.util.Map;
 
 /**
  * @author shai
- *
  */
 public class SimpleArray implements Array {
 
 	private Db conn;
 	private Object[] array;
-	
+
 	public SimpleArray(Db conn, Object array) {
 		this.conn = conn;
 		this.array = (Object[])array;
-	}	
-	
+	}
+
 	/*
-	 * 
 	 * @see java.sql.Array#getBaseTypeName()
 	 */
 	@Override
@@ -33,23 +40,21 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getBaseType()
 	 */
 	@Override
-	public int getBaseType() throws SQLException {		
+	public int getBaseType() throws SQLException {
 		try {
 			String dataType =  conn.factory.getDialect().getDataType(array.getClass().getComponentType());
 			Field f = java.sql.Types.class.getField(dataType);
 			return (int)f.get(null);
-		} 
+		}
 		catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
 			return 0;
 		}
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getArray()
 	 */
 	@Override
@@ -58,7 +63,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getArray(java.util.Map)
 	 */
 	@Override
@@ -67,7 +71,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getArray(long, int)
 	 */
 	@Override
@@ -83,7 +86,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getArray(long, int, java.util.Map)
 	 */
 	@Override
@@ -92,7 +94,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getResultSet()
 	 */
 	@Override
@@ -101,7 +102,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getResultSet(java.util.Map)
 	 */
 	@Override
@@ -110,7 +110,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getResultSet(long, int)
 	 */
 	@Override
@@ -119,7 +118,6 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#getResultSet(long, int, java.util.Map)
 	 */
 	@Override
@@ -128,12 +126,10 @@ public class SimpleArray implements Array {
 	}
 
 	/*
-	 * 
 	 * @see java.sql.Array#free()
 	 */
 	@Override
 	public void free() throws SQLException {
-		
-	}
 
+	}
 }

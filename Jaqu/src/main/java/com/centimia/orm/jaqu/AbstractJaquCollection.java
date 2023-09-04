@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 02/02/2010		Shai Bentin			 create
@@ -22,10 +22,9 @@ package com.centimia.orm.jaqu;
 
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.Utils;
@@ -34,39 +33,33 @@ import com.centimia.orm.jaqu.util.Utils;
  * A special collection class used to support merging entities into running Db sessions.
  * @author Shai Bentin
  */
-abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable {
+abstract class AbstractJaquCollection<E> implements Serializable, IJaquCollection<E> {
 
 	private static final long	serialVersionUID	= 3249922548306321787L;
-	
+
 	protected Collection<E> originalList;
-	List<E> internalDeleteMapping;
-	
+	Map<E, E> internalDeleteMapping;
+
 	protected transient WeakReference<Db> db;
 	protected transient FieldDefinition definition;
 	protected transient Object parentPk;
-	
+
 	AbstractJaquCollection(Collection<E> origList, Db db, FieldDefinition definition, Object parentPk) {
 		this.originalList = origList;
-		this.db = new WeakReference<Db>(db);
+		this.db = new WeakReference<>(db);
 		this.definition = definition;
 		this.parentPk = parentPk;
-	}	
-	
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#add(java.lang.Object)
-	 */
+	}
+
+	@Override
 	public boolean add(E e) {
-		if (!dbClosed()) {			
+		if (!dbClosed()) {
 			e = db.get().checkSession(e); // merge the Object into the DB
 		}
 		return originalList.add(e);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#addAll(java.util.Collection)
-	 */
+	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		boolean result = false;
 		for (E e: c) {
@@ -76,10 +69,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#clear()
-	 */
+	@Override
 	public void clear() {
 		if (!dbClosed()) {
 			for (E e: originalList) {
@@ -88,42 +78,30 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			originalList.clear();
 		}
 		else {
-			if (internalDeleteMapping == null)
-				internalDeleteMapping = Utils.newArrayList();
-			internalDeleteMapping.addAll(originalList);
+			if (null == internalDeleteMapping)
+				internalDeleteMapping = Utils.newHashMap();
+			originalList.forEach(item -> internalDeleteMapping.put(item, null));
 			originalList.clear();
 		}
-			
+
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#contains(java.lang.Object)
-	 */
+	@Override
 	public boolean contains(Object o) {
 		return originalList.contains(o);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#containsAll(java.util.Collection)
-	 */
+	@Override
 	public boolean containsAll(Collection<?> c) {
 		return originalList.containsAll(c);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#isEmpty()
-	 */
+	@Override
 	public boolean isEmpty() {
 		return originalList.isEmpty();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#remove(java.lang.Object)
-	 */
+	@Override
 	@SuppressWarnings({ "unchecked", "resource" })
 	public boolean remove(Object o) {
 		boolean removed = originalList.remove(o);
@@ -134,17 +112,14 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			}
 			else {
 				if (null == internalDeleteMapping)
-					internalDeleteMapping = Utils.newArrayList();
-				internalDeleteMapping.add((E)o);
+					internalDeleteMapping = Utils.newHashMap();
+				internalDeleteMapping.put((E)o, null);
 			}
 		}
 		return removed;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#removeAll(java.util.Collection)
-	 */
+	@Override
 	public boolean removeAll(Collection<?> c) {
 		boolean result = false;
 		for (Object e: c) {
@@ -154,24 +129,19 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#retainAll(java.util.Collection)
-	 */
+	@Override
 	public boolean retainAll(Collection<?> c) {
 		boolean result = false;
-		for (E e: originalList) {
+		for (Iterator<E> iteratorThis = this.iterator(); iteratorThis.hasNext();) {
+			E e = iteratorThis.next();
 			if (!c.contains(e))
-				if (remove(e))
+				iteratorThis.remove();
 					result = true;
 		}
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#size()
-	 */
+	@Override
 	public int size() {
 		return originalList.size();
 	}
@@ -179,6 +149,7 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	/**
 	 * The array is not backed up by the list
 	 */
+	@Override
 	public Object[] toArray() {
 		return originalList.toArray();
 	}
@@ -186,18 +157,16 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	/**
 	 * The array is not backed up by the list
 	 */
+	@Override
 	public <T> T[] toArray(T[] a) {
 		return originalList.toArray(a);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#iterator()
-	 */
+	@Override
 	public Iterator<E> iterator() {
-		return new JaquIterator<E>(originalList.iterator());
+		return new JaquIterator<>(originalList.iterator());
 	}
-	
+
 	protected boolean dbClosed() {
 		if (null == db)
 			// because db is transient, on the client side it may be null.
@@ -207,62 +176,82 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 			return internal.closed();
 		return true;
 	}
-	
+
 	@SuppressWarnings("hiding")
 	protected class JaquIterator<E> implements Iterator<E>{
 
 		protected final Iterator<E> delagete;
 		protected E current;
-		
+
 		JaquIterator(Iterator<E> iter) {
 			this.delagete = iter;
 		}
-		
+
+		@Override
 		public boolean hasNext() {
 			return delagete.hasNext();
 		}
 
+		@Override
 		public E next() {
 			this.current = delagete.next();
 			return current;
 		}
 
+		@Override
 		@SuppressWarnings({ "unchecked", "resource" })
 		public void remove() {
 			delagete.remove();
 			if (!dbClosed()) {
 				if (null != db.get().factory.getPrimaryKey(current))
-					db.get().deleteChildRelation(definition, current, parentPk);				
+					db.get().deleteChildRelation(definition, current, parentPk);
 			}
 			else {
 				AbstractJaquCollection<E> col = ((AbstractJaquCollection<E>)AbstractJaquCollection.this);
 				if (col.internalDeleteMapping == null)
-					col.internalDeleteMapping = new ArrayList<E>();
-				col.internalDeleteMapping.add((E) current);
+					col.internalDeleteMapping = Utils.newHashMap();
+				col.internalDeleteMapping.put(current, null);
 			}
 		}
 	}
-	
+
 	void setDb(Db db) {
-		this.db = new WeakReference<Db>(db);
+		this.db = new WeakReference<>(db);
 	}
-	
+
 	void setFieldDefinition(FieldDefinition fDef) {
 		this.definition = fDef;
 	}
-	
+
 	void setParentPk(Object parentPk) {
 		this.parentPk = parentPk;
 	}
+
 	/*
 	 * Merge the list to the open db session
 	 */
-	abstract void merge();
-	
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
+	@SuppressWarnings("resource")
+	void merge() {
+		if (internalDeleteMapping != null) {
+			for (Map.Entry<E, E> entry: internalDeleteMapping.entrySet()) {
+				E newValue = entry.getValue();
+				E oldValue = entry.getKey();
+				if (null == newValue) {
+					if (null != db.get().factory.getPrimaryKey(oldValue))
+						db.get().deleteChildRelation(definition, oldValue, parentPk);
+				}
+				else {
+					Object oldPk = db.get().factory.getPrimaryKey(oldValue);
+					Object newPk = db.get().factory.getPrimaryKey(newValue);
+					if (null != oldPk && !oldPk.equals(newPk))
+						db.get().deleteChildRelation(definition, oldValue, parentPk);
+				}
+			}
+		}
+		internalDeleteMapping = null;
+	}
+
+	@Override
 	public String toString() {
         Iterator<E> it = iterator();
         if (!it.hasNext())

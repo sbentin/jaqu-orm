@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -26,31 +26,40 @@ final class CacheManager {
 
 	private final Map<Class<?>, Map<String, Object>> cache = Utils.newHashMap();
 	private final JaquSessionFactory factory;
-	
+
 	public CacheManager(JaquSessionFactory factory) {
 		this.factory = factory;
 	}
-	
+
 	/**
      * Prepares the reentrant list with the object that should not be reentered into.
-     * 
+     *
      * @param obj
      */
     void prepareReEntrent(Object obj) {
-		Map<String, Object> innerMap = cache.get(obj.getClass());
-		if (null == innerMap) {
-			innerMap = Utils.newHashMap();
-			cache.put(obj.getClass(), innerMap);
+		try {
+			Object pmKey = factory.getPrimaryKey(obj);
+			if (null == pmKey)
+				return;
+			String primaryKey = pmKey.toString();
+			Map<String, Object> innerMap = cache.get(obj.getClass());
+			if (null == innerMap) {
+				innerMap = Utils.newHashMap();
+				cache.put(obj.getClass(), innerMap);
+			}
+			
+			if (null != primaryKey)
+				innerMap.computeIfAbsent(primaryKey, k -> obj);
 		}
-		String primaryKey = factory.getPrimaryKey(obj).toString();
-		if (null == innerMap.get(primaryKey))
-			innerMap.put(primaryKey, obj);
+		catch (JaquError je) {
+			// no primaryKey... we can't cache, but can continue
+		}
 	}
-    
+
     /**
      * remove the object from the cache if the object exists in cache.
      * No need for the object to be returned as the user already holds the instance.
-     * 
+     *
      * @param obj
      */
     void removeReEntrent(Object obj) {
@@ -58,12 +67,14 @@ final class CacheManager {
     	if (null == innerMap)
     		// all is removed
     		return;
-    	innerMap.remove(factory.getPrimaryKey(obj).toString());
+    	Object pmKey = factory.getPrimaryKey(obj);
+    	if (null != pmKey)
+    		innerMap.remove(pmKey.toString());
     	if (innerMap.isEmpty()) {
     		cache.remove(obj.getClass());
     	}
     }
-    
+
     /**
      * Reports whether the object actually exists in cache.
      * @param obj
@@ -74,17 +85,17 @@ final class CacheManager {
 			return checkReEntrent(obj.getClass(), factory.getPrimaryKey(obj)) != null;
 		return false;
 	}
-	
+
     /**
      * Tries to match the key with an object in cache. If it exists the object is returned.
-     * 
+     *
      * @param clazz
      * @param key
      * @return Object
      */
 	Object checkReEntrent(Class<?> clazz, Object key) {
-		if (null != key){
-			key = key.toString();			
+		if (null != key) {
+			key = key.toString();
 			Map<String, ?> innerMap = cache.get(clazz);
 			if (null != innerMap) {
 				return innerMap.get(key);
@@ -92,7 +103,7 @@ final class CacheManager {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Clears the reEntrent cache
 	 */

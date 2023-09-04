@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 02/02/2010		Shai Bentin			 create
@@ -25,7 +25,7 @@ import java.util.Map;
 
 /**
  * The use of query interfaces is to divide different query abilities in different stages of the query.
- * 
+ *
  * @author Shai Bentin
  * @param <T>
  */
@@ -33,7 +33,7 @@ public interface QueryInterface<T> {
 
 	/**
 	 * Do an SQL "select count(*)" on the table
-	 * 
+	 *
 	 * @return long, the count
 	 */
 	public abstract long selectCount();
@@ -45,15 +45,15 @@ public interface QueryInterface<T> {
 	public abstract List<T> select();
 
 	/**
-	 * Returns the first result of the select performed. 
+	 * Returns the first result of the select performed.
 	 * @return T
 	 */
 	public abstract T selectFirst();
 
 	/**
-	 * Returns the first result of a select for type Z. 
+	 * Returns the first result of a select for type Z.
 	 * Type Z can be any defined type with mappings from the result.
-	 * 
+	 *
 	 * @param <Z>
 	 * @param x
 	 * @return Z
@@ -62,53 +62,53 @@ public interface QueryInterface<T> {
 
 	/**
 	 * Returns a String representing the select assembled from the object query.
-	 * 
+	 *
 	 * @return String
 	 */
 	public abstract String getSQL();
 
 	/**
 	 * Performs a delete query.
-	 * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared 
+	 * <b>Note</b> Since delete executes without objects the multi reEntrent cache is cleared
 	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
-	 * 
+	 *
 	 * @return int - number of rows deleted
 	 */
 	public abstract int delete();
 
 	/**
-	 * Returns the result of a select for object of type Z from Table T. 
-	 * 
+	 * Returns the result of a select for object of type Z from Table T.
+	 *
 	 * @param <Z>
 	 * @param x
 	 * @return List<Z> results
 	 */
 	public abstract <X, Z> List<X> select(Z x);
-	
+
 	/**
      * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
      * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
-     * 
+     *
      * @param tableClass - the object descriptor of the type needed on return
      * @throws JaquError - when not in join query
      * @return List<U>
      */
 	public abstract <U> List<U> selectRightHandJoin(U tableClass);
-	
+
 	/**
      * A convenience method get a field result from an object representing the right hand side of the join relationship only. This is for a single field only
      * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
-     * 
+     *
      * @param tableClass - the object descriptor of the type needed on return
      * @throws JaquError - when not in join query
      * @return List<Z>
      */
 	public abstract <U, Z> List<Z> selectRightHandJoin(U tableClass, Z x);
-	
+
 	/**
      * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
      * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
-     * 
+     *
      * @param tableClass - the object descriptor of the type needed on return
      * @throws JaquError - when not in join query
      */
@@ -117,20 +117,30 @@ public interface QueryInterface<T> {
 	/**
      * A convenience method to get a field result from an object representing the right hand side of the join relationship only. This is for a single field only
      * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
-     * 
+     *
      * @param tableClass - the object descriptor of the type needed on return
      * @throws JaquError - when not in join query
      */
 	public abstract <U, Z> Z selectFirstRightHandJoin(U tableClass, Z x);
-	
+
 	/**
-	 * Start a where clause on the SQL query.
-	 * 
-	 * @param <A>
-	 * @param x
-	 * @return QueryCondition<T, A>
+	 * wraps everything following with "("<br>
+	 * <b>Must follow with matching "endWrap</b>
+	 *
+	 * @return Query&lt;T&gt;
 	 */
-	public abstract <A> QueryCondition<T, A> where(A x);
+	public QueryInterface<T> wrap();
+
+	/**
+	 * wraps the entity object and changes the condition to support the primary key.
+	 * Useful in cases when the object holds an entity relation but you do not want to create the relation in the
+	 * fluent query.
+	 *
+	 * @param <A>
+	 * @param mask
+	 * @return QueryCondition&lt;T, A&gt;
+	 */
+	public abstract <K, A> QueryCondition<T, A> where(final GenericMask<K, A> mask);
 
 	/**
 	 * Allows a simple string where clause
@@ -139,29 +149,38 @@ public interface QueryInterface<T> {
 	 * @return QueryWhere<T>
 	 */
 	public abstract <A> QueryWhere<T> where(final StringFilter whereCondition);
-	 
+
+	/**
+	 * Start a where clause on the SQL query.
+	 *
+	 * @param <A>
+	 * @param x
+	 * @return QueryCondition<T, A>
+	 */
+	public abstract <A> QueryCondition<T, A> where(A x);
+
 	/**
 	 * Used on update queries to set the parameters of the update according to the
 	 * given object.
-	 * 
+	 *
 	 * @param x - field from descriptor object
 	 * @param v - value of the same type.
-	 * 
+	 *
 	 * @return QuerySet<T, A>
 	 */
 	public abstract <A> QuerySet<T, A> set(A x, A v);
 
 	/**
 	 * Returns a primary key condition. Usually used internally, when the primary key is a definit identifier which is unknown....
-	 * Does not support complex primary keys. Use this query only when the primary key to compare with is definit, any other condition 
+	 * Does not support complex primary keys. Use this query only when the primary key to compare with is definit, any other condition
 	 * is not supported
-	 * 
+	 *
 	 * @return QueryCondition<T, Object>
 	 */
 	public abstract QueryCondition<T, Object> primaryKey();
 
 	/**
-	 * 
+	 *
 	 * @param condition
 	 * @return QueryWhere<T>
 	 */
@@ -172,7 +191,7 @@ public interface QueryInterface<T> {
 	 * @param groupBy
 	 * @return FullQueryInterface<T>
 	 */
-	public abstract FullQueryInterface<T> groupBy(Object... groupBy);
+	public abstract QueryInterface<T> groupBy(Object... groupBy);
 
 
 	/**
@@ -182,7 +201,7 @@ public interface QueryInterface<T> {
 	 * @return the joined query
 	 */
 	public abstract <U> QueryJoin<T> innerJoin(U alias);
-	
+
 	/**
 	 * Left Outer Join another table. (Return all rows from left table, and matching from rightHandSide)
 	 *
@@ -201,7 +220,7 @@ public interface QueryInterface<T> {
 
 	/**
 	 * Descending order by a single given column
-	 * 
+	 *
 	 * @param expr
 	 * @return QueryInterface
 	 */
@@ -245,12 +264,12 @@ public interface QueryInterface<T> {
 	/**
 	 * Create a having clause based on the column given.
 	 * <b>You can only use a single having in a select clause</b>
-	 * 
+	 *
 	 * @param x
 	 * @return QueryCondition<T, A>
 	 */
 	public <A> QueryCondition<T, A> having(A x);
-	
+
 	/**
 	 * having clause with a supported aggregate function
 	 * @param function
@@ -269,28 +288,28 @@ public interface QueryInterface<T> {
 	 * Table t = [tableDescriptor]
 	 * Map<Long, String> results = db.from(t).where(t.[getSomeField()]).is)[someValue]....selectAsMap(t.getA(), t.getB());
 	 * </pre>
-	 * 
+	 *
 	 * @param key
 	 * @param value
 	 * @return Map<K, V>
 	 */
 	public <K, V> Map<K, V> selectAsMap(K key, V value);
-	
+
 	/**
 	 * same as {@link #selectAsMap(Object, Object)} but returns only distinct results.
-	 * 
+	 *
 	 * @see #selectAsMap(Object, Object)
 	 * @param key
 	 * @param value
 	 * @return Map<K, V>
 	 */
 	public <K, V> Map<K, V> selectDistinctAsMap(K key, V value);
-	
+
 	/**
 	 * Returns a List of the main "from" type based on a Union between the two queries.<br>
 	 * this query is runs a union query of the two queries.<br>
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
@@ -300,7 +319,7 @@ public interface QueryInterface<T> {
 	 * Returns a List of the main "from" type based on a Union between the two queries.<br>
 	 * this query is runs a union query of the two queries.<br>
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
@@ -310,58 +329,58 @@ public interface QueryInterface<T> {
 	 * Returns a List of the main "from" type based on a Union between the two queries.<br>
 	 * this query is runs a union query of the two queries.<br>
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
 	public <U> List<T> union(QueryJoinWhere<U> unionQuery);
-	
+
 	/**
 	 * same as {@link #union(QueryJoinWhere)} but returns distinct results of both queries.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
 	public <U> List<T> unionDistinct(QueryJoinWhere<U> unionQuery);
-	
+
 	/**
 	 * same as {@link #union(QueryWhere)} but returns distinct results of both queries.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
 	public <U> List<T> unionDistinct(QueryWhere<U> unionQuery);
-	
+
 	/**
 	 * same as {@link #union(Query)} but returns distinct results of both queries.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
 	public <U> List<T> unionDistinct(Query<U> unionQuery);
-	
+
 	/**
 	 * same as {@link #union(QueryJoinWhere, Object)} but returns distinct results of both queries.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
 	public <U, X> List<X> unionDistinct(QueryJoinWhere<U> unionQuery, X x);
-	
+
 	/**
      * Returns a list of the given type (x). The type must be a new type, not one of the table's fields.
      * this query is runs a union query of the two queries.<br>
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @param x - the type to return
 	 * @return List<X>
 	 */
-	public <U, X> List<X> union(QueryJoinWhere<U> unionQuery, X x);	
+	public <U, X> List<X> union(QueryJoinWhere<U> unionQuery, X x);
 
 	/**
 	 * same as {@link #union(QueryWhere, Object)} but returns distinct results of both queries.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
@@ -371,16 +390,16 @@ public interface QueryInterface<T> {
      * Returns a list of the given type (x). The type must be a new type, not one of the table's fields.
      * this query is runs a union query of the two queries.<br>
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @param x - the type to return
 	 * @return List<X>
 	 */
-	public <U, X, Z> List<X> union(QueryWhere<U> unionQuery, Z x);	
+	public <U, X, Z> List<X> union(QueryWhere<U> unionQuery, Z x);
 
 	/**
 	 * same as {@link #union(Query, Object)} but returns distinct results of both queries.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @return List<T>
 	 */
@@ -390,17 +409,76 @@ public interface QueryInterface<T> {
      * Returns a list of the given type (x). The type must be a new type, not one of the table's fields.
      * this query is runs a union query of the two queries.<br>
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
-	 * 
+	 *
 	 * @param unionQuery
 	 * @param x - the type to return
 	 * @return List<X>
 	 */
 	public <U, X> List<X> union(Query<U> unionQuery, X x);
-	
+
 	/**
 	 * adds a limit to the query
 	 * @param limitNum
 	 * @return Query<T>
 	 */
 	public Query<T> limit(int limitNum);
+	
+	/**
+	 * Select only distinct results in the table
+	 *
+	 * @return List<T>
+	 */
+	public abstract List<T> selectDistinct();
+
+	/**
+     * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     *
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
+	public abstract <U> List<U> selectDistinctRightHandJoin(U tableClass);
+
+	/**
+     * A convenience method to a field of the object representing the right hand side of the join relationship only. Based on a single field only
+     * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
+     *
+     * @param tableClass - the object descriptor of the type needed on return
+     * @throws JaquError - when not in join query
+     * @return List<U>
+     */
+	public <U, Z> List<Z> selectDistinctRightHandJoin(U tableClass, Z x);
+
+	/**
+	 * Perform the update requested by the specific where clause
+	 * <b>Note</b> Since update executes without objects the multi reEntrent cache is cleared
+	 * and objects taken from the db before will no longer be the same instance if fetched again</b>
+	 *
+	 * @return int - number of lines updated.
+	 */
+	public abstract int update();
+
+	/**
+	 * Returns distinct results of type X using a query on object Z
+	 *
+	 * @param <X> - The type of object returned after the specific object is built from results.
+	 * @param <Z> - The type of the Object used for describing the query
+	 * @param x - A descriptor instance of type Z
+	 * @return List<X>
+	 */
+	public abstract <X, Z> List<X> selectDistinct(Z x);
+
+	/**
+	 * returns the query of an sql
+	 * @return String
+	 */
+	public String getDistinctSQL();
+
+	/**
+	 * returns the query of a distinct select based on the given object
+	 * @param z
+	 * @return String
+	 */
+	public <Z> String getDistinctSQL(Z z);
 }

@@ -18,7 +18,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * When applying this annotation Jaqu will not update the target Object only the ID of the object on ForeignKeys and nothing on O2M, M2M relations.
+ * When applying this annotation jaQu will not update the target Object only the ID of the object on ForeignKeys and nothing on O2M, M2M relations.
  * <p>
  * <b>Note:</b> This effects all Insert/Update operations. When you apply this to a field it is assumed that the other side Object/s already exist in the DB and have ID.
  * @author shai

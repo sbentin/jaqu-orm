@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -82,7 +82,7 @@ class SelectTable<T> implements ISelectTable<T> {
      */
     void appendSqlColumnFromField(SQLStatement stat, Object descValue) {
     	for (FieldDefinition def: aliasDef.getFields()) {
-    		if (def.isSilent)
+    		if (def.isSilent || def.isExtension)
 				continue;
     		if (descValue.equals(def.getValue(alias))){
     			// this is the field we're looking for
@@ -91,7 +91,7 @@ class SelectTable<T> implements ISelectTable<T> {
     		}
     	}
     }
-    
+
     Query<T> getQuery() {
         return query;
     }
@@ -104,8 +104,9 @@ class SelectTable<T> implements ISelectTable<T> {
      * (non-Javadoc)
      * @see com.centimia.orm.jaqu.ISelectTable#getJoins()
      */
-    public Map<Object, String> getJoins(){
-    	IdentityHashMap<Object, String> asList = new IdentityHashMap<Object, String>();
+    @Override
+	public Map<Object, String> getJoins(){
+    	IdentityHashMap<Object, String> asList = new IdentityHashMap<>();
     	if (query.isJoin()){
     		for (SelectTable<?> jointTable: query.getJoins()){
     			asList.put(jointTable.getAlias(), jointTable.getAs());
@@ -113,13 +114,14 @@ class SelectTable<T> implements ISelectTable<T> {
     	}
     	return asList;
     }
-    
+
     /*
      * (non-Javadoc)
      * @see com.centimia.orm.jaqu.ISelectTable#getOrderedJoins()
      */
-    public HashSet<Alias> getOrderedJoins(){
-    	HashSet<Alias> asList = new HashSet<Alias>();
+    @Override
+	public HashSet<Alias> getOrderedJoins(){
+    	HashSet<Alias> asList = new HashSet<>();
     	if (query.isJoin()){
     		for (SelectTable<?> jointTable: query.getJoins()){
     			asList.add(new Alias(jointTable.getAlias(), jointTable.getAs()));
@@ -127,19 +129,21 @@ class SelectTable<T> implements ISelectTable<T> {
     	}
     	return asList;
     }
-    
+
     /*
      * (non-Javadoc)
      * @see com.centimia.orm.jaqu.ISelectTable#getJoinType()
      */
-    public JOIN_TYPE getJoinType() {
+    @Override
+	public JOIN_TYPE getJoinType() {
         return joinType;
     }
-    
+
     /* (non-Javadoc)
 	 * @see com.centimia.orm.jaqu.ISelectTable#getAs()
 	 */
-    public String getAs() {
+    @Override
+	public String getAs() {
         return as;
     }
 }

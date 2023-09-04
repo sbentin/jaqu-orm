@@ -40,6 +40,7 @@ import com.centimia.orm.jaqu.ext.common.CommonAssembly;
  * 	&lt;!-- the outputDir is the directory where the original .class files before post compile reside --&gt;
  * 	&lt;JaquAssembly classOutputDirectory="${outputDir}"/&gt;
  * &lt;/target&gt;
+ * </pre>
  * <br>
  * <b>Note: </b> Easier solution exists with the Jaqu Plugin for eclipse
  * @author Shai Bentin
@@ -59,7 +60,7 @@ public class JaquAssemblyTask extends Task {
 			throw new BuildException(String.format("Output dir %s does not exist!!!", classOutputDirectory));
 		
 		StringBuilder report = new StringBuilder();
-		BuildStats stats = CommonAssembly.assembleFiles(outputDir, report);
+		BuildStats stats = CommonAssembly.assembleFiles(outputDir, report, report);
 		if (stats.getFailure() > 0) {
 			report.insert(0, "BUILD FAILED - converted " + stats.getSuccess() + " files, failed to convert " + stats.getFailure() + " files\n");
 			throw new BuildException(report.toString());

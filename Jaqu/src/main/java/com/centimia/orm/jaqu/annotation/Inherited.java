@@ -30,11 +30,12 @@ import com.centimia.orm.jaqu.InheritedType;
  * <b>Must use this annotation if your entity is inherited from another {@link Entity} or a {@link MappedSuperclass}. 
  * To be clear, if your class is a {@link MappedSuperclass} that inherits another {@link MappedSuperclass} you must also add this annotation.</b>
  * <p>
- * Using this annotation you can also supply more information as to the inheritance strategy your going to deploy in the underlying relational database.<p>
+ * Using this annotation you can also supply more information as to the inheritance strategy your going to deploy in the underlying relational database.
+ * </p>
  * 
  * <ul>
  * <li>
- * <div><b>Table Per Class</b><br>
+ * <b>Table Per Class</b><br>
  * This is the default inheritance and the easiest to implement. It means that each entity has its own table with all the fields, including the inherited ones, in it.
  * It allows for AUTO incrementors like IDENTITY and SEQUENCE.
  * </li>

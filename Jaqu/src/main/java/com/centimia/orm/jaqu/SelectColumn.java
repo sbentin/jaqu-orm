@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -31,7 +31,8 @@ class SelectColumn<T> {
     void appendSQL(SQLStatement stat, String as) {
         if (selectTable.getQuery().isJoin()) {
             stat.appendSQL(selectTable.getAs() + "." + fieldDef.columnName);
-        } else {
+        }
+        else {
             stat.appendSQL(as + "." + fieldDef.columnName);
         }
     }

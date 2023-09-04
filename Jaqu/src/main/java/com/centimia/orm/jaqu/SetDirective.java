@@ -4,7 +4,7 @@
  *
  * Use of a copyright notice is precautionary only, and does
  * not imply publication or disclosure.
- *  
+ *
  * Multiple-Licensed under the H2 License,
  * Version 1.0, and under the Eclipse Public License, Version 2.0
  * (http://h2database.com/html/license.html).
@@ -13,7 +13,7 @@
 
 /*
  * Update Log
- * 
+ *
  *  Date			User				Comment
  * ------			-------				--------
  * 29/01/2010		Shai Bentin			 create
@@ -25,13 +25,13 @@ import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 
 /**
  * Use for Update Set directive in an update query.
- * 
+ *
  * @author Shai Bentin
  */
 class SetDirective<A> implements Token {
 
 	A x, value;
-	
+
 	SetDirective(A x, A value) {
 		this.x = x;
 		this.value = value;
@@ -41,6 +41,7 @@ class SetDirective<A> implements Token {
 	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 * TODO check if new enum handler can change the ugliness here
 	 */
+	@Override
 	@SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, x, false, null);
@@ -56,7 +57,7 @@ class SetDirective<A> implements Token {
         		case ENUM_INT: query.appendSQL(stat, ((Enum)value).ordinal(), false, null); break;
            		case UUID: query.appendSQL(stat, value.toString(), false, null); break;
         		default: query.appendSQL(stat, value, false, null); break;
-        	} 
+        	}
 		}
 		else
 			query.appendSQL(stat, value, false, null);
