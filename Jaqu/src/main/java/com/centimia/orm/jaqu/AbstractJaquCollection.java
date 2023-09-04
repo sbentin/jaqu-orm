@@ -33,7 +33,7 @@ import com.centimia.orm.jaqu.util.Utils;
  * A special collection class used to support merging entities into running Db sessions.
  * @author Shai Bentin
  */
-abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable {
+abstract class AbstractJaquCollection<E> implements Serializable, IJaquCollection<E> {
 
 	private static final long	serialVersionUID	= 3249922548306321787L;
 
@@ -51,10 +51,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		this.parentPk = parentPk;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#add(java.lang.Object)
-	 */
 	@Override
 	public boolean add(E e) {
 		if (!dbClosed()) {
@@ -63,10 +59,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return originalList.add(e);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#addAll(java.util.Collection)
-	 */
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		boolean result = false;
@@ -77,10 +69,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#clear()
-	 */
 	@Override
 	public void clear() {
 		if (!dbClosed()) {
@@ -98,37 +86,21 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#contains(java.lang.Object)
-	 */
 	@Override
 	public boolean contains(Object o) {
 		return originalList.contains(o);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#containsAll(java.util.Collection)
-	 */
 	@Override
 	public boolean containsAll(Collection<?> c) {
 		return originalList.containsAll(c);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#isEmpty()
-	 */
 	@Override
 	public boolean isEmpty() {
 		return originalList.isEmpty();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#remove(java.lang.Object)
-	 */
 	@Override
 	@SuppressWarnings({ "unchecked", "resource" })
 	public boolean remove(Object o) {
@@ -147,10 +119,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return removed;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#removeAll(java.util.Collection)
-	 */
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		boolean result = false;
@@ -161,25 +129,18 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#retainAll(java.util.Collection)
-	 */
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		boolean result = false;
-		for (E e: originalList) {
+		for (Iterator<E> iteratorThis = this.iterator(); iteratorThis.hasNext();) {
+			E e = iteratorThis.next();
 			if (!c.contains(e))
-				if (remove(e))
+				iteratorThis.remove();
 					result = true;
 		}
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#size()
-	 */
 	@Override
 	public int size() {
 		return originalList.size();
@@ -201,10 +162,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		return originalList.toArray(a);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.Collection#iterator()
-	 */
 	@Override
 	public Iterator<E> iterator() {
 		return new JaquIterator<>(originalList.iterator());
@@ -276,8 +233,9 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 	@SuppressWarnings("resource")
 	void merge() {
 		if (internalDeleteMapping != null) {
-			for (E oldValue: internalDeleteMapping.keySet()) {
-				E newValue = internalDeleteMapping.get(oldValue);
+			for (Map.Entry<E, E> entry: internalDeleteMapping.entrySet()) {
+				E newValue = entry.getValue();
+				E oldValue = entry.getKey();
 				if (null == newValue) {
 					if (null != db.get().factory.getPrimaryKey(oldValue))
 						db.get().deleteChildRelation(definition, oldValue, parentPk);
@@ -293,10 +251,6 @@ abstract class AbstractJaquCollection<E> implements Collection<E>, Serializable 
 		internalDeleteMapping = null;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
         Iterator<E> it = iterator();

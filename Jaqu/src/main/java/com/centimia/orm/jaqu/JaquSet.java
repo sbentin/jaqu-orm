@@ -40,7 +40,6 @@ class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {
 	}
 
 	@Override
-	@SuppressWarnings("resource")
 	void merge() {
 		super.merge();
 		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toSet());

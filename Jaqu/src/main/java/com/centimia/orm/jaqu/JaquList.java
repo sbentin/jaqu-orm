@@ -47,10 +47,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		super(origList, db, definition, parentPk);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.AbstractJaquCollection#add(java.lang.Object)
-	 */
 	@Override
 	public boolean add(E e) {
 		boolean result = super.add(e);
@@ -124,19 +120,11 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		return ((List<E>)originalList).lastIndexOf(o);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.List#listIterator()
-	 */
 	@Override
 	public ListIterator<E> listIterator() {
 		return new JaquListIterator(((List<E>)originalList).listIterator());
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.List#listIterator(int)
-	 */
 	@Override
 	public ListIterator<E> listIterator(int index) {
 		return new JaquListIterator(((List<E>)originalList).listIterator(index));
@@ -150,10 +138,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.List#remove(int)
-	 */
 	@Override
 	@SuppressWarnings("resource")
 	public E remove(int index) {
@@ -171,10 +155,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		return element;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.List#set(int, java.lang.Object)
-	 */
 	@Override
 	@SuppressWarnings("resource")
 	public E set(int index, E element) {
@@ -198,10 +178,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		return e;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.AbstractJaquCollection#retainAll(java.util.Collection)
-	 */
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		boolean result = super.retainAll(c);
@@ -210,20 +186,12 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.AbstractJaquCollection#clear()
-	 */
 	@Override
 	public void clear() {
 		super.clear();
 		modCount++;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.util.List#subList(int, int)
-	 */
 	@Override
 	public List<E> subList(int fromIndex, int toIndex) {
 		return new SubList(this, fromIndex, toIndex);
@@ -281,14 +249,14 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	}
 
 	@Override
-	@SuppressWarnings("resource")
 	void merge() {
 		super.merge();
 		originalList = originalList.stream().map(e -> db.get().checkSession(e)).collect(Collectors.toList());
 	}
 
 	class SubList implements List<E> {
-	    private JaquList<E> l;
+	    private static final String INDEX_D_SIZE_D = "Index: %d, Size: %d";
+		private JaquList<E> l;
 	    private int offset;
 	    private int size;
 	    private int expectedModCount;
@@ -307,10 +275,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	        expectedModCount = l.modCount;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#set(int, java.lang.Object)
-	     */
 	    @Override
 		public E set(int index, E element) {
 	        rangeCheck(index);
@@ -318,10 +282,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	        return l.set(index + offset, element);
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#get(int)
-	     */
 	    @Override
 		public E get(int index) {
 	        rangeCheck(index);
@@ -329,30 +289,18 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	        return l.get(index + offset);
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#size()
-	     */
 	    @Override
 		public int size() {
 	        checkForComodification();
 	        return size;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#add(java.lang.Object)
-	     */
 	    @Override
 		public boolean add(E element) {
 	    	add(size, element);
 	    	return true;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#add(int, java.lang.Object)
-	     */
 	    @Override
 		public void add(int index, E element) {
 	        if (index < 0 || index > size)
@@ -365,10 +313,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	        modCount++;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#remove(java.lang.Object)
-	     */
 	    @Override
 		public boolean remove(Object o) {
 	    	int index = indexOf(o); // o may be in the parent list but not in the sublist
@@ -379,10 +323,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	    	return false;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#remove(int)
-	     */
 	    @Override
 		public E remove(int index) {
 	        rangeCheck(index);
@@ -396,10 +336,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	        return result;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#removeAll(java.util.Collection)
-	     */
 	    @Override
 		public boolean removeAll(Collection<?> c) {
 	    	boolean result = false;
@@ -424,23 +360,15 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return result;
 		}
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#addAll(java.util.Collection)
-	     */
 	    @Override
 		public boolean addAll(Collection<? extends E> c) {
 	        return addAll(size, c);
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#addAll(int, java.util.Collection)
-	     */
 	    @Override
 		public boolean addAll(int index, Collection<? extends E> c) {
 	        if (index<0 || index>size)
-	            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+	            throw new IndexOutOfBoundsException(String.format(INDEX_D_SIZE_D, index, size));
 	        int cSize = c.size();
 	        if (cSize == 0)
 	            return false;
@@ -455,21 +383,11 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	        return result;
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#isEmpty()
-	     */
 		@Override
 		public boolean isEmpty() {
-			if (size == 0 || l.isEmpty())
-				return true;
-			return false;
+			return (size == 0 || l.isEmpty());
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#contains(java.lang.Object)
-		 */
 		@Override
 		public boolean contains(Object o) {
 			int index = l.indexOf(o);
@@ -482,10 +400,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			}
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#toArray()
-		 */
 		@Override
 		public Object[] toArray() {
 			Object[] array = new Object[size];
@@ -495,10 +409,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return array;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#toArray(T[])
-		 */
 		@Override
 		@SuppressWarnings("unchecked")
 		public <T> T[] toArray(T[] a) {
@@ -512,10 +422,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return array;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#containsAll(java.util.Collection)
-		 */
 		@Override
 		public boolean containsAll(Collection<?> c) {
 			Iterator<?> e = c.iterator();
@@ -525,10 +431,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return true;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#indexOf(java.lang.Object)
-		 */
 		@Override
 		public int indexOf(Object o) {
 			int result = l.indexOf(o) - offset;
@@ -541,25 +443,17 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			}
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#lastIndexOf(java.lang.Object)
-		 */
 		@Override
 		public int lastIndexOf(Object o) {
 			if (null == o)
 				return -1;
-			for (int i = (size - 1); i <= 0; i--) {
+			for (int i = (size - 1); i >= 0; i--) {
 				if (o.equals(l.get(offset + i)))
 					return i;
 			}
 			return -1;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#clear()
-		 */
 		@Override
 		public void clear() {
 			for (int i = 0; i < size; i++) {
@@ -567,10 +461,6 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			}
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#retainAll(java.util.Collection)
-		 */
 		@Override
 		public boolean retainAll(Collection<?> c) {
 			if (null == c) {
@@ -588,33 +478,21 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 			return changed;
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#listIterator()
-		 */
 		@Override
 		public ListIterator<E> listIterator() {
 			return listIterator(0);
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * @see java.util.List#iterator()
-		 */
 	    @Override
 		public Iterator<E> iterator() {
 	        return listIterator();
 	    }
 
-	    /*
-	     * (non-Javadoc)
-	     * @see java.util.List#listIterator(int)
-	     */
 	    @Override
 		public ListIterator<E> listIterator(final int index) {
 	        checkForComodification();
 	        if (index<0 || index>size)
-	            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+	            throw new IndexOutOfBoundsException(String.format(INDEX_D_SIZE_D, index, size));
 
 	        return new ListIterator<E>() {
 	            private ListIterator<E> i = l.listIterator(offset + index);
@@ -693,7 +571,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	     */
 	    private void rangeCheck(int index) {
 	        if (index < 0 || index >= size)
-	        	throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+	        	throw new IndexOutOfBoundsException(String.format(INDEX_D_SIZE_D, index, size));
 	    }
 
 	    /**
