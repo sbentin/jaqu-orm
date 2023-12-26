@@ -35,23 +35,23 @@ public interface CRUDInterceptor<K> {
 	 * executed on entities before the entity is inserted
 	 * @param t
 	 */
-	public abstract void onInsert(K t);
+	public void onInsert(K t);
 
 	/**
 	 * executes on entities before the entity is merged
 	 * @param t
 	 */
-	public abstract void onMerge(K t);
+	public void onMerge(K t);
 
 	/**
 	 * executes on entities before the entity is updated
 	 * @param t
 	 */
-	public abstract void onUpdate(K t);
+	public void onUpdate(K t);
 
 	/**
 	 * executes on entities before the entity is deleted
 	 * @param t
 	 */
-	public abstract void onDelete(K t);
+	public void onDelete(K t);
 }

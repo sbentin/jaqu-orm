@@ -15,6 +15,8 @@
  */
 package com.centimia.jaqu.test.entity;
 
+import java.io.Serializable;
+
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.PrimaryKey;
 
@@ -23,7 +25,9 @@ import com.centimia.orm.jaqu.annotation.PrimaryKey;
  * @author Shai Bentin
  */
 @Entity
-public class Address {
+public class Address implements Serializable {
+	private static final long serialVersionUID = -4476735783778507905L;
+
 	@PrimaryKey
 	private Long id;
 	
@@ -111,7 +115,9 @@ public class Address {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {		
+	public boolean equals(Object obj) {
+		if (null == obj)
+			return false;
 		return obj.getClass().isAssignableFrom(this.getClass()) && this.id.equals(((Address)obj).id);
 	}
 }

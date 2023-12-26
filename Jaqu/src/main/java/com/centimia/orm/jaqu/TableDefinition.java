@@ -37,6 +37,7 @@ import com.centimia.orm.jaqu.annotation.Discriminator;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
 import com.centimia.orm.jaqu.annotation.Extension;
+import com.centimia.orm.jaqu.annotation.Generated;
 import com.centimia.orm.jaqu.annotation.Immutable;
 import com.centimia.orm.jaqu.annotation.Index;
 import com.centimia.orm.jaqu.annotation.Indices;
@@ -100,7 +101,9 @@ class TableDefinition<T> {
 		boolean notNull;
 		boolean isVersion = false;
 		boolean isExtension;
-
+		String sequenceQuery = null;
+		GeneratorType genType = GeneratorType.NONE;
+		
 		@SuppressWarnings("rawtypes")
 		Object getValue(Object obj) {
 			try {
@@ -770,6 +773,19 @@ class TableDefinition<T> {
 						}
 					}
 				}
+				Generated genAnnotation = f.getAnnotation(Generated.class);
+				if (null != genAnnotation) {
+					fieldDef.genType = genAnnotation.generatorType();
+					if (this.genType != null){
+						if (genType == GeneratorType.IDENTITY)
+							fieldDef.dataType = dialect.getIdentityType();
+						else if (this.genType == GeneratorType.SEQUENCE) {
+							if (null == genAnnotation.seqName())
+								throw new JaquError("IllegalArgument - GeneratorType.SEQUENCE must supply a sequence name!!!");
+							fieldDef.sequenceQuery = db.factory.getDialect().getSequenceQuery(genAnnotation.seqName());
+						}
+					}
+				}
 			}
 			else if (Collection.class.isAssignableFrom(classType)) {
 				// these are one to many or many to many relations
@@ -901,7 +917,7 @@ class TableDefinition<T> {
 			Field[] superFields = null;
 			Class<? super A> superClazz = clazz.getSuperclass();
 			superFields = addSuperClassFields(superClazz);
-			if (null != superFields) {
+			if (superFields.length > 0) {
 				Field[] childFields = clazz.getDeclaredFields();
 				classFields = new Field[superFields.length + childFields.length];
 				System.arraycopy(superFields, 0, classFields, 0, superFields.length);
@@ -919,14 +935,14 @@ class TableDefinition<T> {
 
 	private <A> Field[] addSuperClassFields(Class<? super A> superClazz) {
 		if (superClazz == null || superClazz.equals(Object.class))
-			return null;
+			return new Field[0];
 		Field[] superSuperFields = addSuperClassFields(superClazz.getSuperclass());
 
 		boolean shouldMap = (superClazz.getAnnotation(MappedSuperclass.class) != null || superClazz.getAnnotation(Entity.class) != null);
 		if (!shouldMap)
 			return superSuperFields;
 
-		if (null == superSuperFields) {
+		if (superSuperFields.length == 0) {
 			// super class is Object.class or not mapped. However this class is mapped so we can get its fields
 			return superClazz.getDeclaredFields();
 		}
@@ -1053,11 +1069,18 @@ class TableDefinition<T> {
 			valueTypes.appendExceptFirst(", ");
 			valueTypes.append("'" + this.discriminatorValue + "'");
 		}
-		boolean nullIdentityField = false;
+
+		FieldDefinition identityField = null;
 		for (FieldDefinition field : fields) {
-			if (field.isPrimaryKey && GeneratorType.IDENTITY == genType && null == field.getValue(obj)) {
+			if (null == field.getValue(obj) && (GeneratorType.IDENTITY == field.genType || (field.isPrimaryKey && GeneratorType.IDENTITY == genType))) {
+				// only one identity field can exist, usually it is the pk
+				if (null != identityField) {
+					String msg = String.format("Error you can not have two identity fields in a row [%s, %s]", identityField.field.getName(), field.field.getName());
+					StatementLogger.error(msg);
+					throw new JaquError(msg, obj.getClass());
+				}
+				identityField = field;
 				// skip identity types because these are auto incremented
-        		nullIdentityField = true;
 				continue;
 			}
 			if (field.isExtension || field.isSilent || (field.fieldType != FieldType.NORMAL))
@@ -1087,19 +1110,16 @@ class TableDefinition<T> {
 		if (db.factory.isShowSQL())
 			StatementLogger.insert(stat.logSQL());
 
-		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
-			if (nullIdentityField && GeneratorType.IDENTITY == genType) {
-				// we insert first basically to get the generated primary key on Identity fields
-				// note that unlike Identity, Sequence is generated in 'handleValue'
-				updateWithId(obj, stat);
-			}
-			else
-				stat.executeUpdate();			
-			update(db, obj);
+		if (null != identityField) {
+			// we insert first basically to get the generated primary key on Identity fields
+			// note that unlike Identity, Sequence is generated in 'handleValue'
+			updateWithId(obj, stat, identityField);
 		}
-		else {
-			// an object with no primary key fields can not have relationships or silent fields so we can just execute the simple db update
+		else
 			stat.executeUpdate();
+		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
+			// only an object with primary key fields can have relationships or silent fields so we do an update
+			update(db, obj);
 		}
 	}
 
@@ -1315,9 +1335,9 @@ class TableDefinition<T> {
 	/*
 	 * The last identity called using this connection would be the one that inserted the parameter 'obj'. we use it to set the value
 	 */
-	private void updateWithId(Object obj, SQLStatement stat) {
+	private void updateWithId(Object obj, SQLStatement stat, FieldDefinition identityField) {
 		if (null != primaryKeyColumnNames) {
-			String[] idColumnNames =  primaryKeyColumnNames.stream().map(fd -> fd.columnName).toArray(String[]::new);
+			String[] idColumnNames =  new String[] {identityField.columnName};
 			Long generatedId = stat.executeUpdateWithId(idColumnNames);
 			if (null != generatedId) {
 				try {
@@ -1376,9 +1396,40 @@ class TableDefinition<T> {
 					@SuppressWarnings("rawtypes")
 					JaquConverter convert = Utils.newObject(converter.value());
 					value = convert.toDb(value);
-					stat.addParameter(value);
-					break;
 				}
+				else if (null == value && GeneratorType.NONE != field.genType) {
+					// this field has no value the value needs to be generated
+					if (GeneratorType.SEQUENCE == field.genType) {
+						value = db.executeQuery(field.sequenceQuery, rs -> {
+							if (rs.next()) {
+								return rs.getLong(1);
+							}
+							return null;
+						});
+						try {
+							field.field.set(obj, value); // add the new id to the object
+						}
+						catch (Exception e) {
+							throw new JaquError(e, e.getMessage());
+						}
+					}
+					else if (GeneratorType.UUID == field.genType) {
+						try {
+							UUID pk = UUID.randomUUID();
+							// add the new id to the object
+							if (String.class.isAssignableFrom(field.field.getType()))
+								field.field.set(obj, pk.toString());
+							else if (UUID.class.isAssignableFrom(field.field.getType()))
+									field.field.set(obj, pk);
+	
+							value = pk.toString(); // the value int underlying Db is varchar
+						}
+						catch (Exception e) {
+							throw new JaquError(e, e.getMessage());
+						}
+					}
+				}
+				
 				stat.addParameter(value);
 				break;
 			case FK: {

@@ -29,7 +29,7 @@ public class SQLStatement {
     private ArrayList<Object> params = new ArrayList<>();
 
     // used only in batch...
-    private PreparedStatement prep;
+    private PreparedStatement batchPrep;
 
     SQLStatement(Db db) {
         this.db = db;
@@ -90,13 +90,13 @@ public class SQLStatement {
 
     void prepareBatch() {
         try {
-			if (null == prep)
-				prep = db.prepare(getSQL());
+			if (null == batchPrep)
+				batchPrep = db.prepare(getSQL());
 			for (int i = 0; i < params.size(); i++) {
 			    Object o = params.get(i);
-			    setValue(prep, i + 1, o);
+			    setValue(batchPrep, i + 1, o);
 			}
-			prep.addBatch();
+			batchPrep.addBatch();
 		}
 		catch (SQLException e) {
 			throw new JaquError(e, e.getMessage());
@@ -105,10 +105,10 @@ public class SQLStatement {
 
     int[] executeBatch(boolean clean) {
     	try {
-			int[] result = prep.executeBatch();
+			int[] result = batchPrep.executeBatch();
 			if (clean) {
 				// we need to clear this statement from here
-				prep = null;
+				batchPrep = null;
 			}
 			return result;
 		}
@@ -132,7 +132,7 @@ public class SQLStatement {
 		try (PreparedStatement ps = prepare(idColumnNames)) {
 			int size = ps.executeUpdate();
 			if (size > 0)
-				return getGeneratedKeys(ps.getGeneratedKeys(), size);
+				return getGeneratedKeys(ps.getGeneratedKeys());
 			return null;
 		}
 		catch (SQLException e) {
@@ -148,14 +148,16 @@ public class SQLStatement {
 		return this.executeQuery(processor);
 	}
 
-    private Long getGeneratedKeys(ResultSet generatedKeys, int size) {
+    private Long getGeneratedKeys(ResultSet generatedKeys) {
 		try {
 			if (generatedKeys.next()) {
 				// identity fields and sequences are only BigInt numbers so we can safely assume to get a long type here
 				return generatedKeys.getLong(1);
 			}
 		}
-		catch (SQLException e) {}
+		catch (SQLException e) {
+			throw new JaquError("Expected a generated Id but received None. Maybe your DB is not supported. Check supported Db list");
+		}
 		return null;
 	}
 
