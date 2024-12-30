@@ -61,7 +61,7 @@ public class TestSimpleSelect extends JaquTest {
 			
 			List<String> concats = db.from(desc).select(Function.concat(db, "concatedVal", desc.getName(), " ", desc.getValue(), " ", desc.season));
 			assertNotNull(concats);
-			assertTrue(concats.size() > 0);
+			assertTrue(!concats.isEmpty());
 			for (String concat: concats)
 				System.out.println(concat);
 			tearDown();

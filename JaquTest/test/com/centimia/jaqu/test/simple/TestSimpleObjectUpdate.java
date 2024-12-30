@@ -26,6 +26,7 @@ import junit.framework.TestResult;
  */
 public class TestSimpleObjectUpdate extends JaquTest {
 
+	@Override
 	public String getName() {
 		return "Simple Update test";
 	}
@@ -53,7 +54,7 @@ public class TestSimpleObjectUpdate extends JaquTest {
 			db.commit();
 			tearDown();
 		}
-		catch (Throwable e) {
+		catch (Exception e) {
 			db.rollback();
 			result.addError(this, e);
 		}

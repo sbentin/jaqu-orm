@@ -15,6 +15,7 @@
  */
 package com.centimia.jaqu.test.inheritance;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.TestResult;
@@ -89,46 +90,55 @@ public class TestDiscriminator extends JaquTest {
 			
 			db.commit();
 			
-			// because we're still in session we cannot simply add our own collection we should call on get from the entity.
-			List<InherittedClass> children = superOne.getChildren();
+			// currently both the object and the db have no record of a relationship between super and children.
+			// we can do one of two things.
+			// One - we can call superOne.getChildren() this will return an empty JaquList you can use to add the children to.
+			// Two - we can create our own new List. Because there is no relationships Jaqu can handle this as well. Note that if there
+			//		 where relationships in the db this action will basically replace those relationships.
+			List<InherittedClass> children = new ArrayList<>();
 			children.add(iClass);
 			children.add(iClass2);
+			superOne.setChildren(children);
 			
 			db.update(superTwo);
 			db.update(superOne);
 			db.commit();
-			// because when in session we have object cache we have a problem which the developer should be aware of. The
-			// inherited objects are in cache, therefore although the DB has the correct data setup after commit, and the
-			// parent object holds the children correctly, the child object, if it has the parent reference as M2O, will not 
-			// have the parent.
-			// lets see if fetch  is working correctly
-			SuperClass superClass = new SuperClass();
-			superClass = db.from(superClass).primaryKey().is(4L).selectFirst();
 			
-			assertEquals(superClass.getPartner().getId(), superTwo.getId());
-			assertTrue(superClass.getChildren().size() == 2);
-			
-			for (InherittedClass child: superClass.getChildren()) {
+			// currently doing an update/insert/delete does not effect the multi call cache.
+			// therefore, while before we inserted the "InherittedClass" child objects and 
+			// inserted and updated superClass object we have two issues. 
+			// 1. The object tree we inserted should be taken care of by the developer. As an example,
+			// 	  the InherittedClass child holds its parent, however when we inserted the child into
+			// 	  the SuperClass parent we did not insert the SuperClass parent into the child which
+			//	  makes our model not consistent. Note that the update and insert them selves do create
+			// 	  a consistent persistent model of our entities thus the next bit of code will get a new
+			//	  SuperClass instance and its children will exist and each child will have its parent, unlike
+			//	  the original SuperClass object we saved. Our next test shows this:			
+			for (InherittedClass child: superOne.getChildren()) {
+				// the saved model is not consistent
 				assertNull(child.getSuperClass());
 			}
-			db.close();
+			// 2. The second issue is that when our flow is as it is here in this test, the model saved and
+			// 	  the model retrieved from the database will not be the same instances. This was a design decision
+			//	  because we think that a scenario when you hold an entity that has your business model and save it
+			// 	  and then you read the same exact data from the database in the same session, does not exist.
+			SuperClass superClass = new SuperClass();
+			superClass = db.from(superClass).primaryKey().is(superOne.getId()).selectFirst();
 			
-			db = sessionFactory.getSession(); // start a new session to make sure Db is setup correctly.
-			// lets see if fetch  is working correctly
-			superClass = new SuperClass();
-			superClass = db.from(superClass).primaryKey().is(4L).selectFirst();
-			
+			assertNotSame(superClass, superOne);
 			assertEquals(superClass.getPartner().getId(), superTwo.getId());
-			assertTrue(superClass.getChildren().size() == 2);
+			assertEquals(2, superClass.getChildren().size());
 			
 			for (InherittedClass child: superClass.getChildren()) {
+				assertNotNull(child.getSuperClass());
 				assertEquals(child.getSuperClass().getId(), superClass.getId());
-				if (child.getId() == 2)
+				if (2 == child.getId())
 					assertEquals(child.getPartner().getId(), iClass3.getId());
 			}
+			db.close();
 			tearDown();
 		}
-		catch (Exception e) {
+		catch (Throwable e) {
 			db.rollback();
 			result.addError(this, e);
 		}

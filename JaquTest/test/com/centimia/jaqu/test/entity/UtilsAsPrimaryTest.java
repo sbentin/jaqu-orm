@@ -65,6 +65,15 @@ public class UtilsAsPrimaryTest extends JaquTest {
 			assertEquals(defA.getId().longValue(), 1);
 			
 			defA = new TableA();
+			defC = new TableC();
+			defC = db.from(defC).innerJoin(defA).on(Db.asPrimaryKey(defA, Long.class)).is(defC.getaIdReal())
+					.where(defC.getId()).is(tableC.getId()).selectFirst();
+			
+			assertNotNull(defC);
+			assertEquals(defC.getId().longValue(), 4);
+			
+			defA = new TableA();
+			defC = new TableC();
 			defA = db.from(defA).innerJoin(defC).on(defA).is(defC.getaId()).where(defC.getId()).is(tableC.getId()).selectFirst();
 			assertNotNull(defA);
 			assertEquals(defA.getId().longValue(), 1);			

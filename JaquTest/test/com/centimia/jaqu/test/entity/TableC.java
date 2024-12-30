@@ -40,6 +40,8 @@ public class TableC implements Serializable{
 	
 	public TableA aId;
 	
+	public Long aIdReal;
+	
 	public TableC() {
 		
 	}
@@ -88,5 +90,20 @@ public class TableC implements Serializable{
 	 */
 	public void setaId(TableA aId) {
 		this.aId = aId;
+		this.setaIdReal(aId.getId());
+	}
+
+	/**
+	 * @return the aIdReal
+	 */
+	public Long getaIdReal() {
+		return aIdReal;
+	}
+
+	/**
+	 * @param aIdReal the aIdReal to set
+	 */
+	public void setaIdReal(Long aIdReal) {
+		this.aIdReal = aIdReal;
 	}
 }

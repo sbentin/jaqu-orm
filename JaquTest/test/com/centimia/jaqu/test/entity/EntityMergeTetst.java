@@ -45,7 +45,7 @@ public class EntityMergeTetst extends JaquTest {
 		try {
 			setUp();
 			// for relationship we support List type and Set type. In the entity you just use List or Set, never use a concrete object like ArrayList or HashSet.
-			HashSet<Phone> phones = new HashSet<Phone>();
+			HashSet<Phone> phones = new HashSet<>();
 
 			phones.add(new Phone(1L, "26546345")); // this is an existing ID different number
 			phones.add(new Phone(5L, "987098234")); // new Phone
@@ -70,6 +70,8 @@ public class EntityMergeTetst extends JaquTest {
 			me.getPhones().addAll(phones); 
 			// here update is enough because me exists so we can update and it's relations are always merged...
 			db.update(me);
+			db.commit();
+			
 			// get from db again
 			me = db.from(pDesc).primaryKey().is(1L).selectFirst();
 			assertNotNull(me);

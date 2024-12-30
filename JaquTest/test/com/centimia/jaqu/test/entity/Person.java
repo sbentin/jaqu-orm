@@ -34,7 +34,6 @@ import com.centimia.orm.jaqu.annotation.PrimaryKey;
  */
 @Entity
 public class Person implements Serializable {
-
 	private static final long serialVersionUID = -3092309534462507642L;
 	
 	@PrimaryKey
@@ -68,31 +67,31 @@ public class Person implements Serializable {
 	}
 
 	public static List<Person> getSomeData(){
-		ArrayList<Person> persons = new ArrayList<Person>();
+		ArrayList<Person> persons = new ArrayList<>();
 		Person shai = new Person(1L, "Shai", "Bentin");
-		HashSet<Phone> phoneList = new HashSet<Phone>();
-		phoneList.add(new Phone(1L, "1234567"));
-		phoneList.add(new Phone(2L, "98765432"));
+		HashSet<Phone> phoneList = new HashSet<>();
+		phoneList.add(new Phone(1L, "1234567", false, false, true));
+		phoneList.add(new Phone(2L, "98765432", true, false, true));
 		shai.setPhones(phoneList);
-		ArrayList<Address> addresses = new ArrayList<Address>();
+		ArrayList<Address> addresses = new ArrayList<>();
 		addresses.add(new Address(1L, "street1", "city1", "Somewhere"));
 		addresses.add(new Address(2L, "street2", "city2", "Nowhere"));
 		shai.setAddresses(addresses);
-		ArrayList<WorkPlace> workplaces = new ArrayList<WorkPlace>();
+		ArrayList<WorkPlace> workplaces = new ArrayList<>();
 		workplaces.add(new WorkPlace(1L, "unemployed"));
 		shai.setWorkPlaces(workplaces);
 		persons.add(shai);
 		
 		Person einat = new Person(2L, "Einat", "Bentin");
-		phoneList = new HashSet<Phone>();
-		phoneList.add(new Phone(3L, "1234567"));
-		phoneList.add(new Phone(4L, "98765432"));
+		phoneList = new HashSet<>();
+		phoneList.add(new Phone(3L, "1234567", true, false, false));
+		phoneList.add(new Phone(4L, "98765432", false, true, false));
 		einat.setPhones(phoneList);
-		addresses = new ArrayList<Address>();
+		addresses = new ArrayList<>();
 		addresses.add(new Address(3L, "street1", "city1", "Somewhere"));
 		addresses.add(new Address(4L, "street2", "city2", "Nowhere"));
 		einat.setAddresses(addresses);
-		workplaces = new ArrayList<WorkPlace>();
+		workplaces = new ArrayList<>();
 		workplaces.add(new WorkPlace(2L, "employed"));
 		einat.setWorkPlaces(workplaces);
 		persons.add(einat);
@@ -218,7 +217,7 @@ public class Person implements Serializable {
 
 	public void addPhone(Phone ph) {
 		if (null == this.phones) {
-			this.phones = new HashSet<Phone>();
+			this.phones = new HashSet<>();
 		}
 		this.phones.add(ph);
 	}

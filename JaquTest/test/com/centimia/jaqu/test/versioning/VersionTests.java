@@ -32,17 +32,11 @@ import junit.framework.TestResult;
  */
 public class VersionTests extends JaquTest {
 
-	/* (non-Javadoc)
-	 * @see com.centimia.jaqu.test.JaquTest#tearDown()
-	 */
 	@Override
 	protected void tearDown() {
 		System.out.println(String.format("Ending %s --> session opened for: %s milliseconds. Connection closed!!!", getName(), (System.currentTimeMillis() - time)));
 	}
 	
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#getName()
-	 */
 	@Override
 	public String getName() {
 		return "Versioning Behavior Test";
@@ -64,9 +58,6 @@ public class VersionTests extends JaquTest {
 	}
 	
 
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#run(junit.framework.TestResult)
-	 */
 	public void run(TestResult result) {
 		result.startTest(this);
 		try {
@@ -110,7 +101,7 @@ public class VersionTests extends JaquTest {
 				System.out.println("Running thread " + name);
 
 				if (null != other) {
-					System.out.printf("Thread %s is setting thread %s to stop at wait...\n", this.name, other.name);
+					System.out.printf("Thread %s is setting thread %s to stop at wait...%n", this.name, other.name);
 					other.cont = false;
 				}
 				
@@ -131,9 +122,9 @@ public class VersionTests extends JaquTest {
 				else
 					tester = dbSession.from(new VersionedObject()).primaryKey().is(testerId - 1).selectFirst();
 				
-				System.out.printf("Thread %s is before wait...\n", this.name);
+				System.out.printf("Thread %s is before wait...%n", this.name);
 				while (!this.cont);
-				System.out.printf("Thread %s is after wait...\n", this.name);
+				System.out.printf("Thread %s is after wait...%n", this.name);
 				
 				tester.setValueToUpdate("SecondValue");
 				
@@ -158,14 +149,19 @@ public class VersionTests extends JaquTest {
 				Integer versionFromDb = dbSession.from(alias).primaryKey().is(tester.getId()).selectFirst(alias.getVersion());
 				assertEquals(Integer.valueOf(2), versionFromDb);
 			}
-			catch (Throwable e) {
+			catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				ie.printStackTrace();
+				result.addError(VersionTests.this, ie);
+			}
+			catch (Exception e) {
 				e.printStackTrace();
 				result.addError(VersionTests.this, e);
 			}
 			finally {
 				if (null != other) {
 					other.cont = true;
-					System.out.printf("Thread %s is setting thread %s to continue...\n", this.name, other.name);
+					System.out.printf("Thread %s is setting thread %s to continue...%n", this.name, other.name);
 				}
 			}
 		}

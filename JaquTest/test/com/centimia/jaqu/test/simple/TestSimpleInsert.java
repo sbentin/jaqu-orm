@@ -57,7 +57,7 @@ public class TestSimpleInsert extends JaquTest {
 			
 			tearDown();
 		}
-		catch (Throwable e){
+		catch (Exception e){
 			db.rollback();
 			result.addError(this, e);
 		}

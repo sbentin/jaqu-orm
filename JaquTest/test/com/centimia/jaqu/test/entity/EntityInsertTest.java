@@ -81,6 +81,10 @@ public class EntityInsertTest extends JaquTest {
 			assertEquals(2, childrenOf2.size());
 			
 			db.commit();
+			
+			Phone ph = new Phone();
+			List<Phone> phoneList = db.from(ph).where(ph.isPrimary()).is(true).select();
+			assertEquals(2, phoneList.size());
 			tearDown();
 		}
 		catch (Throwable e) {

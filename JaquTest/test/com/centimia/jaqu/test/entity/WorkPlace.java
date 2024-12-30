@@ -20,6 +20,7 @@
  */
 package com.centimia.jaqu.test.entity;
 
+import java.io.Serializable;
 import java.util.List;
 
 import com.centimia.orm.jaqu.annotation.Entity;
@@ -31,7 +32,8 @@ import com.centimia.orm.jaqu.annotation.PrimaryKey;
  * @author Shai Bentin
  */
 @Entity
-public class WorkPlace {
+public class WorkPlace implements Serializable {
+	private static final long serialVersionUID = 8971599745519849397L;
 	@PrimaryKey
 	private Long id;
 	private String name;
