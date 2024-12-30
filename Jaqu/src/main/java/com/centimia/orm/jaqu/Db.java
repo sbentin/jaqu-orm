@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2007-2010 Centimia Ltd.
  * All rights reserved.  Unpublished -- rights reserved
  *
  * Use of a copyright notice is precautionary only, and does
@@ -27,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.transaction.Status;
 import javax.transaction.SystemException;
@@ -48,7 +48,8 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
  */
 public class Db implements AutoCloseable {
 
-    private static final String COM_CENTIMIA_ORM = "com.centimia.orm";
+    private static final String UNABLE_TO_FILL_ROW = "Unable to fill row. Maybe resultSet is not of this object type?";
+	private static final String COM_CENTIMIA_ORM = "com.centimia.orm";
 	private static final String SET = " SET ";
 	private static final String UPDATE = "UPDATE ";
 	private static final String WHERE = " WHERE ";
@@ -78,12 +79,14 @@ public class Db implements AutoCloseable {
 
 	private Connection conn;
 
-	private PojoUtils pojoUtils;
+	private DbUtils utils;
 
 	// for granular control of commit and close of this db session when no transaction exists.
 	private boolean closeExternal;
 	private boolean commitExternal;
-
+	
+	private boolean rollbackOnly = false;
+	
     Db(Connection conn, JaquSessionFactory factory) {
         this.conn = conn;
         this.factory = factory;
@@ -159,7 +162,7 @@ public class Db implements AutoCloseable {
 	 * Utility method to get the primary key of an existing entity or table
 	 * Can also be called from the factory class.
 	 *
-	 * @see com.centimia.orm.jaqu.JaquSessionFactory#getPrimaryKey(Object)
+	 * see com.centimia.orm.jaqu.JaquSessionFactory#getPrimaryKey(Object)
 	 * @param <T>
 	 * @param <X>
 	 * @param t
@@ -300,8 +303,7 @@ public class Db implements AutoCloseable {
      * 	db.from(T).where()....delete();
      * </pre>
      *
-     * @param <T>
-     * @param list
+     * @param tArray
      */
     @SuppressWarnings("unchecked")
 	public <T> void delete(T ... tArray) {
@@ -321,7 +323,7 @@ public class Db implements AutoCloseable {
      * <b>Note - this utility method does not clear related fields. This may leave foreign keys in related objects, pointing
      * to non existing objects.</b>
      *
-     * @param clazz<T>
+     * @param clazz
      * @return int - num of elements deleted
      */
     public <T> int deleteAll(Class<T> clazz) {
@@ -365,7 +367,7 @@ public class Db implements AutoCloseable {
      *
      * @param <T>
      * @param list
-     * @see Db#update(Object))
+     * @see Db#update(Object)
      */
     public <T> void update(List<T> list){
     	if (this.closed)
@@ -383,9 +385,9 @@ public class Db implements AutoCloseable {
      * 	db.from(T).set()....update();
      * </pre>
      *
-     * @param <T>
-     * @param list
-     * @see Db#update(Object))
+     * <T>
+     * @param tArray
+     * @see Db#update(Object)
      */
     @SuppressWarnings("unchecked")
 	public <T> void update(T ... tArray){
@@ -446,7 +448,7 @@ public class Db implements AutoCloseable {
      * The query will be built according to the 'example' object and the options given.
      * <b>Noet: </b> values in O2M, M2M, M2O relationships are disregarded and set as an example in the select. To select on relationships write your own selects
      *
-     * @see {@link ExampleOptions}
+     * @see ExampleOptions
      * @param example
      * @param params
      * @return List<T>
@@ -464,7 +466,7 @@ public class Db implements AutoCloseable {
      * Returns a single object based on the given class built from the given result set.
      * <b>Note: </b> The resultSet is not closed by this method, you need to close it yourself!
      * 
-     * @param &lt;T&gt;
+     * &lt;T&gt;
      * @param rs - the result set
      * @param clazz - the return type expected
      * @return T or null if no results were found.
@@ -481,7 +483,7 @@ public class Db implements AutoCloseable {
      * Returns the objects based on the given class built from the given result set.
      * <b>Note: </b> The resultSet is not closed by this method, you need to close it yourself!
      *
-     * @param &lt;T&gt;
+     * &lt;T&gt;
      * @param rs - the result set
      * @param clazz - the return type expected
      * @return List&lt;T&gt; or empty list if nothing was found
@@ -502,7 +504,7 @@ public class Db implements AutoCloseable {
                 throw new JaquError(e, e.getMessage());
             }
         	catch (Exception e) {
-        		throw new JaquError("Unable to fill row. Maybe resultSet is not of this object type?", e);
+        		throw new JaquError(UNABLE_TO_FILL_ROW, e);
         	}
     	}
     	else {
@@ -518,12 +520,49 @@ public class Db implements AutoCloseable {
 	            throw new JaquError(e, e.getMessage());
 	        }
 	    	catch (Exception e) {
-	    		throw new JaquError("Unable to fill row. Maybe resultSet is not of this object type?", e);
+	    		throw new JaquError(UNABLE_TO_FILL_ROW, e);
 	    	}
     	}
         return result;
     }
 
+    /**
+     * Returns a single object based on the given class built from the current line within the given result set.
+     * <b>Note: </b> The resultSet is not closed by this method, you need to close it yourself!
+     *
+     * &lt;T&gt;
+     * @param rs - the result set
+     * @param clazz - the return type expected
+     * @return List&lt;T&gt; or empty list if nothing was found
+     * @throws JaquError when there is a mismatch between the resultSet and the object
+     */
+    @SuppressWarnings("unchecked")
+	public <T> T selectSingleByResultSet(ResultSet rs, Class<T> clazz) {
+    	if (Utils.isSimpleType(clazz)) {    		
+    		try {
+            	Types type = Types.valueOf(clazz.getSimpleName().toUpperCase());
+				return (T) factory.getDialect().getValueByType(type, rs, 1);
+            }
+            catch (SQLException e) {
+                throw new JaquError(e, e.getMessage());
+            }
+        	catch (Exception e) {
+        		throw new JaquError(UNABLE_TO_FILL_ROW, e);
+        	}
+    	}
+    	else {
+    		TableDefinition<T> def = JaquSessionFactory.define(clazz, this);
+	    	try {
+                T item = def.readRow(rs, this);
+                this.addSession(item);
+                return item;
+	        }
+	    	catch (Exception e) {
+	    		throw new JaquError(UNABLE_TO_FILL_ROW, e);
+	    	}
+    	}
+    }
+    
     /**
      * Represents the "from clause" of the SQL select
      * @param <T>
@@ -548,31 +587,106 @@ public class Db implements AutoCloseable {
     }
 
     /**
-     * When working in nested method calls in which any of the inner method calls may also use Db in autoClosable or also call commit and you want to
-     * control the commit and close from the outer method call only you can set the these variables. Applying externalCommit will cause a commit not to do anything,
-     * thus you need to remember to remove this value before the actual commit. Same with close. Since multiple commits are allowed you can actually play with
-     * this boolean when nesting methods and you don't always have to set it to false. However, when nesting such methods you shuold always set external close to true
-     * so you control the close and your db object will not close under you.
+     * When working in nested method calls in which any of the inner method calls may also use the same thread attached connection to the Db.
+     * i.e
+     * <pre>
+     * 	methodA {
+     * 		try (Db db = sessionFactory.getSession()) {
+     * 			try {
+     * 				... do some db work
+     * 				methodB();
+     * 				... do some more db work
+     * 				db.commit();
+     * 			}
+     * 			catch (Exception any) {
+     * 				db.rollback();
+     * 			}
+     * 		}
+     * 	}
+     * 
+     * 	methodB {
+     * 		try (Db db = sessionFactory.getSession()) {
+     * 			try {
+     * 				... do some db work
+     * 				db.commit();
+     * 			}
+     * 			catch (Exception any) {
+     * 				db.rollback();
+     * 			}
+     * 		}
+     * 	}
+     * </pre>
+     * Since JaQu handles the connection and each 'getSession()' call returns the same thread attached Db instance, sometimes,
+     * you want each method to be completely Db independent. The solution is easy, instead of calling of {@link JaquSessionFactory#getSession()} just call {@link JaquSessionFactory#newLocalSession()}.
+     * However, in many business scenarios you may want to control the commit order of things, even though you are calling different methods. To achieve this
+     * when not running under an external Transaction Manager (JTA) you can use scoping.
      * <p>
-     * <b>Note:</b> these attributes have no meaning if a TransactionManager is attached to the session factory.
-     *
-     * @param externalCommit
-     * @param externalClose
+     * Once you set a scope in the outer method the connection will <b>only</b> be closed when closing it in the outer method. When you set the 'externalCommit' to 'true'
+     * from that point and on 'commit' will not be applied until you call {@link #resetScope()}. Note that calling 'resetScope' should only occur on the most outer method.
+     * <p>So the above method could look like this:
+     * <pre>
+     * 	methodA {
+     * 		try (Db db = sessionFactory.getSession().applyScope(true) {
+     * 			try {
+     * 				... do some db work
+     * 				methodB();
+     * 				... do some more db work
+     * 				db.resetExternal().commit();
+     * 			}
+     * 			catch (Exception any) {
+     * 				db.resetExternal().rollback();
+     * 			}
+     * 		}
+     * 	}
+     * 
+     * 	methodB {
+     * 		try (Db db = sessionFactory.getSession()) {
+     * 			try {
+     * 				... do some db work
+     * 				db.commit();
+     * 			}
+     * 			catch (Exception any) {
+     * 				db.rollback();
+     * 			}
+     * 		}
+     * 	}
+     * </pre>
+     * In this example work done in methodB will not be committed until commit is issued in methodA. The connection will be close when exiting the try with resources
+     * in methodA.
+     * <p>
+     * 
+     * @param externalCommit set to true to control commit from the outer method.
+     * @see JaquSessionFactory#newLocalSession()
      * @return Db
      */
-    public Db applyExternal(boolean externalCommit, boolean externalClose) {
+    public Db applyScope(boolean externalCommit) {
+    	if (this.commitExternal && !externalCommit)
+    		throw new JaquError("This scope is managed externally. You can not set values which were scoped previously in an outer scope back to unscoped "
+    				+ "unless you are within the same outer scope. "
+    				+ "To reset the scope use resetScope method!!! If you need to specifically commit a connection in an internal method scope "
+    				+ "use a different connection by calling 'newLocalSession' on the factory.");
    		this.commitExternal = externalCommit;
-    	this.closeExternal = externalClose;
+    	this.closeExternal = true;
     	return this;
     }
 
     /**
+     * returns true when this session is scoped. It is sometimes beneficial
+     * to know if the session is scoped before deciding if to apply a scope or not.
+     * 
+     * @return boolean
+     */
+    public boolean isScoped() {
+    	return closeExternal || commitExternal;
+    }
+    
+    /**
      * resets the external commit and external close to false.
+     * <b>SPECIAL CARE</b> When executing this method be absolutely sure you are in the most outer scope. (i.e the method where the scope was opened)
      *
-     * @see #applyExternal(boolean, boolean)
      * @return Db
      */
-    public Db resetExternal() {
+    public Db resetScope() {
     	this.closeExternal = false;
     	this.commitExternal = false;
     	return this;
@@ -588,6 +702,7 @@ public class Db implements AutoCloseable {
     		throw new JaquError(SESSION_IS_CLOSED);
 		try {
 			try {
+				this.rollbackOnly = true;
 				if (null != this.factory.tm && null != this.factory.tm.getTransaction() && 
 					hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
 						
@@ -627,6 +742,10 @@ public class Db implements AutoCloseable {
 			try {
 				if (commitExternal)
 					return;
+				if (rollbackOnly) {
+					rollback();
+					return;
+				}
 				if (null != this.factory.tm && null != this.factory.tm.getTransaction()
 					&& hasRunningTransaction(this.factory.tm.getTransaction().getStatus())) {
 					// if we're in a running transaction it is up to the transaction manager to commit not me.
@@ -651,7 +770,7 @@ public class Db implements AutoCloseable {
      */
     @Override
 	public void close() {
-        if (!closed){
+        if (!closed) {
         	try {
         		if (closeExternal)
         			return;
@@ -670,8 +789,8 @@ public class Db implements AutoCloseable {
 				// this means that there is no transaction (getTransaction() was null)
 			}
         	try {
-        		if (null != pojoUtils) {
-					pojoUtils.clean();
+        		if (null != utils) {
+					utils.clean();
 				}
         		conn.close();
         		if (StatementLogger.isDebugEnabled())
@@ -715,6 +834,7 @@ public class Db implements AutoCloseable {
     		if (factory.isShowSQL())
     			StatementLogger.select(sql);
 	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
 	    		return processor.processResult(rs);
 	    	}
     	}
@@ -744,10 +864,109 @@ public class Db implements AutoCloseable {
     		if (null != rs) {
         		return selectByResultSet(rs, clazz);
         	}
-    		return null;
+    		return Utils.newArrayList();
     	}, args);
     }
 
+    /**
+     * A utility method that executes the String query and processes the result, per result, as an object of the given class.
+     * 
+     * @param sql
+     * @param processor
+     * @param clazz
+     * @param args
+     * @return List&lt;K&gt;
+     */
+    public <T, K> List<K> executeQuery(String sql, Function<T, K> processor, Class<T> clazz, Object ... args) {
+    	if (this.closed)
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	
+    	try (PreparedStatement stmnt = this.prepare(sql)) {
+    		if (null != args && 0 < args.length) {
+				for (int i = 0; i < args.length; i++) {
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
+				}
+	    	}
+    		if (factory.isShowSQL())
+    			StatementLogger.select(sql);
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
+	    		List<K> result = new ArrayList<>();
+	    		while (rs.next()) {
+	    			T item = selectSingleByResultSet(rs, clazz);
+                    result.add(processor.apply(item));
+	    		}
+	    		return result;
+	    	}
+    	}
+    	catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
+    }
+    
+    /**
+     * A utility method that executes the pre-configured prepared statement returns the result class
+     * <p>
+     * It is possible to obtain a {@link PreparedStatement} for this connection from utils.
+     * </p>
+     * <p>
+     * <b>Note: the method does not close the prepared statement once done</b>
+     * </p>
+     * 
+     * @param stmnt
+     * @param clazz
+     * @return List<T>
+     */
+    public <T> List<T> executeQuery(PreparedStatement stmnt, Class<T> clazz) {
+    	if (this.closed)
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	
+    	try (ResultSet rs = stmnt.executeQuery()) {
+    		this.multiCallCache.clearReEntrent();
+    		return selectByResultSet(rs, clazz);
+    	}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+    
+    /**
+     * A utility method that executes a pre-configured prepared statement and processes the result, per result, as an object of the given class.<br>
+     * <p>
+     * It is possible to obtain a {@link PreparedStatement} for this connection from utils.
+     * </p>
+     * <p>
+     * <b>Note: the method does not close the prepared statement once done</b>
+     * </p>
+     * 
+     * @param <T>
+     * @param <K>
+     * @param stmnt
+     * @param processor
+     * @param clazz
+     * @return List<K>
+     */
+    public <T, K> List<K> executeQuery(PreparedStatement stmnt, Function<T, K> processor, Class<T> clazz) {
+    	if (this.closed)
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	
+    	try {
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
+	    		List<K> result = new ArrayList<>();
+	    		while (rs.next()) {
+	    			T item = selectSingleByResultSet(rs, clazz);
+                    result.add(processor.apply(item));
+	    		}
+	    		return result;
+	    	}
+    	}
+    	catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
+    }
+    
     /**
      * A utility that builds a callable statement out of the given string, sets the arguments calls the statement and returns the object values.
      * the callable statements should look like '{call doCallable (?, ?)}'
@@ -755,29 +974,140 @@ public class Db implements AutoCloseable {
      * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure
 	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
      *
-     * @param preparedStmnt
+     * @param callableStmnt
      * @param clazz
      * @param args
-     * @return List<T>
+     * @return List&lt;T&gt;
      */
     public <T> List<T> executeCallable(String callableStmnt, Class<T> clazz, Object ... args) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
-    	try (CallableStatement stmnt = this.conn.prepareCall(callableStmnt)) {
+    	try (CallableStatement stmnt = this.prepareCallable(callableStmnt)) {
     		if (null != args && 0 < args.length) {
 				for (int i = 0; i < args.length; i++) {
 					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
 				}
 	    	}
-	    	ResultSet rs = stmnt.executeQuery();
-	    	this.multiCallCache.clearReEntrent();
-			return selectByResultSet(rs, clazz);
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
+				return selectByResultSet(rs, clazz);
+	    	}
     	}
 		catch (SQLException e) {
 			throw new JaquError(e, e.getMessage());
 		}
     }
 
+    /**
+     * A utility that builds a callable statement out of the given string, sets the arguments calls the statement and returns the processed object values.
+     * the callable statements should look like '{call doCallable (?, ?)}'
+     *
+     * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure
+	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
+     *
+     * @param callableStmnt
+     * @param clazz
+     * @param args
+     * @return List&lt;T&gt;
+     */
+    public <T, K> List<K> executeCallable(String callableStmnt, Function<T, K> processor, Class<T> clazz, Object ... args) {
+    	if (this.closed)
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	try (CallableStatement stmnt = this.prepareCallable(callableStmnt)) {
+    		if (null != args && 0 < args.length) {
+				for (int i = 0; i < args.length; i++) {
+					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
+				}
+	    	}
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
+	    		List<K> result = new ArrayList<>();
+	    		while (rs.next()) {
+	    			T item = selectSingleByResultSet(rs, clazz);
+	    			result.add(processor.apply(item));
+	    		}
+	    		return result;
+	    	}
+    	}
+    	catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+    /**
+     * A utility that calls the pre-configured callable statement and returns the object values.<br>
+     *
+     * <p>
+     * It is possible to obtain a {@link CallableStatement} for this connection from utils.
+     * </p>
+     * <p>
+     * <b>Note:
+     * <ul>
+     * 	<li> the method does not close the callable statement once done</li>
+     *  <li>Since update executes without objects but effects the state of the db jaqu can no longer insure
+	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</li>
+     * </ul>
+     * </b>
+     * </p>
+     * 
+     * @param callableStmnt
+     * @param clazz
+     * @param args
+     * @return List&lt;T&gt;
+     */
+    public <T> List<T> executeCallable(CallableStatement stmnt, Class<T> clazz) {
+    	if (this.closed)
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	try {
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
+				return selectByResultSet(rs, clazz);
+	    	}
+    	}
+		catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
+    /**
+     * A utility that calls the pre-confidured callable statement and returns the processed object values.
+     *
+     * <p>
+     * It is possible to obtain a {@link CallableStatement} for this connection from utils.
+     * </p>
+     * <p>
+     * <b>Note:
+     * <ul>
+     * 	<li> the method does not close the callable statement once done</li>
+     *  <li>Since update executes without objects but effects the state of the db jaqu can no longer insure
+	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</li>
+     * </ul>
+     * </b>
+     * </p>
+     * 
+     * @param callableStmnt
+     * @param clazz
+     * @return List&lt;T&gt;
+     */
+    public <T, K> List<K> executeCallable(CallableStatement stmnt, Function<T, K> processor, Class<T> clazz) {
+    	if (this.closed)
+    		throw new JaquError(SESSION_IS_CLOSED);
+    	try {
+	    	try (ResultSet rs = stmnt.executeQuery()) {
+	    		this.multiCallCache.clearReEntrent();
+	    		List<K> result = new ArrayList<>();
+	    		while (rs.next()) {
+	    			T item = selectSingleByResultSet(rs, clazz);
+	    			result.add(processor.apply(item));
+	    		}
+	    		return result;
+	    	}
+    	}
+    	catch (SQLException e) {
+			throw new JaquError(e, e.getMessage());
+		}
+    }
+    
     /**
      * Run an update query directly on the database
      * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure
@@ -793,7 +1123,7 @@ public class Db implements AutoCloseable {
     	
     	try (PreparedStatement stmnt = this.prepare(preparedStmnt)) {
     		if (null != args && 0 < args.length) {
-				for (int i = 0; i < args.length; i++){
+				for (int i = 0; i < args.length; i++) {
 					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
 				}
 	    	}
@@ -837,6 +1167,7 @@ public class Db implements AutoCloseable {
 				Object o = dbField.get(t);
 				if (!this.equals(o)) {
 					Object attached = attach(t);
+					multiCallCache.prepareReEntrent(attached);
 					if (attached != t)
 						return (T)attached;
 				}
@@ -850,7 +1181,7 @@ public class Db implements AutoCloseable {
 
 	/**
 	 * Add a Db Session to the Entity class. Object must be annotated with @Entity
-	 * <b>note: </n> unlike {@link #checkSession(Object)} this does not attach the object, i.e no list merging is performed. This method is used mostly internally but is quicker for entities that do not need
+	 * <p><b>note: <br>unlike {@link #checkSession(Object)} this does not attach the object, i.e no list merging is performed. This method is used mostly internally but is quicker for entities that do not need
 	 * list merging.
 	 */
 	public <T> void addSession(T t) {
@@ -868,13 +1199,13 @@ public class Db implements AutoCloseable {
 		}
 	}
 
-	public PojoUtils pojoUtils() {
+	public DbUtils utils() {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
 
-		if (null == this.pojoUtils)
-			this.pojoUtils = new PojoUtils(this);
-		return this.pojoUtils;
+		if (null == this.utils)
+			this.utils = new DbUtils(this);
+		return this.utils;
 	}
 
 	/**
@@ -893,7 +1224,7 @@ public class Db implements AutoCloseable {
     /**
      * If the Object is not in a synchronized connection to the DB this method synchronizes the object into the session.
      * After synchronization is done, all the deleted relations are deleted according to the cascadeType. To save the Object to the DB
-     * {@see update} should be called on the object!
+     * {@link #update} should be called on the object!
      *
      * <p>
      * <b>[Notice], This method performs a delete to the underlying persistence store!!! Be very careful when merging Table Objects. It is very recommended to do work on the object
@@ -921,15 +1252,28 @@ public class Db implements AutoCloseable {
 		if (null != pk) {
 			Object o = multiCallCache.checkReEntrent(t.getClass(), pk);
 			if (null != o) {
+				// this object exists in cache.
 				if (o != t && null == t.getClass().getAnnotation(Immutable.class)) {
-					// we have the object in cache but it is not the same instance. Something is wrong.
-					throw new JaquError("Object %s with PrimaryKey %s already exists in this session's cache, but is a different instance. "
-							+ "Use the cached instance to perform changes within the same session!!", t.getClass(), pk.toString());
+					// the cached object is not the same instance as the new one being attached so we check which instance we use.
+					// general rule is that we use the latest we get unless the version cached is later then the new.
+					if (null != tdef.version) {
+						// compare versions in order to determine which is the one we keep
+						Long verCache = (Long) tdef.version.getValue(o);
+						Long verNew = (Long) tdef.version.getValue(t);
+						if (null == verCache || (null != verNew && verNew >= verCache)) {
+							multiCallCache.removeReEntrent(o, pk);
+							o = null;
+						}
+					}
+					else {
+						// since it does not have a managed version we have no way of knowing which is the latest
+						// therefore we use the latest we received. It is up to the developer to manage this.
+						multiCallCache.removeReEntrent(o, pk);
+						o = null;
+					}
 				}
-				else {
-					// need to replace t with o
+				if (null != o)
 					return o;
-				}
 			}
 		}
     	for (FieldDefinition fdef: tdef.getFields()) {
@@ -1060,7 +1404,21 @@ public class Db implements AutoCloseable {
             throw new JaquError(e, e.getMessage());
         }
     }
-
+    
+    /**
+     * Prepare the callable statement from string
+     * @param sql
+     * @return CallableStatement
+     */
+    CallableStatement prepareCallable(String sql) {
+        try {
+        	return conn.prepareCall(sql);
+        }
+        catch (SQLException e) {
+            throw new JaquError(e, e.getMessage());
+        }
+    }
+    
     <X> X registerToken(X x, Token token) {
     	tokens.put(x, token);
         return x;
@@ -1311,8 +1669,8 @@ public class Db implements AutoCloseable {
 				try {
 					// this is an open invalid connection. A connection that was not closed by the user
 					StatementLogger.info("Closing connection for you!!! Please close it yourself!");
-					if (null != pojoUtils)
-						pojoUtils.clean();
+					if (null != utils)
+						utils.clean();
 					this.conn.close();
 					StatementLogger.info("Invalid connection found!!! Cleaning up");
 				}
@@ -1336,8 +1694,8 @@ public class Db implements AutoCloseable {
 			try {
 				// this is an open invalid connection. A connection that was not closed by the user
 				StatementLogger.info("Closing connection for you!!! Please close it yourself!");
-				if (null != pojoUtils)
-					pojoUtils.clean();
+				if (null != utils)
+					utils.clean();
 				this.conn.close();
 				StatementLogger.info("Invalid connection found!!! Cleaning up");
 			}
@@ -1358,6 +1716,9 @@ public class Db implements AutoCloseable {
 		this.factory = null;
 		reEntrantCache.clearReEntrent();
 		multiCallCache.clearReEntrent();
+		this.closeExternal = false;
+		this.commitExternal = false;
+		this.rollbackOnly = false;
 		tokens.clear();
 	}
 

@@ -30,8 +30,8 @@ import com.centimia.orm.jaqu.util.Utils;
 public class Function implements Token {
 
     // must be a new instance
-    private static final Long COUNT_STAR = Long.valueOf(0);
-    private static final Long IGNORE = Long.valueOf(-1);
+    private static final Long COUNT_STAR = Long.MIN_VALUE;
+    private static final Long IGNORE = Long.MIN_VALUE + 1;
 
     protected Object[] x;
     protected String name;
@@ -54,10 +54,18 @@ public class Function implements Token {
         stat.appendSQL(")");
     }
 
+    /**
+     * function for count *
+     * @return Long
+     */
     public static Long count() {
         return COUNT_STAR;
     }
 
+    /**
+     * User when we need to ignore the left side of the where condition
+     * @return Long
+     */
     public static Long ignore() {
     	return IGNORE;
     }
@@ -74,7 +82,8 @@ public class Function implements Token {
     /**
      * SQL function Sum
      * @param x
-     * @return
+     * @param db
+     * @return T
      */
     @SuppressWarnings("unchecked")
     public static <T extends Number> T sum(T x, Db db) {
@@ -240,6 +249,26 @@ public class Function implements Token {
     }
 
     /**
+     * You can use this function when you try to get a subset of result fields into a new object which has
+     * a foreign key object in it.
+     *  
+     * @param obj
+     * @param db
+     * @return A
+     */
+    public static <X, A> A byPrimaryKey(A obj, X key, Db db) {
+    	@SuppressWarnings("unchecked")
+		A o = (A) Utils.newObject(obj.getClass());
+    	return db.registerToken(o, new Token() {
+
+			@Override
+			public <T> void appendSQL(SQLStatement stat, Query<T> query) {
+				query.appendSQL(stat, key, key.getClass().isEnum(), key.getClass());				
+			}
+    	});
+    }
+    
+    /**
      * This performs a like operation at column level and returns in that column a true or false value depending on what was checked.
      * @param x
      * @param pattern
@@ -262,10 +291,10 @@ public class Function implements Token {
     /**
      * creates a function that if 'checkExpression' is null then put 'replacementValue'
      *
-     * @param <X>
+     * &lt;X&gt;
      * @param checkExpression
      * @param replacementValue
-     * @return
+     * @return X
      */
 	public static <X> X ifNull(X checkExpression, final Object replacementValue, Db db){
     	return ifNull(checkExpression, replacementValue, false, db);
@@ -274,11 +303,10 @@ public class Function implements Token {
     /**
      * creates a function that if 'checkExpression' is null then put 'replacementValue'
      *
-     * @param <X>
      * @param checkExpression
      * @param replacementValue
      * @param isField - true if the second value is also a db field
-     * @return
+     * @return X
      */
     @SuppressWarnings("unchecked")
 	public static <X> X ifNull(X checkExpression, final Object replacementValue, final boolean isField, Db db){
@@ -318,9 +346,10 @@ public class Function implements Token {
     }
 
     /**
+	 * &lt;X&gt; 
 	 * @param x
 	 * @param clazz
-	 * @return
+	 * @return X
 	 */
 	private static <X> X handleEnum(X x, Class<X> clazz) {
 		X o = Utils.newObject(clazz);

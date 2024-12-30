@@ -28,7 +28,7 @@ import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 /**
  * A set implementation of the Jaqu Collection
  *
- * @see AbstractJaquCollection
+ * see AbstractJaquCollection
  * @author Shai Bentin
  */
 class JaquSet<E> extends AbstractJaquCollection<E> implements Set<E> {

@@ -35,7 +35,7 @@ import com.centimia.orm.jaqu.util.Utils;
 /**
  * A List implementation of the Jaqu Collection. This list should not be invoked by a User it is invoked by the framework only
  *
- * @see AbstractJaquCollection
+ * see AbstractJaquCollection
  * @author Shai Bentin
  */
 class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
@@ -71,7 +71,7 @@ class JaquList<E> extends AbstractJaquCollection<E> implements List<E> {
 	/**
 	 * Add a collection of elements in a specific position.
 	 *
-	 * @see {@link JaquList#add(int, Object)}
+	 * see JaquList#add(int, Object)
 	 */
 	@Override
 	public boolean addAll(int index, Collection<? extends E> c) {

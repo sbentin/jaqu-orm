@@ -49,137 +49,86 @@ public class EmptyResultSet implements ResultSet {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.Wrapper#isWrapperFor(java.lang.Class)
-	 */
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#next()
-	 */
 	@Override
 	public boolean next() throws SQLException {
 		return false;
 	}
 
-	/*
-	 * @see java.sql.ResultSet#close()
-	 */
 	@Override
 	public void close() throws SQLException {
 		
 	}
 
-	/*
-	 * @see java.sql.ResultSet#wasNull()
-	 */
 	@Override
 	public boolean wasNull() throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getString(int)
-	 */
 	@Override
 	public String getString(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getBoolean(int)
-	 */
 	@Override
 	public boolean getBoolean(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getByte(int)
-	 */
 	@Override
 	public byte getByte(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getShort(int)
-	 */
 	@Override
 	public short getShort(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getInt(int)
-	 */
 	@Override
 	public int getInt(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getLong(int)
-	 */
 	@Override
 	public long getLong(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getFloat(int)
-	 */
 	@Override
 	public float getFloat(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getDouble(int)
-	 */
 	@Override
 	public double getDouble(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getBigDecimal(int, int)
-	 */
 	@Override
 	public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getBytes(int)
-	 */
 	@Override
 	public byte[] getBytes(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getDate(int)
-	 */
 	@Override
 	public Date getDate(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getTime(int)
-	 */
 	@Override
 	public Time getTime(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
 	}
 
-	/*
-	 * @see java.sql.ResultSet#getTimestamp(int)
-	 */
 	@Override
 	public Timestamp getTimestamp(int columnIndex) throws SQLException {
 		throw new SQLException("Result set is empty!!!");
@@ -877,200 +826,120 @@ public class EmptyResultSet implements ResultSet {
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateBinaryStream(java.lang.String, java.io.InputStream, int)
-	 */
 	@Override
 	public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateCharacterStream(java.lang.String, java.io.Reader, int)
-	 */
 	@Override
 	public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateObject(java.lang.String, java.lang.Object, int)
-	 */
 	@Override
 	public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateObject(java.lang.String, java.lang.Object)
-	 */
 	@Override
 	public void updateObject(String columnLabel, Object x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#insertRow()
-	 */
 	@Override
 	public void insertRow() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateRow()
-	 */
 	@Override
 	public void updateRow() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#deleteRow()
-	 */
 	@Override
 	public void deleteRow() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#refreshRow()
-	 */
 	@Override
 	public void refreshRow() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#cancelRowUpdates()
-	 */
 	@Override
 	public void cancelRowUpdates() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#moveToInsertRow()
-	 */
 	@Override
 	public void moveToInsertRow() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#moveToCurrentRow()
-	 */
 	@Override
 	public void moveToCurrentRow() throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getStatement()
-	 */
 	@Override
 	public Statement getStatement() throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getObject(int, java.util.Map)
-	 */
 	@Override
 	public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getRef(int)
-	 */
 	@Override
 	public Ref getRef(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getBlob(int)
-	 */
 	@Override
 	public Blob getBlob(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getClob(int)
-	 */
 	@Override
 	public Clob getClob(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getArray(int)
-	 */
 	@Override
 	public Array getArray(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getObject(java.lang.String, java.util.Map)
-	 */
 	@Override
 	public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getRef(java.lang.String)
-	 */
 	@Override
 	public Ref getRef(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getBlob(java.lang.String)
-	 */
 	@Override
 	public Blob getBlob(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
@@ -1087,20 +956,12 @@ public class EmptyResultSet implements ResultSet {
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getArray(java.lang.String)
-	 */
 	@Override
 	public Array getArray(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getDate(int, java.util.Calendar)
-	 */
 	@Override
 	public Date getDate(int columnIndex, Calendar cal) throws SQLException {
 		// TODO Auto-generated method stub
@@ -1117,330 +978,198 @@ public class EmptyResultSet implements ResultSet {
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getTime(int, java.util.Calendar)
-	 */
 	@Override
 	public Time getTime(int columnIndex, Calendar cal) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getTime(java.lang.String, java.util.Calendar)
-	 */
 	@Override
 	public Time getTime(String columnLabel, Calendar cal) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getTimestamp(int, java.util.Calendar)
-	 */
 	@Override
 	public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getTimestamp(java.lang.String, java.util.Calendar)
-	 */
 	@Override
 	public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getURL(int)
-	 */
 	@Override
 	public URL getURL(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getURL(java.lang.String)
-	 */
 	@Override
 	public URL getURL(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateRef(int, java.sql.Ref)
-	 */
 	@Override
 	public void updateRef(int columnIndex, Ref x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateRef(java.lang.String, java.sql.Ref)
-	 */
 	@Override
 	public void updateRef(String columnLabel, Ref x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateBlob(int, java.sql.Blob)
-	 */
 	@Override
 	public void updateBlob(int columnIndex, Blob x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateBlob(java.lang.String, java.sql.Blob)
-	 */
 	@Override
 	public void updateBlob(String columnLabel, Blob x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateClob(int, java.sql.Clob)
-	 */
 	@Override
 	public void updateClob(int columnIndex, Clob x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateClob(java.lang.String, java.sql.Clob)
-	 */
 	@Override
 	public void updateClob(String columnLabel, Clob x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateArray(int, java.sql.Array)
-	 */
 	@Override
 	public void updateArray(int columnIndex, Array x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateArray(java.lang.String, java.sql.Array)
-	 */
 	@Override
 	public void updateArray(String columnLabel, Array x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getRowId(int)
-	 */
 	@Override
 	public RowId getRowId(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getRowId(java.lang.String)
-	 */
 	@Override
 	public RowId getRowId(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateRowId(int, java.sql.RowId)
-	 */
 	@Override
 	public void updateRowId(int columnIndex, RowId x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateRowId(java.lang.String, java.sql.RowId)
-	 */
 	@Override
 	public void updateRowId(String columnLabel, RowId x) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getHoldability()
-	 */
 	@Override
 	public int getHoldability() throws SQLException {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#isClosed()
-	 */
 	@Override
 	public boolean isClosed() throws SQLException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateNString(int, java.lang.String)
-	 */
 	@Override
 	public void updateNString(int columnIndex, String nString) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateNString(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public void updateNString(String columnLabel, String nString) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateNClob(int, java.sql.NClob)
-	 */
 	@Override
 	public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateNClob(java.lang.String, java.sql.NClob)
-	 */
 	@Override
 	public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getNClob(int)
-	 */
 	@Override
 	public NClob getNClob(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getNClob(java.lang.String)
-	 */
 	@Override
 	public NClob getNClob(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getSQLXML(int)
-	 */
 	@Override
 	public SQLXML getSQLXML(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getSQLXML(java.lang.String)
-	 */
 	@Override
 	public SQLXML getSQLXML(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateSQLXML(int, java.sql.SQLXML)
-	 */
 	@Override
 	public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#updateSQLXML(java.lang.String, java.sql.SQLXML)
-	 */
 	@Override
 	public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
 		// TODO Auto-generated method stub
 
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getNString(int)
-	 */
 	@Override
 	public String getNString(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getNString(java.lang.String)
-	 */
 	@Override
 	public String getNString(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
-	 * 
-	 * @see java.sql.ResultSet#getNCharacterStream(int)
-	 */
 	@Override
 	public Reader getNCharacterStream(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub

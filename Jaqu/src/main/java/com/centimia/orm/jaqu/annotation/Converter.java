@@ -29,5 +29,6 @@ import com.centimia.orm.jaqu.util.JaquConverter;
 public @interface Converter {
 
 	/** the class implementing the converter */
-	Class<? extends JaquConverter<?, ?>> value();
+	@SuppressWarnings("rawtypes")
+	Class<? extends JaquConverter> value();
 }

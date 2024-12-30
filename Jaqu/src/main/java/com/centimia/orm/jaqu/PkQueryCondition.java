@@ -21,9 +21,6 @@ package com.centimia.orm.jaqu;
 /**
  * Used in primary key queries where the PK is a known definit.
  *
- * @param <A>
- * @param <T>
- * @param <T>
  * @author shai
  */
 public class PkQueryCondition<T, A> extends QueryCondition<T, A>{

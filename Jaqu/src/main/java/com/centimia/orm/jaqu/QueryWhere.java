@@ -44,11 +44,11 @@ public class QueryWhere<T> {
 	 * Useful in cases when the object holds an entity relation but you do not want to create the relation in the
 	 * fluent query.
 	 *
-	 * @see {@link Db#asPrimaryKey(Object, Class))}
+	 * @see Db#asPrimaryKey(Object, Class)
 	 * @param <K>
 	 * @param <A>
 	 * @param mask
-	 * @return QueryCondition
+	 * @return QueryCondition&lt;T, A&gt;
 	 */
 	public <K, A> QueryCondition<T, A> and(GenericMask<K, A> mask) {
 		query.addConditionToken(ConditionAndOr.AND);
@@ -57,9 +57,10 @@ public class QueryWhere<T> {
 
 	/**
 	 * Perform an 'OR' operator in the query
-	 * @param <A> - represents any field type that exists on Object <T>
-	 * @param x- The field (gives field name) that should be attached with 'OR' to the query
-	 * @return QueryCondition
+	 * &lt;A&gt; - represents any field type that exists on Object &lt;T&gt;
+	 * 
+	 * @param x - The field (gives field name) that should be attached with 'OR' to the query
+	 * @return QueryCondition&lt;T, A&gt;
 	 */
 	public <A> QueryCondition<T, A> or(A x) {
 		query.addConditionToken(ConditionAndOr.OR);
@@ -71,11 +72,9 @@ public class QueryWhere<T> {
 	 * Useful in cases when the object holds an entity relation but you do not want to create the relation in the
 	 * fluent query.
 	 *
-	 * @see {@link Db#asPrimaryKey(Object, Class))}
-	 * @param <K>
-	 * @param <A>
+	 * @see Db#asPrimaryKey(Object, Class)
 	 * @param mask
-	 * @return QueryCondition
+	 * @return QueryCondition&lt;T, A&gt;
 	 */
 	public <K, A> QueryCondition<T, A> or(GenericMask<K, A> mask) {
 		query.addConditionToken(ConditionAndOr.OR);
@@ -155,7 +154,7 @@ public class QueryWhere<T> {
 	}
 
 	/**
-	 * @see {@link Query#getDistinctSQL()}
+	 * @see Query#getDistinctSQL()
 	 * @return String
 	 */
 	public String getDistinctSQL() {
@@ -163,7 +162,7 @@ public class QueryWhere<T> {
 	}
 
 	/**
-	 * @see {@link Query#getSQL(Object)
+	 * @see Query#getSQL(Object)
 	 * @param z
 	 * @return String
 	 */
@@ -172,7 +171,7 @@ public class QueryWhere<T> {
 	}
 
 	/**
-	 * @see {@link Query#getDistinctSQL(Object)
+	 * @see Query#getDistinctSQL(Object)
 	 * @param z
 	 * @return String
 	 */
@@ -186,7 +185,7 @@ public class QueryWhere<T> {
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public <U> List<T> union(Query<U> unionQuery) {
 		return query.union(unionQuery);
@@ -198,7 +197,7 @@ public class QueryWhere<T> {
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public <U> List<T> union(QueryWhere<U> unionQuery) {
 		return query.union(unionQuery);
@@ -210,7 +209,7 @@ public class QueryWhere<T> {
 	 * <b>Note:</b> All union query rules apply here. The queries must return the same amount of columns and have the same column types and names.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public <U> List<T> union(QueryJoinWhere<U> unionQuery) {
 		return query.union(unionQuery);
@@ -220,7 +219,7 @@ public class QueryWhere<T> {
 	 * same as {@link #union(QueryJoinWhere)} but returns distinct results of both queries.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public <U> List<T> unionDistinct(QueryJoinWhere<U> unionQuery) {
 		return query.unionDistinct(unionQuery);
@@ -230,7 +229,7 @@ public class QueryWhere<T> {
 	 * same as {@link #union(QueryWhere)} but returns distinct results of both queries.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public <U> List<T> unionDistinct(QueryWhere<U> unionQuery) {
 		return query.unionDistinct(unionQuery);
@@ -240,7 +239,7 @@ public class QueryWhere<T> {
 	 * same as {@link #union(Query)} but returns distinct results of both queries.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public <U> List<T> unionDistinct(Query<U> unionQuery) {
 		return query.unionDistinct(unionQuery);
@@ -250,7 +249,7 @@ public class QueryWhere<T> {
 	 * same as {@link #union(QueryJoinWhere, Object)} but returns distinct results of both queries.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;X&gt;
 	 */
 	public <U, X> List<X> unionDistinct(QueryJoinWhere<U> unionQuery, X x) {
 		return query.unionDistinct(unionQuery, x);
@@ -263,7 +262,7 @@ public class QueryWhere<T> {
 	 *
 	 * @param unionQuery
 	 * @param x - the type to return
-	 * @return List<X>
+	 * @return List&lt;X&gt;
 	 */
 	public <U, X> List<X> union(QueryJoinWhere<U> unionQuery, X x) {
 		return query.union(unionQuery, x);
@@ -273,7 +272,8 @@ public class QueryWhere<T> {
 	 * same as {@link #union(QueryWhere, Object)} but returns distinct results of both queries.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @param x
+	 * @return List&lt;X&gt;
 	 */
 	public <U, X> List<X> unionDistinct(QueryWhere<U> unionQuery, X x) {
 		return query.unionDistinct(unionQuery, x);
@@ -286,7 +286,7 @@ public class QueryWhere<T> {
 	 *
 	 * @param unionQuery
 	 * @param x - the type to return
-	 * @return List<X>
+	 * @return List&lt;X&gt;
 	 */
 	public <U, X, Z> List<X> union(QueryWhere<U> unionQuery, Z x) {
 		return query.union(unionQuery, x);
@@ -296,7 +296,7 @@ public class QueryWhere<T> {
 	 * same as {@link #union(Query, Object)} but returns distinct results of both queries.
 	 *
 	 * @param unionQuery
-	 * @return List<T>
+	 * @return List&lt;X&gt;
 	 */
 	public <U, X> List<X> unionDistinct(Query<U> unionQuery, X x) {
 		return query.unionDistinct(unionQuery, x);
@@ -309,7 +309,7 @@ public class QueryWhere<T> {
 	 *
 	 * @param unionQuery
 	 * @param x - the type to return
-	 * @return List<X>
+	 * @return List&lt;X&gt;
 	 */
 	public <U, X> List<X> union(Query<U> unionQuery, X x) {
 		return query.union(unionQuery, x);
@@ -319,9 +319,8 @@ public class QueryWhere<T> {
 	 * Performs A select similar to {@link #select(Object)} but with the 'DISTINCT' directive.
 	 * Returns results or empty List. Never 'null'
 	 *
-	 * @param <Z>
 	 * @param x
-	 * @return List<X>
+	 * @return List&lt;X&gt;
 	 */
 	public <X, Z> List<X> selectDistinct(Z x) {
 		return query.selectDistinct(x);
@@ -330,7 +329,6 @@ public class QueryWhere<T> {
 	/**
 	 * Returns the 'Z' type object from the first result
 	 *
-	 * @param <Z>
 	 * @param x
 	 * @return a result or null if there is no result
 	 */
@@ -342,7 +340,7 @@ public class QueryWhere<T> {
 	/**
 	 * Perform the built query Select.
 	 *
-	 * @return List<T> can be a list of one, many or empty, never 'null'. Can be used in a primary key select, but using
+	 * @return List&lt;T&gt; can be a list of one, many or empty, never 'null'. Can be used in a primary key select, but using
 	 *         {@link #selectFirst} is advised.
 	 */
 	public List<T> select() {
@@ -362,7 +360,7 @@ public class QueryWhere<T> {
 	/**
 	 * Select only distinct results in the table
 	 *
-	 * @return List<T>
+	 * @return List&lt;T&gt;
 	 */
 	public List<T> selectDistinct() {
 		return query.selectDistinct();
@@ -381,7 +379,7 @@ public class QueryWhere<T> {
 	 *
 	 * @param key
 	 * @param value
-	 * @return Map<K, V>
+	 * @return Map&lt;K, V&gt;
 	 */
 	public <K, V> Map<K, V> selectAsMap(K key, V value){
 		return query.selectAsMap(key, value);
@@ -393,7 +391,7 @@ public class QueryWhere<T> {
 	 * @see #selectAsMap(Object, Object)
 	 * @param key
 	 * @param value
-	 * @return Map<K, V>
+	 * @return Map&lt;K, V&gt;
 	 */
 	public <K, V> Map<K, V> selectDistinctAsMap(K key, V value){
 		return query.selectDistinctAsMap(key, value);
@@ -403,9 +401,9 @@ public class QueryWhere<T> {
 	 * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
 	 * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
 	 *
-	 * @param tableClass - the object descriptor of the type needed on return
+	 * @param table - the object descriptor of the type needed on return
 	 * @throws JaquError - when not in join query
-	 * @return List<U>
+	 * @return List&lt;U&gt;
 	 */
 	public <U> List<U> selectRightHandJoin(U table) {
 		return query.selectRightHandJoin(table);
@@ -415,9 +413,10 @@ public class QueryWhere<T> {
 	 * A convenience method to a field of get the object representing the right hand side of the join relationship only. Based on a single field
 	 * Returns a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
 	 *
-	 * @param tableClass - the object descriptor of the type needed on return
+	 * @param table - the object descriptor of the type needed on return
+	 * @param x
 	 * @throws JaquError - when not in join query
-	 * @return List<Z>
+	 * @return List&lt;Z&gt;
 	 */
 	public <U, Z> List<Z> selectRightHandJoin(U table, Z x) {
 		return query.selectRightHandJoin(table, x);
@@ -427,7 +426,7 @@ public class QueryWhere<T> {
      * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
      * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
      *
-     * @param tableClass - the object descriptor of the type needed on return
+     * @param table - the object descriptor of the type needed on return
      * @throws JaquError - when not in join query
      * @return U
      */
@@ -439,7 +438,8 @@ public class QueryWhere<T> {
      * A convenience method to get a field of the object representing the right hand side of the join relationship only. Based on a single field
      * Returns the first result of a list of results, of the given type. The given type must be a part of a join query or an exception will be thrown
      *
-     * @param tableClass - the object descriptor of the type needed on return
+     * @param table - the object descriptor of the type needed on return
+     * @param x
      * @throws JaquError - when not in join query
      * @return Z
      */
@@ -451,9 +451,9 @@ public class QueryWhere<T> {
      * A convenience method to get the object representing the right hand side of the join relationship only (without the need to specify the mapping between fields)
      * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
      *
-     * @param tableClass - the object descriptor of the type needed on return
+     * @param table - the object descriptor of the type needed on return
      * @throws JaquError - when not in join query
-     * @return List<U>
+     * @return List&lt;U&gt;
      */
 	public <U> List<U> selectDistinctRightHandJoin(U table) {
 		return query.selectDistinctRightHandJoin(table);
@@ -463,9 +463,10 @@ public class QueryWhere<T> {
      * A convenience method to get a field of the object representing the right hand side of the join relationship only. Based on a single field
      * Returns a list of distinct results, of the given type. The given type must be a part of a join query or an exception will be thrown
      *
-     * @param tableClass - the object descriptor of the type needed on return
+     * @param table - the object descriptor of the type needed on return
+     * @param x
      * @throws JaquError - when not in join query
-     * @return List<Z>
+     * @return List&lt;Z&gt;
      */
 	public <U, Z> List<Z> selectDistinctRightHandJoin(U table, Z x) {
 		return query.selectDistinctRightHandJoin(table, x);
@@ -473,8 +474,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * Group By ordered objects
+	 * 
 	 * @param groupBy
-	 * @return FullQueryInterface<T>
+	 * @return QueryInterface&lt;T&gt;
 	 */
 	public QueryInterface<T> groupBy(Object ... groupBy){
 		return query.groupBy(groupBy);
@@ -482,8 +484,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * adds a limit to the query
+	 * 
 	 * @param limitNum
-	 * @return QueryInterface<T>
+	 * @return QueryInterface&lt;T&gt;
 	 */
 	public QueryInterface<T> limit(int limitNum) {
 		return query.limit(limitNum);
@@ -493,7 +496,7 @@ public class QueryWhere<T> {
 	 * Order by one or more columns in ascending order.
 	 *
 	 * @param expressions the order by expressions
-	 * @return QueryWhere -  the query
+	 * @return QueryWhere&lt;T&gt; -  the query
 	 */
 	public QueryWhere<T> orderBy(Object... expressions) {
 		for (Object expr : expressions) {
@@ -505,8 +508,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * Order by one or more columns in descending order
+	 * 
 	 * @param expr
-	 * @return QueryWhere<T> - the query
+	 * @return QueryWhere&lt;T&gt; - the query
 	 */
 	public QueryWhere<T> orderByNullsFirst(Object ... expr) {
 		int length = expr.length;
@@ -531,8 +535,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * Order by one or more columns in ascending order
+	 * 
 	 * @param expr
-	 * @return QueryWhere<T>
+	 * @return QueryWhere&lt;T&gt;
 	 */
 	public QueryWhere<T> orderByNullsLast(Object ... expr) {
 		int length = expr.length;
@@ -557,8 +562,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * Order by in descending order
+	 * 
 	 * @param expr
-	 * @return QueryWhere<T>
+	 * @return QueryWhere&lt;T&gt;
 	 */
 	public QueryWhere<T> orderByDesc(Object ... expr) {
 		int length = expr.length;
@@ -583,8 +589,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * Order by in descending order nulls will be first
+	 * 
 	 * @param expr
-	 * @return QueryWhere<T>
+	 * @return QueryWhere&lt;T&gt;
 	 */
 	public QueryWhere<T> orderByDescNullsFirst(Object ... expr) {
 		int length = expr.length;
@@ -609,8 +616,9 @@ public class QueryWhere<T> {
 
 	/**
 	 * Order by in descending order nulls will be last
+	 * 
 	 * @param expr
-	 * @return QueryWhere<T>
+	 * @return QueryWhere&lt;T&gt;
 	 */
 	public QueryWhere<T> orderByDescNullsLast(Object ... expr) {
 		int length = expr.length;
@@ -656,5 +664,4 @@ public class QueryWhere<T> {
 	public long selectCount() {
 		return query.selectCount();
 	}
-
 }

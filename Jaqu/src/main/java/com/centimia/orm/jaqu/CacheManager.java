@@ -76,6 +76,46 @@ final class CacheManager {
     }
 
     /**
+     * remove the object from the cache, based on the give primaryKey if the object exists in cache.
+     * 
+     * @param obj
+     * @param pmKey
+     */
+    void removeReEntrent(Object obj, Object pmKey) {
+    	if (null != obj && null != pmKey) {
+	    	Map<String, Object> innerMap = cache.get(obj.getClass());
+	    	if (null == innerMap)
+	    		// all is removed
+	    		return;
+	
+	   		innerMap.remove(pmKey.toString());
+	    	if (innerMap.isEmpty()) {
+	    		cache.remove(obj.getClass());
+	    	}
+    	}
+    }
+    
+    /**
+     * replace the stored object within the cache map
+     * 
+     * @param obj
+     * @param pk
+     */
+    Object replaceRenentrent(Object obj, Object pk) {
+    	if (null != pk && null != obj) {
+	    	Map<String, Object> innerMap = cache.get(obj.getClass());
+	    	if (null == innerMap) {
+				innerMap = Utils.newHashMap();
+				cache.put(obj.getClass(), innerMap);
+			}
+	    	
+			innerMap.replace(pk.toString(), obj);
+			return obj;
+    	}
+    	return null;
+	}
+    
+    /**
      * Reports whether the object actually exists in cache.
      * @param obj
      * @return boolean

@@ -88,14 +88,6 @@ public interface SQLDialect {
 	public abstract String getIdentityType();
 
 	/**
-	 * retruns the dialect specific Identity definition.
-	 * @return String
-	 */
-	default String getIdentitySuppliment() {
-		return "NOT NULL AUTO_INCREMENT";
-	}
-
-	/**
 	 * Because Alter table is different in every dialect we used this method to add a discriminator column
 	 * @param tableName
 	 * @param discriminatorName

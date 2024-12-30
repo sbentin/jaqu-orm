@@ -20,9 +20,8 @@
  */
 package com.centimia.orm.jaqu.util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-
-import com.centimia.orm.jaqu.constant.Constants;
 
 
 /**
@@ -31,7 +30,9 @@ import com.centimia.orm.jaqu.constant.Constants;
  *
  */
 public class StringUtils {
-
+	
+	private StringUtils() {}
+	
 	/**
      * Replace all occurrences of the before string with the after string.
      *
@@ -223,7 +224,7 @@ public class StringUtils {
      */
 	public static byte[] utf8Encode(String s) {
 		try {
-			return s.getBytes(Constants.UTF8);
+			return s.getBytes(StandardCharsets.UTF_8);
 		}
 		catch (Exception e) {
 			// UnsupportedEncodingException
@@ -239,7 +240,7 @@ public class StringUtils {
      */
 	public static String utf8Decode(byte[] utf8) {
 		try {
-			return new String(utf8, Constants.UTF8);
+			return new String(utf8, StandardCharsets.UTF_8);
 		}
 		catch (Exception e) {
 			// UnsupportedEncodingException

@@ -119,7 +119,7 @@ public class QueryCondition<T, A> {
     
     /**
      * Opens a '(' parenthesis
-     * @param &lt;A&gt;
+     * 
      * @return QueryCondition&lt;T, A&gt;
      */
     @SuppressWarnings({ "unchecked", "hiding" })

@@ -45,9 +45,7 @@ import com.centimia.orm.jaqu.util.StatementBuilder;
  */
 public class OracleDialect implements SQLDialect {
 
-	/** 
-	 * @see com.centimia.orm.jaqu.SQLDialect#getDataType(java.lang.Class)
-	 */
+	@Override
 	public String getDataType(Class<?> fieldClass) {
 		final String VARCHAR2 = "VARCHAR2";
 		final String TIMESTAMP_6 = "TIMESTAMP(6)";
@@ -122,16 +120,12 @@ public class OracleDialect implements SQLDialect {
 		return VARCHAR2;
 	}
 
-	/** 
-	 * @see com.centimia.orm.jaqu.SQLDialect#createTableString(java.lang.String)
-	 */
+	@Override
 	public String createTableString(String tableName) {
 		return "CREATE TABLE " + tableName;
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#checkTableExists(java.lang.String, com.centimia.orm.jaqu.Db)
-	 */
+	@Override
 	public boolean checkTableExists(String tableName, Db db) {
 		String query = "SELECT 1 FROM USER_TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
 		return db.executeQuery(query, ResultSet::next);
@@ -243,49 +237,29 @@ public class OracleDialect implements SQLDialect {
     	}
 	}
 	
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentityType()
-	 */
-	public String getIdentityType() {
-		return "NUMBER(19)";
-	}
-
-	/*
-	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentitySuppliment()
-	 */
 	@Override
-	public String getIdentitySuppliment() {
-		return "GENERATED ALWAYS AS IDENTITY";
+	public String getIdentityType() {
+		return "NUMBER(19) GENERATED ALWAYS AS IDENTITY";
 	}
 
-	/*
-	 * @see com.centimia.orm.jaqu.SQLDialect#getSequnceQuery()
-	 */
 	@Override
 	public String getSequnceQuery(String seqName) {
 		StatementBuilder builder = new StatementBuilder("SELECT ").append(seqName).append(".nextval from dual");
 		return builder.toString();
 	}
 	
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
-	 */
+	@Override
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
         return "ALTER TABLE " + tableName + " ADD " + discriminatorName + " VARCHAR(2)";
     }
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, com.centimia.orm.jaqu.Db)
-	 */
+	@Override
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "Select 1 from user_tab_columns c where c.table_name = '" + tableName + "' and c.column_name = '" + discriminatorName + "'";
 		return db.executeQuery(query, ResultSet::next);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#getFunction(com.centimia.orm.jaqu.dialect.Functions)
-	 */
+	@Override
 	public String getFunction(Functions functionName) {
 		switch (functionName){
 			case IFNULL: return "NVL";
@@ -313,10 +287,7 @@ public class OracleDialect implements SQLDialect {
 		return query.toString();
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#wrapUpdateQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
-	 */
+	@Override
 	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as) {
 		StatementBuilder buff = new StatementBuilder("UPDATE ").append(tableName).append(" ").append(as).append(" SET ");
 		buff.append(innerUpdate);
@@ -348,10 +319,7 @@ public class OracleDialect implements SQLDialect {
 		return "null";
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
-	 */
+	@Override
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
 		return new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 	}

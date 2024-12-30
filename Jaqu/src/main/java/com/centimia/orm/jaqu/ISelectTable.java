@@ -12,8 +12,8 @@
  */
 package com.centimia.orm.jaqu;
 
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The current table in query
@@ -45,18 +45,19 @@ public interface ISelectTable<T> {
 
 	/**
 	 * Returns a map of table IDs given to the joint tables. You can access the Alias if you have a pointer to the descriptor.
-	 * If you do not have the descriptor consider using {@link#getOrderedJoins} where you get the joines in the order which they were
+	 * If you do not have the descriptor consider using {@link #getOrderedJoins} where you get the joins in the order which they were
 	 * put in the query.
 	 *
-	 * @return Map<Object, String>
+	 * @return Map&lt;Object, String&gt;
 	 */
 	public Map<Object, String> getJoins();
 
 	/**
 	 * Returns a HashSet of table IDs and their alias table name given to the joint tables. The ID's are given in the order of the join.
-	 * @return HashSet<Alias>
+	 * 
+	 * @return Set<Alias>
 	 */
-	public HashSet<Alias> getOrderedJoins();
+	public Set<Alias> getOrderedJoins();
 
 	/**
 	 * Returns the type of join or none if the select table does not represent a joint table.

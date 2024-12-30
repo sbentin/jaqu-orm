@@ -43,36 +43,30 @@ import com.centimia.orm.jaqu.util.StatementBuilder;
  */
 public class MySqlDialect implements SQLDialect {
 
-	private boolean isCcoreDeadlockHandlered;
+	private boolean isCcoreDeadlockHandler;
 	
 	public MySqlDialect() {
 		try {
 			MySqlDialect.class.getClassLoader().loadClass("com.mysql.jdbc.exceptions.DeadlockTimeoutRollbackMarker");
-			isCcoreDeadlockHandlered = true;
+			isCcoreDeadlockHandler = true;
 		} 
 		catch (ClassNotFoundException e) {
-			isCcoreDeadlockHandlered = false;
+			isCcoreDeadlockHandler = false;
 		}
 	}
 	
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#checkTableExists(java.lang.String, com.centimia.orm.jaqu.Db)
-	 */
+	@Override
 	public boolean checkTableExists(String tableName, Db db) {
 		// My SQL support "select TABLE IF NOT EXISTS" so we don't access the DB here to check it...
 		return false;
 	}
 	
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#createTableString(java.lang.String)
-	 */
+	@Override
 	public String createTableString(String tableName) {
 		return "CREATE TABLE IF NOT EXISTS " + tableName;
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getDataType(java.lang.Class)
-	 */
+	@Override
 	public String getDataType(Class<?> fieldClass) {
 		final String VARCHAR = "VARCHAR";
 		final String DATETIME = "DATETIME";
@@ -152,9 +146,9 @@ public class MySqlDialect implements SQLDialect {
 	}
 
 	/*
-	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, java.lang.String)
-	 *  mapping is very close between DB types and java types so we just return the object at hand!
+	 * mapping is very close between DB types and java types so we just return the object at hand!
 	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException {
 		switch (type) {
 			case BOOLEAN: return (rs.getObject(columnName) != null) && rs.getBoolean(columnName);
@@ -171,9 +165,9 @@ public class MySqlDialect implements SQLDialect {
 	}
 	
 	/*
-	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, int)
-	 *  mapping is very close between DB types and java types so we just return the object at hand!
+	 * mapping is very close between DB types and java types so we just return the object at hand!
 	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
 		switch (type) {
 			case BOOLEAN: return (rs.getObject(columnNumber) != null) && rs.getBoolean(columnNumber);
@@ -189,32 +183,23 @@ public class MySqlDialect implements SQLDialect {
 		}
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentityType()
-	 */
+	@Override
 	public String getIdentityType() {
 		return "BIGINT NOT NULL AUTO_INCREMENT";
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
-	 */
+	@Override
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
         return "ALTER TABLE " + tableName + " ADD " + discriminatorName + " VARCHAR(2)";
     }
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, com.centimia.orm.jaqu.Db)
-	 */
+	@Override
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME = '" + discriminatorName + "'";
 		return db.executeQuery(query, ResultSet::next);		
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#getFunction(com.centimia.orm.jaqu.dialect.Functions)
-	 */
+	@Override
 	public String getFunction(Functions functionName) {
 		switch (functionName){
 			case IFNULL: return "IFNULL";
@@ -222,15 +207,16 @@ public class MySqlDialect implements SQLDialect {
 		return "";
 	}
 
+	@Override
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
 		StringBuilder query = new StringBuilder();
 		if (name.length() == 0){
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)
-			query.append("CREATE UNIQUE INDEX ").append(name).append(" ON ").append(tableName).append(" (");
+			query.append("CREATE UNIQUE INDEX IF NOT EXISTS ").append(name).append(" ON ").append(tableName).append(" (");
 		else
-			query.append("CREATE INDEX ").append(name).append(" ON ").append(tableName).append(" (");
+			query.append("CREATE INDEX IF NOT EXISTS ").append(name).append(" ON ").append(tableName).append(" (");
 		for (int i = 0; i < columns.length; i++){
 			if (i > 0){
 				query.append(",");
@@ -241,31 +227,21 @@ public class MySqlDialect implements SQLDialect {
 		return query.toString();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#wrapUpdateQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
-	 */
+	@Override
 	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as) {
 		StatementBuilder buff = new StatementBuilder("UPDATE ").append(tableName).append(" ").append(as).append(" SET ");
 		buff.append(innerUpdate);
 		return buff;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
-	 */
+	@Override
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
 		return new StatementBuilder("DELETE " + as + " FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#handleDeadlockException(java.lang.Throwable)
-	 */
 	@Override
 	public void handleDeadlockException(SQLException e) {
-		if (isCcoreDeadlockHandlered) {
+		if (isCcoreDeadlockHandler) {
 			Class<?>[] iFaces = e.getClass().getInterfaces();
 			if (Arrays.stream(iFaces).anyMatch(iFace -> "DeadlockTimeoutRollbackMarker".equals(iFace.getSimpleName())))
 				throw new ResourceDeadLockException(ExceptionMessages.DEADLOCK, e);

@@ -23,8 +23,8 @@ package com.centimia.orm.jaqu;
 /**
  * This class represents a "between y and z" condition.
  *
- * @param <T> the return type of the query
- * @param <A>the incomplete condition data type
+ * &lt;T&gt; the return type of the query
+ * &lt;A&gt; the incomplete condition data type
  */
 public class QueryBetween<T, A> {
 

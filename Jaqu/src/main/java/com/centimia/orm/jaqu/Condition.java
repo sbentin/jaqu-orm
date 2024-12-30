@@ -38,7 +38,7 @@ class Condition<A> implements Token {
     }
 
     /**
-     * @see com.centimia.orm.jaqu.Token#appendSQL(SQLStatement, Query)
+     * see com.centimia.orm.jaqu.Token#appendSQL(SQLStatement, Query)
      * TODO check  if new enum implementation can change the ugliness here
      */
     @Override

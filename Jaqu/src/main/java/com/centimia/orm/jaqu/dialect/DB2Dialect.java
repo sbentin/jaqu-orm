@@ -37,24 +37,18 @@ import com.centimia.orm.jaqu.util.StatementBuilder;
  */
 public class DB2Dialect implements SQLDialect {
 
-	/** 
-	 * @see com.centimia.orm.jaqu.SQLDialect#createTableString(java.lang.String)
-	 */
+	@Override
 	public String createTableString(String tableName) {
 		return "IF NOT EXISTS (SELECT NAME FROM SYSIBM.SYSTABLES WHERE NAME='" + tableName + "') CREATE TABLE " + tableName;
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#checkTableExists(java.lang.String, com.centimia.orm.jaqu.Db)
-	 */
+	@Override
 	public boolean checkTableExists(String tableName, Db db) {
 		// if the line above does not do the job, use this method instead...
 		return false;
 	}
 	
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getDataType(java.lang.Class)
-	 */
+	@Override
 	public String getDataType(Class<?> fieldClass) {
 		final String VARCHAR = "VARCHAR";
 		final String TIMESTAMP = "TIMESTAMP";
@@ -130,9 +124,7 @@ public class DB2Dialect implements SQLDialect {
 		return VARCHAR;
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, java.lang.String)
-	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException {
 		switch (type) {
 			case ENUM: return rs.getString(columnName);
@@ -147,9 +139,7 @@ public class DB2Dialect implements SQLDialect {
 		}
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, int)
-	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
 		switch (type) {
 			case ENUM: return rs.getString(columnNumber);
@@ -164,39 +154,31 @@ public class DB2Dialect implements SQLDialect {
 		}
 	}
 	
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getIdentityType()
-	 */
+	@Override
 	public String getIdentityType() {
 		return "BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1, NO CACHE)";
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#createDiscrimantorColumn(java.lang.String, java.lang.String)
-	 */
+	@Override
 	public String createDiscrimantorColumn(String tableName, String discriminatorName) {
         return "ALTER TABLE " + tableName + " ADD " + discriminatorName + " VARCHAR(2)";
     }
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#checkDiscriminatorExists(java.lang.String, java.lang.String, com.centimia.orm.jaqu.Db)
-	 */
+	@Override
 	public boolean checkDiscriminatorExists(String tableName, String discriminatorName, Db db) {
 		String query = "SELECT 1 FROM syscat.columns WHERE tabname = '" + tableName + "' and colname = '" + discriminatorName + "'" ;
 		return db.executeQuery(query, ResultSet::next);
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#getFunction(com.centimia.orm.jaqu.dialect.Functions)
-	 */
+	@Override
 	public String getFunction(Functions functionName) {
-		switch(functionName){
-			case IFNULL: return "COALESCE";
+		if (Functions.IFNULL == functionName){
+			return "COALESCE";
 		}
 		return null;
 	}
 
+	@Override
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
 		StringBuilder query = new StringBuilder();
 		if (name.length() == 0){
@@ -217,20 +199,14 @@ public class DB2Dialect implements SQLDialect {
 		return query.toString();
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#wrapUpdateQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
-	 */
+	@Override
 	public StatementBuilder wrapUpdateQuery(StatementBuilder innerUpdate, String tableName, String as) {
 		StatementBuilder buff = new StatementBuilder("UPDATE ").append(tableName).append(" ").append(as).append(" SET ");
 		buff.append(innerUpdate);
 		return buff;
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.SQLDialect#wrapDeleteQuery(com.centimia.orm.jaqu.util.StatementBuilder, java.lang.String, java.lang.String)
-	 */
+	@Override
 	public StatementBuilder wrapDeleteQuery(StatementBuilder innerDelete, String tableName, String as) {
 		return new StatementBuilder("DELETE FROM ").append(tableName).append(" ").append(as).append(" ").append(innerDelete);
 	}

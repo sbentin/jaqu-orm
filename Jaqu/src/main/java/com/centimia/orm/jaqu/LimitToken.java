@@ -24,12 +24,13 @@ public class LimitToken implements Token {
 		this.limit = limitNum;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
-	 */
+	@SuppressWarnings("resource")
 	@Override
-	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		stat.appendSQL("limit " + limit);
+	public <T> void appendSQL(SQLStatement stat, Query<T> query) {		
+		if (Dialect.ORACLE == query.getDb().factory.getDialect())
+			stat.appendSQL("FETCH FIRST " + limit + " ROWS ONLY");
+		else
+			stat.appendSQL("limit " + limit);
 	}
 
 }

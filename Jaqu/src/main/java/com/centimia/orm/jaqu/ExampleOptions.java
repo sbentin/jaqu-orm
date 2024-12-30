@@ -93,7 +93,7 @@ public interface ExampleOptions {
 	 * set the Like mode for string values.
 	 *
 	 * @param mode
-	 * @see {@link LikeMode}
+	 * @see LikeMode
 	 * @return ExampleOptions
 	 */
 	public ExampleOptions setLikeMode(LikeMode mode);

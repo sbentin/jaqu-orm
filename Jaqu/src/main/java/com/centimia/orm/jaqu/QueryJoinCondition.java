@@ -66,10 +66,10 @@ public class QueryJoinCondition<T, A> {
     }
 
     /**
-     * Like allowes the 'LIKE' query. depending on the query string given. If '%' is used in the 'pattern' it will effect the result.
+     * Like allows the 'LIKE' query. depending on the query string given. If '%' is used in the 'pattern' it will effect the result.
      *
      * @param pattern the pattern to check against.
-     * @return QueryWhere<T>
+     * @return QueryWhere&lt;T&gt;
      */
     public QueryJoinWhere<T> like(A pattern) {
         join.addConditionToken(new Condition<>(x, pattern, CompareType.LIKE));
@@ -77,13 +77,13 @@ public class QueryJoinCondition<T, A> {
     }
 
     /**
-     * Although @{link {@link QueryJoinWhere#like(Object, SelectTable)} allows the use of '%' within the
+     * Although @{link {@link QueryJoinCondition#like(Object)} allows the use of '%' within the
      * pattern sometime the user will want to specify it without changing the original pattern or might
      * have no control over the pattern. This method lets the user specify the Like pattern he needs.
      *
      * @param pattern
      * @param mode
-     * @return QueryWhere<T>
+     * @return QueryWhere&lt;T&gt;
      */
     public QueryJoinWhere<T> like(A pattern, LikeMode mode) {
         join.addConditionToken(new LikeCondition<>(x, pattern, mode));

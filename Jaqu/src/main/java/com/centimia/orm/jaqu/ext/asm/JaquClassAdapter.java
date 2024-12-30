@@ -346,7 +346,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 	 * @param desc
 	 * @param exceptions
 	 * @param methodName - current method name
-	 * @param newMthodName - new method name (the $orig_[current method name])
+	 * @param newMethodName - new method name (the $orig_[current method name])
 	 * @param fieldName
 	 */
 	public void generateLazyRelation(int access, String desc, String[] exceptions, String methodName, String newMethodName, String fieldName) {

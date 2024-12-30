@@ -78,7 +78,7 @@ class TableDefinition<T> {
 	}
 
 
-	private FieldDefinition version = null;
+	FieldDefinition version = null;
 
 	/**
 	 * The meta data of a field.
@@ -480,7 +480,7 @@ class TableDefinition<T> {
 	char discriminatorValue;
 	String discriminatorColumn;
 	@SuppressWarnings("rawtypes")
-	private CRUDInterceptor	interceptor;
+	private CRUDInterceptor	intercepter;
 	private Event[]	interceptorEvents;
 
 	TableDefinition(Class<T> clazz, Dialect dialect) {
@@ -516,7 +516,7 @@ class TableDefinition<T> {
 		if (null != interceptorAnnot) {
 			this.interceptorEvents = interceptorAnnot.event();
 			try {
-				interceptor = interceptorAnnot.Class().getConstructor().newInstance();
+				intercepter = interceptorAnnot.Class().getConstructor().newInstance();
 			}
 			catch (Exception e) {
 				throw new JaquError("Expected an Interceptor class for Table/ Entity %s. Unable to invoke!!", nameOfTable);
@@ -525,7 +525,7 @@ class TableDefinition<T> {
 	}
 
 	/*
-	 * get the most "forward" "Interceptor Annotation" in the hierarchy tree.
+	 * get the most "forward" "Intercepter Annotation" in the hierarchy tree.
 	 */
 	private Interceptor getInterceptorAnnotation(Class<?> clazz) {
 		if (null == clazz || clazz.equals(Object.class))
@@ -721,6 +721,8 @@ class TableDefinition<T> {
 
 				if (null != f.getAnnotation(Version.class)) {
 					if (null == this.version) {
+						if (Long.class != f.getType() && Integer.class != f.getType())
+							throw new JaquError("Annotated Version field must be either Integer or Long");
 						fieldDef.isVersion = true;
 						this.version = fieldDef;
 					}
@@ -1091,11 +1093,16 @@ class TableDefinition<T> {
         	if (field.isVersion) {
         		field.field.setAccessible(true);
         		try {
-					field.field.set(obj, 0);
+        			Class<?> fieldType = field.field.getType();
+        			if (Long.class == fieldType)
+        				field.field.set(obj, 0L);
+        			else
+        				field.field.set(obj, 0);
 				}
 				catch (IllegalArgumentException | IllegalAccessException e) {
 					// Nothing to do here
 					StatementLogger.debug("problem in reflection setting field " + field.field.getName());
+					throw new JaquError("unable to set a declared version field on insert.", e);
 				}
         	}
         	fieldTypes.appendExceptFirst(", ");
@@ -1198,7 +1205,7 @@ class TableDefinition<T> {
 					innerUpdate.appendExceptFirst(", ");
 					innerUpdate.append(as + ".");
 					innerUpdate.append(field.columnName);
-					innerUpdate.append(" = " + field.columnName + " + 1");
+					innerUpdate.append(" = " + as + "." + field.columnName + " + 1");
 					hasNoneSilent = true;
 					continue;
 				}
@@ -1231,7 +1238,7 @@ class TableDefinition<T> {
 			Number aliasValue = null;
 			Number lVersion = null;
 			if (null != this.version) {
-				// if this table is versioned we must find a row that matches our current
+				// if this jaqu is maintaining version we must find a row that matches our current
 				query.addConditionToken(ConditionAndOr.AND);
 				aliasValue = (Number)this.version.getValue(alias);
 				lVersion = (Number)this.version.getValue(obj);
@@ -1245,15 +1252,18 @@ class TableDefinition<T> {
 			if (0 == numOfResults) {
 				// No update was done. This is probably because of a concurrency error
 				// an sql error would be a -1 and a successful update will have a number higher than 0
-				if (null != this.version && null != version) {
+				if (null != this.version) {
 					db.rollback();
 					throw new JaquConcurrencyException(tableName, obj.getClass(), primaryKey, lVersion);
 				}
 			}
-			else if (null != this.version && null != version) {
+			else if (null != this.version) {
 				// we need to update the instance with the new version
 				try {
-					this.version.field.set(obj, lVersion.intValue() + 1);
+					if (Long.class == this.version.field.getType())
+						this.version.field.set(obj, lVersion.longValue() + 1);
+					else
+						this.version.field.set(obj, lVersion.intValue() + 1);
 				}
 				catch (IllegalArgumentException | IllegalAccessException e) {
 					// Nothing to do here
@@ -1545,11 +1555,7 @@ class TableDefinition<T> {
 			if (!field.isSilent && !field.isExtension) {
 				buff.appendExceptFirst(", ");
 				buff.append(field.columnName).append(' ').append(field.dataType);
-				if (field.isPrimaryKey && field.field.getAnnotation(PrimaryKey.class).generatorType() == GeneratorType.IDENTITY) {
-					// add identity info
-					buff.append(' ').append(this.dialect.getIdentitySuppliment());
-				}
-				else if (field.maxLength != 0) {
+				if (field.genType == GeneratorType.NONE && field.maxLength != 0) {
 					buff.append('(').append(field.maxLength).append(')');
 				}
 			}
@@ -1633,7 +1639,7 @@ class TableDefinition<T> {
 						// This error should not happen. For now we just ignore it.
 					}
 				}
-				else {					
+				else {
 					doRead(rs, db, item, def);
 				}
 			}
@@ -1772,16 +1778,16 @@ class TableDefinition<T> {
 	}
 
 	/**
-	 * Return the interceptor instance for this table.
-	 * @return Interceptor
+	 * Return the intercepter instance for this table.
+	 * @return Intercepter
 	 */
 	@SuppressWarnings("rawtypes" )
 	CRUDInterceptor getInterceptor() {
-		return interceptor;
+		return intercepter;
 	}
 
 	/**
-	 * returns true if the interceptor handles the given event.
+	 * returns true if the intercepter handles the given event.
 	 *
 	 * @param update
 	 * @return boolean

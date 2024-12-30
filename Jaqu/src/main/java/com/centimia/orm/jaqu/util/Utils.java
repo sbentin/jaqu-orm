@@ -13,6 +13,7 @@
 package com.centimia.orm.jaqu.util;
 
 import java.io.Reader;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -82,6 +83,11 @@ public class Utils {
 		return new IdentityHashMap<>();
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <T> T[] newArray(Class<T> componentType, int size) {
+		return (T[]) Array.newInstance(componentType, size);
+	}
+	
 	@SuppressWarnings({ "unchecked", "rawtypes", "deprecation" })
 	public static <T> T newObject(Class<T> clazz) {
 		// must create new instances
@@ -226,7 +232,7 @@ public class Utils {
 			    Object enumValue = unsafe.allocateInstance(clazz);
 			    return (E)enumValue;
 			}
-			catch (Exception e) {				
+			catch (Exception e) {
 				e.printStackTrace();
 			}
 		}

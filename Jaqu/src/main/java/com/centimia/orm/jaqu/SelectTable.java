@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
 import com.centimia.orm.jaqu.util.ClassUtils;
@@ -82,9 +83,10 @@ class SelectTable<T> implements ISelectTable<T> {
      */
     void appendSqlColumnFromField(SQLStatement stat, Object descValue) {
     	for (FieldDefinition def: aliasDef.getFields()) {
-    		if (def.isSilent || def.isExtension)
+    		if (def.isSilent || def.isExtension) {
 				continue;
-    		if (descValue.equals(def.getValue(alias))){
+    		}
+    		if (descValue.equals(def.getValue(alias))) {
     			// this is the field we're looking for
     			stat.appendSQL(as + "." + def.columnName);
     			return;
@@ -100,10 +102,6 @@ class SelectTable<T> implements ISelectTable<T> {
         joinConditions.add(condition);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.ISelectTable#getJoins()
-     */
     @Override
 	public Map<Object, String> getJoins(){
     	IdentityHashMap<Object, String> asList = new IdentityHashMap<>();
@@ -115,12 +113,8 @@ class SelectTable<T> implements ISelectTable<T> {
     	return asList;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.ISelectTable#getOrderedJoins()
-     */
     @Override
-	public HashSet<Alias> getOrderedJoins(){
+	public Set<Alias> getOrderedJoins(){
     	HashSet<Alias> asList = new HashSet<>();
     	if (query.isJoin()){
     		for (SelectTable<?> jointTable: query.getJoins()){
@@ -130,18 +124,11 @@ class SelectTable<T> implements ISelectTable<T> {
     	return asList;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.ISelectTable#getJoinType()
-     */
     @Override
 	public JOIN_TYPE getJoinType() {
         return joinType;
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ISelectTable#getAs()
-	 */
     @Override
 	public String getAs() {
         return as;

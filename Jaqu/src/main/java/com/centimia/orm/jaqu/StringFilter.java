@@ -20,6 +20,8 @@
  */
 package com.centimia.orm.jaqu;
 
+import java.io.Serializable;
+
 /**
  * Allows String based SQL clause inside a condition. It can be a stand alone where or just a condition to
  * be concatenated with other conditions.<br>
@@ -32,7 +34,7 @@ package com.centimia.orm.jaqu;
  *
  * @author shai
  */
-public interface StringFilter {
+public interface StringFilter extends Serializable {
 
 	/**
 	 * Returns the condition string that should be injected into the SQL.

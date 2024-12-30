@@ -109,7 +109,7 @@ public final class JaquSessionFactory {
 
 	/**
 	 * Start jaqu with or without a transaction manager but change some basic JDBC transaction defaults allowing manual commit/ rollback handeling.
-	 * <b>Note: </b>Using this constructor sets the {@link ACID_CONFIG} to INTERNAL
+	 * <b>Note: </b>Using this constructor sets the 'ACID_CONFIG' to INTERNAL
 	 *
 	 * @param ds - the data source. Expected either javax.sql.Datasource or javax.sql.XADatasource
 	 * @param autoCommit
@@ -179,7 +179,7 @@ public final class JaquSessionFactory {
     }
 
     /**
-	 * Allows changing the {@link ACID_CONFIG} throttle.
+	 * Allows changing the ACID_CONFIG throttle.
 	 * @param isExternal
 	 */
 	public JaquSessionFactory setAcidConfigIsExternal(boolean isExternal) {

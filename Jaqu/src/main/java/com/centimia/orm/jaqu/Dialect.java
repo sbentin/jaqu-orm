@@ -137,14 +137,6 @@ public enum Dialect {
 	}
 
 	/**
-	 * retruns the dialect specific Identity definition.
-	 * @return String
-	 */
-	String getIdentitySuppliment() {
-		return dialect.getIdentitySuppliment();
-	}
-
-	/**
 	 * wraps the correct form for writing the update statement for this dialect
 	 * @param innerUpdate
 	 * @param tableName

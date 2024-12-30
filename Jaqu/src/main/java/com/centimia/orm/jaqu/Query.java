@@ -55,9 +55,6 @@ public class Query<T> implements QueryInterface<T> {
         return query;
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectCount()
-	 */
     @Override
     public long selectCount() {
         SQLStatement selectList = new SQLStatement(db);
@@ -68,19 +65,11 @@ public class Query<T> implements QueryInterface<T> {
         });
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#union(java.lang.String)
-     */
     @Override
 	public <U> List<T> union(Query<U> unionQuery) {
 		return union(unionQuery, false);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#unionDistinct(com.centimia.orm.jaqu.Query)
-	 */
 	@Override
 	public <U> List<T> unionDistinct(Query<U> unionQuery) {
 		return union(unionQuery, true);
@@ -96,10 +85,6 @@ public class Query<T> implements QueryInterface<T> {
 		return union(unionQuery, x, true);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#union(com.centimia.orm.jaqu.QueryWhere)
-	 */
 	@Override
 	public <U> List<T> union(QueryWhere<U> unionQuery) {
 		return union(unionQuery.query, false);
@@ -121,10 +106,6 @@ public class Query<T> implements QueryInterface<T> {
 		return union(unionQuery.query, x, true);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#union(com.centimia.orm.jaqu.QueryJoinWhere)
-	 */
 	@Override
 	public <U> List<T> union(QueryJoinWhere<U> unionQuery) {
 		return union(unionQuery.query, false);
@@ -145,52 +126,33 @@ public class Query<T> implements QueryInterface<T> {
 		return union(unionQuery.query, x, true);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#selectAsMap(java.lang.Object, java.lang.Object)
-	 */
 	@Override
 	public <K, V> Map<K, V> selectAsMap(K key, V value){
 		return selectSimpleAsMap(key, value, false);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#selectDistinctAsMap(java.lang.Object, java.lang.Object)
-	 */
 	@Override
 	public <K, V> Map<K, V> selectDistinctAsMap(K key, V value){
 		return selectSimpleAsMap(key, value, true);
 	}
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#select()
-	 */
 	@Override
     public List<T> select() {
         return select(false);
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectFirst()
-	 */
     @Override
     public T selectFirst() {
     	List<T> list = select(false);
         return list.isEmpty() ? list.get(0) : null;
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinct()
-	 */
     @Override
     public List<T> selectDistinct() {
         return select(true);
     }
 
     /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectFirst(Z)
-	 *
 	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
 	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
 	 */
@@ -201,91 +163,52 @@ public class Query<T> implements QueryInterface<T> {
         return list.isEmpty() ? null : list.get(0);
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#getSQL()
-	 */
     @Override
     public String getSQL() {
     	return this.getSQL(false);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#getDistinctSQL()
-     */
     @Override
 	public String getDistinctSQL() {
     	return this.getSQL(true);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#getSQL(java.lang.Object)
-	 */
 	@Override
 	public <Z> String getSQL(Z z) {
     	return getSQL(z, false);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#getDistinctSQL(java.lang.Object)
-     */
 	@Override
 	public <Z> String getDistinctSQL(Z z) {
     	return getSQL(z, false);
     }
 
-	/*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#selectRightHandJoin(java.lang.Object)
-     */
 	@Override
 	public <U> List<U> selectRightHandJoin(U tableClass){
     	return selectRightHandJoin(tableClass, false);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#selectRightHandJoin(java.lang.Object, java.lang.Object)
-	 */
 	@Override
     public <U, Z> List<Z> selectRightHandJoin(U tableClass, Z x){
     	return selectRightHandJoin(tableClass, false, x);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinctRightHandJoin(java.lang.Object)
-     */
     @Override
 	public <U> List<U> selectDistinctRightHandJoin(U tableClass){
-    	return selectRightHandJoin(tableClass, true, null);
+    	return selectRightHandJoin(tableClass, true);
     }
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinctRightHandJoin(java.lang.Object, java.lang.Object)
-	 */
 	@Override
 	public <U, Z> List<Z> selectDistinctRightHandJoin(U tableClass, Z x){
     	return selectRightHandJoin(tableClass, true, x);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#selectFirstRightHandJoin(java.lang.Object)
-     */
 	@Override
 	public <U> U selectFirstRightHandJoin(U tableClass){
     	List<U> list = selectRightHandJoin(tableClass, false);
     	return list.isEmpty() ? null : list.get(0);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#selectFirstRightHandJoin(java.lang.Object, java.lang.Object)
-     */
 	@Override
     public <U, Z> Z selectFirstRightHandJoin(U tableClass, Z x){
     	List<Z> list = selectRightHandJoin(tableClass, false, x);
@@ -293,8 +216,6 @@ public class Query<T> implements QueryInterface<T> {
     }
 
     /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#selectDistinct(Z)
-	 *
 	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
 	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
  	 */
@@ -305,8 +226,6 @@ public class Query<T> implements QueryInterface<T> {
     }
 
     /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#select(Z)
-	 *
 	 * Reason for using X and Z generic parameters as opposed to just Z is because externally when using a special Object mapping the instance created is actually a new
 	 * anonymous class which is identical to Z but is actually not Z by signature. So using the Casting to X we allow generic strong typing for the user.
 	 */
@@ -316,9 +235,6 @@ public class Query<T> implements QueryInterface<T> {
         return select((X)x, false);
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#delete()
-	 */
     @Override
     public int delete() {
     	try {
@@ -363,9 +279,6 @@ public class Query<T> implements QueryInterface<T> {
 		}
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#update()
-	 */
     @Override
     public int update() {
         try {
@@ -402,9 +315,6 @@ public class Query<T> implements QueryInterface<T> {
     	return this;
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#where(com.centimia.orm.jaqu.StringFilter)
-	 */
     @Override
 	public QueryWhere<T> where(final StringFilter whereCondition){
     	Token conditionCode = new Token() {
@@ -424,17 +334,11 @@ public class Query<T> implements QueryInterface<T> {
         return new QueryCondition<>(this, mask, mask.mask());
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#where(A)
-	 */
 	@Override
     public <A> QueryCondition<T, A> where(A x) {
         return new QueryCondition<>(this, x);
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#set(A, A)
-	 */
 	@Override
     public <A> QuerySet<T, A> set(A x, A v) {
     	if (Collection.class.isAssignableFrom(x.getClass())) {
@@ -444,9 +348,6 @@ public class Query<T> implements QueryInterface<T> {
     	return new QuerySet<>(this, x, v);
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#primaryKey(java.lang.Object)
-	 */
 	@Override
     public QueryCondition<T, Object> primaryKey() {
     	TableDefinition<?> def = from.getAliasDefinition();
@@ -458,15 +359,9 @@ public class Query<T> implements QueryInterface<T> {
         }
     	if (primaryKeys.size() > 1)
     		throw new JaquError("UnsupportedOperation - Entity relationship is not supported for complex primary keys. Found in %s", def.tableName);
-    	for (TableDefinition.FieldDefinition field: primaryKeys) {
-    		return new PkQueryCondition<>(this, field.getValue(from.getAlias()));
-    	}
-		return null;
+   		return new PkQueryCondition<>(this, primaryKeys.get(0).getValue(from.getAlias()));
 	}
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#whereTrue(java.lang.Boolean)
-	 */
 	@Override
     public QueryWhere<T> whereTrue(Boolean condition) {
         Token token = new Function("", condition);
@@ -474,10 +369,6 @@ public class Query<T> implements QueryInterface<T> {
         return new QueryWhere<>(this);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.centimia.orm.jaqu.QueryInterface#orderBy(java.lang.Object[])
-     */
 	@Override
 	public QueryInterface<T> orderBy(Object ... expressions) {
 		for (Object expr : expressions) {
@@ -487,10 +378,6 @@ public class Query<T> implements QueryInterface<T> {
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#orderByNullsFirst(java.lang.Object[])
-	 */
 	@Override
 	public QueryInterface<T> orderByNullsFirst(Object ... expr) {
 		int length = expr.length;
@@ -513,10 +400,6 @@ public class Query<T> implements QueryInterface<T> {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#orderByNullsLast(java.lang.Object[])
-	 */
 	@Override
 	public QueryInterface<T> orderByNullsLast(Object ... expr) {
 		int length = expr.length;
@@ -539,10 +422,6 @@ public class Query<T> implements QueryInterface<T> {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#orderByDesc(java.lang.Object[])
-	 */
 	@Override
 	public QueryInterface<T> orderByDesc(Object ... expr) {
 		int length = expr.length;
@@ -565,10 +444,6 @@ public class Query<T> implements QueryInterface<T> {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#orderByDescNullsFirst(java.lang.Object[])
-	 */
 	@Override
 	public QueryInterface<T> orderByDescNullsFirst(Object ... expr) {
 		int length = expr.length;
@@ -591,10 +466,6 @@ public class Query<T> implements QueryInterface<T> {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#orderByDescNullsLast(java.lang.Object[])
-	 */
 	@Override
 	public QueryInterface<T> orderByDescNullsLast(Object ... expr) {
 		int length = expr.length;
@@ -617,10 +488,6 @@ public class Query<T> implements QueryInterface<T> {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#having(java.lang.Object)
-	 */
 	@Override
 	public <A> QueryCondition<T, A> having(final A x) {
 		HavingToken conditionCode = new HavingToken();
@@ -628,10 +495,6 @@ public class Query<T> implements QueryInterface<T> {
 		return new QueryCondition<>(this, x);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#having(com.centimia.orm.jaqu.HavingFunctions, java.lang.Object)
-	 */
 	@Override
 	public <A> QueryCondition<T, Long> having(HavingFunctions function, final A x) {
 		HavingToken conditionCode = new HavingToken();
@@ -640,19 +503,12 @@ public class Query<T> implements QueryInterface<T> {
 		return new QueryCondition<>(this, Function.ignore());
 	}
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#groupBy(java.lang.Object)
-	 */
 	@Override
     public Query<T> groupBy(Object ... groupBy) {
         this.groupByExpressions = groupBy;
         return this;
     }
 
-    /*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.QueryInterface#limit(java.lang.Object)
-	 */
     @Override
 	public Query<T> limit(int limitNum) {
 		LimitToken conditionCode = new LimitToken(limitNum);
@@ -660,9 +516,6 @@ public class Query<T> implements QueryInterface<T> {
 		return this;
 	}
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#innerJoin(U)
-	 */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <U> QueryJoin innerJoin(U alias) {
@@ -673,9 +526,6 @@ public class Query<T> implements QueryInterface<T> {
         return new QueryJoin(this, join);
     }
 
-    /* (non-Javadoc)
-     * @see com.centimia.orm.jaqu.FullQueryInterface#leftOuterJoin(U)
-     */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <U> QueryJoin leftOuterJoin(U alias) {
@@ -686,9 +536,6 @@ public class Query<T> implements QueryInterface<T> {
         return new QueryJoin(this, join);
     }
 
-    /* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.FullQueryInterface#appendSQL(com.centimia.orm.jaqu.SQLStatement, java.lang.Object)
-	 */
     void appendSQL(SQLStatement stat, Object x, boolean isEnum, Class<?> enumClass) {
     	if (x == Function.count()) {
             stat.appendSQL("COUNT(*)");
