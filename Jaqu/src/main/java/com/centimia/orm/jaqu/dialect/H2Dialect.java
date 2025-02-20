@@ -161,6 +161,7 @@ public class H2Dialect implements SQLDialect {
     		case ZONEDDATETIME: return null != rs.getTimestamp(columnName) ? rs.getTimestamp(columnName).toLocalDateTime() : null; // TODO this should be fixed to support zone
     		case LOCALTIME: return null != rs.getTime(columnName) ? null != rs.getTime(columnName).toLocalTime() : null;
     		case STRING:  return rs.getString(columnName);
+    		case BYTE: return rs.getByte(columnName);
     		default: return rs.getObject(columnName);
 		}
 	}
@@ -181,6 +182,7 @@ public class H2Dialect implements SQLDialect {
     		case ZONEDDATETIME: return null != rs.getTimestamp(columnNumber) ? rs.getTimestamp(columnNumber).toLocalDateTime() : null; // TODO this should be fixed to support zone
     		case LOCALTIME: return null != rs.getTime(columnNumber) ? null != rs.getTime(columnNumber).toLocalTime() : null;
     		case STRING:  return rs.getString(columnNumber);
+    		case BYTE: return rs.getByte(columnNumber);
     		default: return rs.getObject(columnNumber);
 		}
 	}
