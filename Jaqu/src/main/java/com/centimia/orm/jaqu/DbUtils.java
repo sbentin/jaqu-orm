@@ -307,26 +307,22 @@ public class DbUtils {
 		TableDefinition<?> definition = JaquSessionFactory.define(tClazz, db);
 		int i = 1;
 		for (FieldDefinition field : definition.getFields()) {
-			if (!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == definition.getGenerationtype())
+			if ((!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == definition.getGenerationtype())
+					|| field.isSilent || field.isExtension || field.fieldType != FieldType.NORMAL)
 				// skip identity types because these are auto incremented
-        		continue;
-
-			if (field.isSilent || field.isExtension)
 				// skip silent fields because they don't really exist.
+				// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
 
 			if (field.fieldType == FieldType.FK) {
 				setValue(ps, i, getFkValue(obj, field));
 				i++;
-				continue;
 			}
-
-        	if (field.fieldType != FieldType.NORMAL)
-        		// skip everything which is not a plain field (i.e any type of relationship)
-        		continue;
-        	Object value = field.getValue(obj);
-        	setValue(ps, i, value);
-        	i++;
+			else {
+	        	Object value = field.getValue(obj);
+	        	setValue(ps, i, value);
+	        	i++;
+			}
 		}
     	return ps;
     }
@@ -345,8 +341,7 @@ public class DbUtils {
 			return null;
 		}
 		else {
-			Object pkValue = pks.get(0).getValue(value);
-			return pkValue;
+			return pks.get(0).getValue(value);
 		}
 	}
 
@@ -369,9 +364,8 @@ public class DbUtils {
 				if (field.fieldType == FieldType.FK) {
 					setValue(ps, i, getFkValue(obj, field));
 					i++;
-					continue;
 				}
-				if (!field.isSilent) {
+				else if (!field.isSilent) {
 					Object value = field.getValue(obj);
 		        	setValue(ps, i, value);
 		        	i++;
@@ -420,7 +414,8 @@ public class DbUtils {
 
 	private StatementBuilder getInsertStatement(TableDefinition<?> def, boolean externalizePk) {
     	StatementBuilder buff = new StatementBuilder("INSERT INTO ");
-		StatementBuilder fieldTypes = new StatementBuilder(), valueTypes = new StatementBuilder();
+		StatementBuilder fieldTypes = new StatementBuilder();
+		StatementBuilder  valueTypes = new StatementBuilder();
 		buff.append(def.tableName).append('(');
 		if (InheritedType.DISCRIMINATOR == def.inheritedType) {
 			// the inheritance is based on a single table with a discriminator
@@ -430,11 +425,9 @@ public class DbUtils {
 			valueTypes.append("'" + def.discriminatorValue + "'");
 		}
 		for (FieldDefinition field : def.getFields()) {
-			if (!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == def.getGenerationtype())
+			if ((!externalizePk && field.isPrimaryKey && GeneratorType.IDENTITY == def.getGenerationtype())
+				|| field.isSilent || field.isExtension || (field.fieldType != FieldType.FK && field.fieldType != FieldType.NORMAL))
 				// skip identity types because these are auto incremented
-        		continue;
-
-			if (field.isSilent || field.isExtension || (field.fieldType != FieldType.FK && field.fieldType != FieldType.NORMAL))
 				// skip silent fields because they don't really exist.
 				// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
@@ -460,14 +453,12 @@ public class DbUtils {
 		innerUpdate.resetCount();
 		boolean hasNoSilent = false;
 		for (FieldDefinition field : def.getFields()) {
-			if (!field.isPrimaryKey) {
-				if (field.fieldType == FieldType.FK || !field.isSilent || !field.isExtension) {
-					innerUpdate.appendExceptFirst(", ");
-					innerUpdate.append(as + ".");
-					innerUpdate.append(field.columnName);
-					innerUpdate.append(" = ?");
-					hasNoSilent = true;
-				}
+			if (!field.isPrimaryKey && (field.fieldType == FieldType.FK || !field.isSilent || !field.isExtension)) {
+				innerUpdate.appendExceptFirst(", ");
+				innerUpdate.append(as + ".");
+				innerUpdate.append(field.columnName);
+				innerUpdate.append(" = ?");
+				hasNoSilent = true;
 			}
 		}
 		StatementBuilder buff = def.dialect.wrapUpdateQuery(innerUpdate, def.tableName, as);
