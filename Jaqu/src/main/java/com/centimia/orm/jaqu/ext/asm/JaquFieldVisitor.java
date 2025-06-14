@@ -37,9 +37,6 @@ public class JaquFieldVisitor extends FieldVisitor {
 		this.abstractFields = abstractFields;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.objectweb.asm.FieldVisitor#visitAnnotation(java.lang.String, boolean)
-	 */
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 		if (desc != null) {

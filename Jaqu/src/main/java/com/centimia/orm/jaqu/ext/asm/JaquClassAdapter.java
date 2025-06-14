@@ -54,18 +54,12 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		super(api, classVisitor);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.objectweb.asm.ClassAdapter#visit(int, int, java.lang.String, java.lang.String, java.lang.String, java.lang.String[])
-	 */
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		this.className = name;
 		cv.visit(version, access, name, signature, superName, interfaces);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.objectweb.asm.ClassAdapter#visitAnnotation(java.lang.String, boolean)
-	 */
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 		if (desc != null && desc.indexOf("com/centimia/orm/jaqu/annotation/Entity") != -1) {
@@ -80,14 +74,10 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 		return super.visitAnnotation(desc, visible);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.objectweb.asm.ClassAdapter#visitMethod(int, java.lang.String, java.lang.String, java.lang.String, java.lang.String[])
-	 * 
-	 * this method visitor changes the name of the relation getter to $orig_[originalName]
-	 */
 	@Override
 	public MethodVisitor visitMethod(int access, String methodName, String desc, String signature, String[] exceptions) {
-		// 1. if name is in the list of o2m and return type is collection instrument add call to db.getRelationFromDb or db.getRelationArrayFromDb, only if value of field is null;
+		// 1. if name is in the list of o2m and return type is collection instrument 
+		// add call to db.getRelationFromDb or db.getRelationArrayFromDb, only if value of field is null
 		 if ((isEntityAnnotationPresent || isMappedSupperClass) && methodName.startsWith("get")) {
 			final String checkName = methodName.substring(3).toLowerCase();
 			 // this is a getter check if it is a relation getter
@@ -142,7 +132,7 @@ public class JaquClassAdapter extends ClassVisitor implements Opcodes {
 				fv.visitEnd();
 				
 				fv = cv.visitField(ACC_PUBLIC, "isLazy", "Z", null, null);
-				// add the jaquIgnore annotaion to the lazy field because we need to carry this field around the network but not persist it
+				// add the jaquIgnore annotation to the lazy field because we need to carry this field around the network but not persist it
 				AnnotationVisitor av = fv.visitAnnotation("Lcom/centimia/orm/jaqu/annotation/Transient;", true);
 				av.visitEnd();
 				fv.visitEnd();

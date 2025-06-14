@@ -19,7 +19,7 @@
 package com.centimia.orm.jaqu;
 
 /**
- * Used in primary key queries where the PK is a known definit.
+ * Used in primary key queries where the PK is a known definite.
  *
  * @author shai
  */
@@ -82,7 +82,7 @@ public class PkQueryCondition<T, A> extends QueryCondition<T, A>{
     }
 
     /**
-     * Like allowes the 'LIKE' query. dependeing on the query string given. If '%' is used in the 'pattern' it will effect the result.
+     * Like allows the 'LIKE' query. depending on the query string given. If '%' is used in the 'pattern' it will effect the result.
      *
      * @param pattern the pattern to check against.
      * @return QueryWhere<T>

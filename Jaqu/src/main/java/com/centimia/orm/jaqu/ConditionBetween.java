@@ -40,9 +40,6 @@ class ConditionBetween<A> implements Token {
 		this.z = z;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
-	 */
 	@Override
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		query.appendSQL(stat, key, false, null);

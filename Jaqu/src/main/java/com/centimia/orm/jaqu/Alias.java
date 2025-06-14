@@ -15,6 +15,9 @@ package com.centimia.orm.jaqu;
 import java.io.Serializable;
 
 /**
+ * Represents the alias name for the table described by the entity object 
+ * within the query;
+ * 
  * @author shai
  */
 public class Alias implements Serializable {
@@ -31,9 +34,6 @@ public class Alias implements Serializable {
 		this.alias = as;
 	}
 
-	/*
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		if (null != this.aliasEntity)
@@ -41,20 +41,14 @@ public class Alias implements Serializable {
 		return super.hashCode();
 	}
 
-	/*
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
-		if ((null == obj) || !(obj instanceof Alias) || (null == this.aliasEntity))
+		if (!(obj instanceof Alias) || null == this.aliasEntity)
 			return false;
 
 		return this.aliasEntity.equals(((Alias)obj).aliasEntity);
 	}
 
-	/*
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
 		return this.alias;

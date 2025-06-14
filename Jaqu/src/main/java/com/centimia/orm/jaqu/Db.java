@@ -508,7 +508,7 @@ public class Db implements AutoCloseable {
         	}
     	}
     	else {
-    		TableDefinition<T> def = JaquSessionFactory.define(clazz, this);
+    		TableDefinition<T> def = JaquSessionFactory.define(clazz, this, false);
 	    	try {
 	            while (rs.next()) {
 	                T item = def.readRow(rs, this);
@@ -551,7 +551,7 @@ public class Db implements AutoCloseable {
         	}
     	}
     	else {
-    		TableDefinition<T> def = JaquSessionFactory.define(clazz, this);
+    		TableDefinition<T> def = JaquSessionFactory.define(clazz, this, false);
 	    	try {
                 T item = def.readRow(rs, this);
                 this.addSession(item);

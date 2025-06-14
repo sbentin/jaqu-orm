@@ -35,12 +35,9 @@ class UnificationToken implements Token {
 		this.mode = mode;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
-	 */
 	@Override
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
-		if (null != queryString && queryString.length() > 0) {
+		if (null != queryString && !queryString.isEmpty()) {
 			stat.appendSQL(" ");
 			stat.appendSQL(mode.name());
 			stat.appendSQL(" ");

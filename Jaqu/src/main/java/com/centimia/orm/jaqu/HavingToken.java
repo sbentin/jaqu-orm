@@ -17,9 +17,6 @@ package com.centimia.orm.jaqu;
  */
 public class HavingToken implements Token {
 
-	/* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
-	 */
 	@Override
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
 		stat.appendSQL("having");

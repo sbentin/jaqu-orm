@@ -114,8 +114,8 @@ public class QueryJoinWhere<T> {
      * @param x
      * @return QueryCondition<T, A>
      */
-    public <A> QueryCondition<T, A> where(A x) {
-        return new QueryCondition<>(query, x);
+    public <K, A> QueryCondition<T, A> where(GenericMask<K, A> mask) {
+        return new QueryCondition<>(query, mask, mask.mask());
     }
 
     /**
@@ -127,6 +127,17 @@ public class QueryJoinWhere<T> {
     	return query.where(whereCondition);
     }
 
+    /**
+     * Opens a where clause after join.
+     *
+     * @param <A>
+     * @param x
+     * @return QueryCondition<T, A>
+     */
+    public <A> QueryCondition<T, A> where(A x) {
+        return new QueryCondition<>(query, x);
+    }
+    
     /**
 	 * inner Join another table. (returns only rows that match)
 	 *
