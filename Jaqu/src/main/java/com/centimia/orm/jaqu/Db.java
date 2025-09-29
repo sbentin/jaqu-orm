@@ -54,7 +54,11 @@ public class Db implements AutoCloseable {
 	private static final String UPDATE = "UPDATE ";
 	private static final String WHERE = " WHERE ";
 	private static final String SESSION_IS_CLOSED = "IllegalState - Session is closed!!!";
-
+	// used in scoping to show when we have no stack trace, although we should have as opposed to null that shows we didn't have one
+	// because the call was not made.
+	private static final StackTraceElement UNKNOWN_CALLER = new StackTraceElement("<unknown>", "<unknown>", null, -1);
+	private static final StackWalker WALKER = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE); // a stack trace walker, more efficient way to explore stack
+	
 	/*
      * A list of objects this specific DB call has already visited. This list is cleared after each call.
      * Keeps a different list per thread.
@@ -85,6 +89,9 @@ public class Db implements AutoCloseable {
 	private boolean closeExternal;
 	private boolean commitExternal;
 	
+	// The stack‑trace element of the method that called commitExternal()
+    private StackTraceElement scopeChangeCaller = null;
+    
 	private boolean rollbackOnly = false;
 	
     Db(Connection conn, JaquSessionFactory factory) {
@@ -654,20 +661,34 @@ public class Db implements AutoCloseable {
      * In this example work done in methodB will not be committed until commit is issued in methodA. The connection will be close when exiting the try with resources
      * in methodA.
      * <p>
-     * 
+     * Since managing scope on nested methods can be complicated to follow this method records its original caller.
+     * <p>
      * @param externalCommit set to true to control commit from the outer method.
      * @see JaquSessionFactory#newLocalSession()
      * @return Db
      */
     public Db applyScope(boolean externalCommit) {
-    	if (this.commitExternal && !externalCommit)
-    		throw new JaquError("This scope is managed externally. You can not set values which were scoped previously in an outer scope back to unscoped "
-    				+ "unless you are within the same outer scope. "
+    	if (this.commitExternal && !externalCommit) {
+    		// we can't change commit state from 'true' to 'false', only from 'false' to 'true'. The reason is that if an external call declared
+    		// that it will manage commit, an internal is not allowed to change this decision.
+    		String msg = String.format("This scope is managed externally from %s. You can not set values which were scoped previously in an outer scope back to unscoped "
+    				+ "unless you are within the same outer scope.\n"
     				+ "To reset the scope use resetScope method!!! If you need to specifically commit a connection in an internal method scope "
-    				+ "use a different connection by calling 'newLocalSession' on the factory.");
+    				+ "use a different connection by calling 'newLocalSession' on the factory.", scopeChangeCaller);
+    		throw new JaquError(msg);
+    	}
    		this.commitExternal = externalCommit;
-    	this.closeExternal = true;
-    	return this;
+    	
+    	if (!closeExternal) {
+	    	// the following line records the caller of the applyScope so that we can tell "who" applied scope to begin with.
+    		// only when closeExternal is still false on this call we are at the first caller.
+	   		scopeChangeCaller = WALKER.walk(stream -> stream.skip(2)
+	   								.map(StackWalker.StackFrame::toStackTraceElement)
+	   								.findFirst()
+	   								.orElse(UNKNOWN_CALLER));
+    	}
+   		this.closeExternal = true;
+   		return this;
     }
 
     /**
@@ -689,6 +710,7 @@ public class Db implements AutoCloseable {
     public Db resetScope() {
     	this.closeExternal = false;
     	this.commitExternal = false;
+    	this.scopeChangeCaller = null;
     	return this;
     }
 
@@ -722,6 +744,7 @@ public class Db implements AutoCloseable {
 				StatementLogger.error("unable to get status on transaction for an unknown reason. [" + e.getMessage() + "]");
 			}
 			catch (NullPointerException npe) {
+				// Just in case, this should not happen!
 				// this means that there is no transaction (getTransaction() was null)
 			}
 			// we will reach here if there is no transaction
@@ -800,6 +823,7 @@ public class Db implements AutoCloseable {
 	            throw new JaquError(e, "Unable to close session's underlying connection because --> {%s}", e.getMessage());
 	        }
         	finally {
+        		this.factory.removeSession();
 	        	clean();
 	        }
         }
@@ -1716,6 +1740,7 @@ public class Db implements AutoCloseable {
 		this.factory = null;
 		reEntrantCache.clearReEntrent();
 		multiCallCache.clearReEntrent();
+		this.scopeChangeCaller = null;
 		this.closeExternal = false;
 		this.commitExternal = false;
 		this.rollbackOnly = false;

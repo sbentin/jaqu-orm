@@ -542,6 +542,17 @@ public class QueryJoinWhere<T> {
 	}
 
 	/**
+	 * adds a limit to the query
+	 * 
+	 * @param limitNum
+	 * @return QueryInterface&lt;T&gt;
+	 */
+	public QueryJoinWhere<T> limit(int limitNum) {
+		query.limit(limitNum);
+		return this;
+	}
+	
+	/**
 	 * Order by one or more columns in ascending order.
 	 *
 	 * @param expressions the order by expressions

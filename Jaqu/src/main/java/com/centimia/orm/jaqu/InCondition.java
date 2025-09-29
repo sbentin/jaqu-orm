@@ -50,9 +50,6 @@ class InCondition<A> implements Token {
 		this.y = y;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
-	 */
 	@Override
 	@SuppressWarnings({ "rawtypes", "resource" })
 	public <T> void appendSQL(SQLStatement stat, Query<T> query) {
@@ -61,6 +58,8 @@ class InCondition<A> implements Token {
         stat.appendSQL(compareType.getString());
         StatementBuilder buff = new StatementBuilder(" (");
         for (A item: y) {
+        	if (null == item)
+        		throw new JaquError("can not have a 'null' value in an %s statement value", compareType.name());
         	buff.appendExceptFirst(", ");
         	if ((item instanceof String) || (item instanceof UUID)) {
         		buff.append("'" + item.toString() + "'");
@@ -77,7 +76,7 @@ class InCondition<A> implements Token {
         	}
         	else if (TemporalAccessor.class.isAssignableFrom(item.getClass()))
         		query.getDb().factory.getDialect().getQueryStyleDate((TemporalAccessor)item);
-        	else if (item != null && (null != item.getClass().getAnnotation(Entity.class) || null != item.getClass().getAnnotation(MappedSuperclass.class))) {
+        	else if (null != item.getClass().getAnnotation(Entity.class) || null != item.getClass().getAnnotation(MappedSuperclass.class)) {
         		Object o = query.getDb().factory.getPrimaryKey(item);
         		if (String.class.isAssignableFrom(o.getClass()))
         			buff.append("'" + o.toString() + "'");

@@ -36,31 +36,43 @@ public class QueryJoinCondition<T, A> {
     }
 
     public QueryJoinWhere<T> is(A y) {
-   		join.addConditionToken(new Condition<>(x, y, CompareType.EQUAL));
+    	if (null == y)
+    		throw new JaquError("Cannot compare column to null using `is()`. Use `isNull()` instead. If null was unexpected fix your code!!!");
+    	join.addConditionToken(new Condition<>(x, y, CompareType.EQUAL));
         return new QueryJoinWhere<>(query, join);
     }
 
     public QueryJoinWhere<T> isNot(A y) {
-   		join.addConditionToken(new Condition<>(x, y, CompareType.NOT_EQUAL));
+    	if (null == y)
+    		throw new JaquError("Cannot compare column to null using `is()`. Use `isNotNull()` instead. If null was unexpected fix your code!!!");
+    	join.addConditionToken(new Condition<>(x, y, CompareType.NOT_EQUAL));
         return new QueryJoinWhere<>(query, join);
     }
     
     public QueryJoinWhere<T> bigger(A y) {
+    	if (null == y)
+    		throw new JaquError("Cannot compare column to null using `bigger()`. Null was unexpected fix your code!!!");
         join.addConditionToken(new Condition<>(x, y, CompareType.BIGGER));
         return new QueryJoinWhere<>(query, join);
     }
 
     public QueryJoinWhere<T> biggerEqual(A y) {
+    	if (null == y)
+    		throw new JaquError("Cannot compare column to null using `biggerEqual()`. Null was unexpected fix your code!!!");
         join.addConditionToken(new Condition<>(x, y, CompareType.BIGGER_EQUAL));
         return new QueryJoinWhere<>(query, join);
     }
 
     public QueryJoinWhere<T> smaller(A y) {
-        join.addConditionToken(new Condition<>(x, y, CompareType.SMALLER));
+    	if (null == y)
+    		throw new JaquError("Cannot compare column to null using `smaller()`. Null was unexpected fix your code!!!");
+    	join.addConditionToken(new Condition<>(x, y, CompareType.SMALLER));
         return new QueryJoinWhere<>(query, join);
     }
 
     public QueryJoinWhere<T> smallerEqual(A y) {
+    	if (null == y)
+    		throw new JaquError("Cannot compare column to null using `smallerEqual()`. Null was unexpected fix your code!!!");
         join.addConditionToken(new Condition<>(x, y, CompareType.SMALLER_EQUAL));
         return new QueryJoinWhere<>(query, join);
     }
@@ -72,7 +84,9 @@ public class QueryJoinCondition<T, A> {
      * @return QueryWhere&lt;T&gt;
      */
     public QueryJoinWhere<T> like(A pattern) {
-        join.addConditionToken(new Condition<>(x, pattern, CompareType.LIKE));
+    	if (null == pattern)
+    		throw new JaquError("Cannot compare column to null using `like()`. Null was unexpected fix your code!!!");
+    	join.addConditionToken(new Condition<>(x, pattern, CompareType.LIKE));
         return new QueryJoinWhere<>(query, join);
     }
 
@@ -86,7 +100,9 @@ public class QueryJoinCondition<T, A> {
      * @return QueryWhere&lt;T&gt;
      */
     public QueryJoinWhere<T> like(A pattern, LikeMode mode) {
-        join.addConditionToken(new LikeCondition<>(x, pattern, mode));
+    	if (null == pattern)
+    		throw new JaquError("Cannot compare column to null using `like()`. Null was unexpected fix your code!!!");
+    	join.addConditionToken(new LikeCondition<>(x, pattern, mode));
         return new QueryJoinWhere<>(query, join);
     }
 }

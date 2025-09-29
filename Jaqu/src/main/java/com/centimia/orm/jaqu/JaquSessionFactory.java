@@ -251,6 +251,13 @@ public final class JaquSessionFactory {
 	}
 
 	/**
+	 * removes the Db object from the current thread as it has been closed!!!
+	 */
+	void removeSession() {
+		currentSession.remove();
+	}
+	
+	/**
      * Extract the primary key for the table represented by the field given.<br>
      * The field must represent a Table which has already been defined.
      *

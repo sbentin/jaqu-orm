@@ -40,6 +40,7 @@ public class Query<T> implements QueryInterface<T> {
     private ArrayList<SelectTable< ? >> joins = Utils.newArrayList();
     private final IdentityHashMap<Object, SelectColumn<T>> aliasMap = Utils.newIdentityHashMap();
     private ArrayList<OrderExpression<T>> orderByList = Utils.newArrayList();
+    private LimitToken limit = null;
     private Object[] groupByExpressions;
 
     Query(Db db) {
@@ -511,8 +512,7 @@ public class Query<T> implements QueryInterface<T> {
 
     @Override
 	public Query<T> limit(int limitNum) {
-		LimitToken conditionCode = new LimitToken(limitNum);
-		conditions.add(conditionCode);
+		this.limit = new LimitToken(limitNum);
 		return this;
 	}
 
@@ -661,6 +661,9 @@ public class Query<T> implements QueryInterface<T> {
                 o.appendSQL(stat);
                 stat.appendSQL(" ");
             }
+        }
+        if (null != limit) {
+        	limit.appendSQL(stat, this);
         }
         return stat;
     }
