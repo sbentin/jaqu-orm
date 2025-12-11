@@ -67,10 +67,12 @@ publishing {
 		classifier "sources"
 		from sourceSets.main.allJava
 	}
+	
 //	task javadocJar(type: Jar, dependsOn: javadoc) {
 //      classifier = 'javadoc'
 //      from javadoc.destinationDir
-//    }
+//  }
+
 	publications {
 		binary(MavenPublication) {
 			artifactId = "jaqu"

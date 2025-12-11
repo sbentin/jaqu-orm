@@ -85,10 +85,6 @@ public interface ExampleOptions {
 	 */
 	public boolean getExcludeZeros();
 
-//	public ExampleOptions setIgnoreCase(boolean ignore);
-//
-//	public boolean getIgnoreCase();
-
 	/**
 	 * set the Like mode for string values.
 	 *

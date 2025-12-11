@@ -38,7 +38,6 @@ import com.centimia.orm.jaqu.annotation.Immutable;
 import com.centimia.orm.jaqu.annotation.MappedSuperclass;
 import com.centimia.orm.jaqu.util.ClassUtils;
 import com.centimia.orm.jaqu.util.FieldComperator;
-import com.centimia.orm.jaqu.util.JdbcUtils;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 import com.centimia.orm.jaqu.util.Utils;
 import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
@@ -48,6 +47,8 @@ import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
  */
 public class Db implements AutoCloseable {
 
+	public static final int FULL_DEPTH = -1;
+	
     private static final String UNABLE_TO_FILL_ROW = "Unable to fill row. Maybe resultSet is not of this object type?";
 	private static final String COM_CENTIMIA_ORM = "com.centimia.orm";
 	private static final String SET = " SET ";
@@ -102,14 +103,67 @@ public class Db implements AutoCloseable {
         this.closed = false;
     }
 
-    /**
+	/**
      * Insert the given object and all it's children to the DB.
      *
      * @param <T>
      * @param t
      */
+    public <T> void insert(T t) {
+    	this.insert(t, FULL_DEPTH);
+    	clearReEntrentCache();
+    }
+    
+    /**
+     * Insert the given object and all it's children to the DB.
+     * <p>
+     * <b>Important Note about depth</b>:<br>
+     * When running fluent api, the Db connection maintains a re-entrent cache of objects it has 
+     * already processed during the current connection. So, if you retrieve an object tree with fluent api
+     * and then make changes to the tree and use one of the (insert/update/merge) operations with depth
+     * less then FULL_DEPTH, the data will be processed correctly in the DB. However, if you then try to
+     * re-fetch the same object tree with fluent api, you may get objects from the re-entrent cache that hold
+     * a previous state of the object. To illustrate:
+     * <pre>
+     * // say you have an Object A that holds an Object B that holds an Object C.
+     * 
+     * ObjectA a = new ObjectA();
+     * ObjectB b = new ObjectB();
+     * ObjectC c = new ObjectC();
+     * a.setB(b);
+     * b.setC(c);
+     * 
+     * db.insert(a); // inserts A, B and C in the DB (full depth)
+     * 
+     * ObjectA aFromDb = new ObjectA();
+     * aFromDb = db.from(aFromDb).primaryKey().is(a.getId()).selectFirst(); // retrieves A, B and C from the DB
+     * // in the multiCall cache we now have A, B and C
+     * 
+     * a.name = "new name for A";
+     * a.getB().name = "new name for B";
+     * a.getB().getC().name = "new name for C";
+     * 
+     * db.update(a, 1) // updates A and B in the DB, C is not updated
+     * // in the 'a' object tree, however, c has a new name.
+     * // in the 'aFromDb' object tree, c has the old name.
+     * 
+     * ObjectA a1 = new ObjectA();
+     * a1 = db.from(a1).primaryKey().is(1).selectFirst(); // retrieves A, B and C from the DB
+     * // however, this connection cached A, B and C in the multiCall cache on the previous 'select' fluent api call
+     * assertEquals("new name for A", a1.getName()); // will fail because the cached A has the old name, even though the DB has the new name
+     * 
+     * // if we change aFormDb instead and update then the cache will be updated to the objects state but the DB
+     * // will have a different state for C.
+     * </pre>
+     * Jaqu assumes that the latter course of action is not the common one. However, if you do run into this you
+     * must close and reopen the connection to clear the multi call cache.
+     * </p>
+     * @param <T>
+     * @param t
+     * @param depth - the depth of the object tree to insert (Db.FULL_DEPTH for full depth)
+     */
     @SuppressWarnings("unchecked")
-	public <T> void insert(T t) {
+	public <T> void insert(T t, int depth) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	t = checkSession(t);
@@ -117,12 +171,12 @@ public class Db implements AutoCloseable {
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onInsert(t);
-        definition.insert(this, t);
+        definition.insert(this, t, depth);
         clearReEntrentCache();
     }
 
     /**
-     * Inserts the object and returns it's primary key, generated or not.
+     * Inserts the object and returns the top most Object in the hierarcy's primary key, generated or not.
      *
      * @param <T>
      * @param <X>
@@ -131,8 +185,26 @@ public class Db implements AutoCloseable {
      * @throws JaquError when no primary keys exists or more then one primary key exists or when the object inserted and primary key could not be retrieved
      * @throws RuntimeException (could also be a JaquError) when insert failed.
      */
+    public <T,X> X insertAndGetPK(T t) {
+		X pk = insertAndGetPK(t, FULL_DEPTH);
+		clearReEntrentCache();
+        return pk;
+	}
+    
+    /**
+     * Inserts the object and returns the top most Object in the hierarcy's primary key, generated or not.
+     *
+     * @param <T>
+     * @param <X>
+     * @param t
+     * @param depth - the depth of the object tree to insert (Db.FULL_DEPTH for full depth)
+     * @return X the primary key.
+     * @throws JaquError when no primary keys exists or more then one primary key exists or when the object inserted and primary key could not be retrieved
+     * @throws RuntimeException (could also be a JaquError) when insert failed.
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
+     */
 	@SuppressWarnings("unchecked")
-	public <T,X> X insertAndGetPK(T t) {
+	public <T,X> X insertAndGetPK(T t, int depth) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	t = checkSession(t);
@@ -148,7 +220,7 @@ public class Db implements AutoCloseable {
         // test for intercepter.
         if (null != td.getInterceptor())
         	td.getInterceptor().onInsert(t);
-        td.insert(this, t);
+        td.insert(this, t, depth);
         primaryKeys.get(0).field.setAccessible(true);
         X pk = null;
 		try {
@@ -185,15 +257,18 @@ public class Db implements AutoCloseable {
      * Insert objects in a comma delimited array of 0..n
      *
      * @param <T>
+     * @param depth - the depth of the object tree to insert (Db.FULL_DEPTH for full depth)
      * @param tArray
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
     @SuppressWarnings("unchecked")
-	public <T> void insert(T ... tArray) {
+	public <T> void insert(int depth, T ... tArray) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t : tArray) {
-            insert(t);
+            insert(t, depth);
         }
+    	clearReEntrentCache();
     }
 
     /**
@@ -201,12 +276,14 @@ public class Db implements AutoCloseable {
      *
      * @param <T>
      * @param list
+     * @param depth - the depth of the object tree to insert (Db.FULL_DEPTH for full depth)
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
-    public <T> void insertAll(List<T> list) {
+    public <T> void insertAll(List<T> list, int depth) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
         for (T t : list) {
-            insert(t);
+            insert(t, depth);
         }
         clearReEntrentCache();
     }
@@ -216,9 +293,22 @@ public class Db implements AutoCloseable {
      *
      * @param <T>
      * @param t
+     */ 
+    public <T> void merge(T t) {
+    	this.merge(t, FULL_DEPTH);
+    	clearReEntrentCache();
+    }
+    
+    /**
+     * Merge means that if the object exists it is updated (so are all his children), if not it is inserted (so are all his children)
+     *
+     * @param <T>
+     * @param t
+     * @param depth - the depth of the object tree to merge (Db.FULL_DEPTH for full depth)
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
     @SuppressWarnings("unchecked")
-	public <T> void merge(T t) {
+	public <T> void merge(T t, int depth) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	t = checkSession(t);
@@ -226,7 +316,7 @@ public class Db implements AutoCloseable {
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onMerge(t);
-        definition.merge(this, t);
+        definition.merge(this, t, depth);
         clearReEntrentCache();
     }
 
@@ -235,12 +325,14 @@ public class Db implements AutoCloseable {
      *
      * @param <T>
      * @param list
+     * @param depth - the depth of the object tree to merge (Db.FULL_DEPTH for full depth)
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
-    public <T> void merge(List<T> list) {
+    public <T> void merge(List<T> list, int depth) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: list){
-    		merge(t);
+    		merge(t, depth);
     	}
     	clearReEntrentCache();
     }
@@ -249,14 +341,16 @@ public class Db implements AutoCloseable {
      *  merge all the given objects of the same type. They are merged in the order in which they are given.
      *
      * @param <T>
+     * @param depth - the depth of the object tree to merge (Db.FULL_DEPTH for full depth)
      * @param tArray
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
     @SuppressWarnings("unchecked")
-	public <T> void merge(T ... tArray) {
+	public <T> void merge(int depth, T ... tArray) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: tArray){
-    		merge(t);
+    		merge(t, depth);
     	}
     	clearReEntrentCache();
     }
@@ -349,8 +443,26 @@ public class Db implements AutoCloseable {
      * @param <T>
      * @param t
      */
+    public <T> void update(T t) {
+    	this.update(t, FULL_DEPTH);
+    	clearReEntrentCache();
+    }
+    
+    /**
+     * Updates the immediate given object. If the object has a relationship, the link is always updated as needed. In case where the link
+     * is to a non persisted entity the new entity is inserted into the DB.
+     * <b>Note: </b> This update works for Entities, and objects with mapped primary keys. For a general from update use the SQL like format
+     * <pre>
+     * 	db.from(T).set()....update();
+     * </pre>
+     *
+     * @param <T>
+     * @param t
+     * @param depth - the depth of the object tree to update (Db.FULL_DEPTH for full depth)
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
+     */
     @SuppressWarnings("unchecked")
-	public <T> void update(T t) {
+	public <T> void update(T t, int depth) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	if (null == factory.getPrimaryKey(t))
@@ -361,7 +473,7 @@ public class Db implements AutoCloseable {
         TableDefinition<?> definition = define(clazz);
         if (null != definition.getInterceptor())
         	definition.getInterceptor().onUpdate(t);
-        definition.update(this, t);
+        definition.update(this, t, depth);
         clearReEntrentCache();
     }
 
@@ -374,13 +486,14 @@ public class Db implements AutoCloseable {
      *
      * @param <T>
      * @param list
-     * @see Db#update(Object)
+     * @param depth - the depth of the object tree to update (Db.FULL_DEPTH for full depth)
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
-    public <T> void update(List<T> list){
+    public <T> void update(List<T> list, int depth){
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: list){
-    		update(t);
+    		update(t, depth);
     	}
     	clearReEntrentCache();
     }
@@ -393,15 +506,16 @@ public class Db implements AutoCloseable {
      * </pre>
      *
      * <T>
+     * @param depth - the depth of the object tree to update (Db.FULL_DEPTH for full depth)
      * @param tArray
-     * @see Db#update(Object)
+     * @see {@link Db#insert(Object, int)} for important note about depth and re-entrent cache.
      */
     @SuppressWarnings("unchecked")
-	public <T> void update(T ... tArray){
+	public <T> void update(int depth, T ... tArray){
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
     	for (T t: tArray){
-    		update(t);
+    		update(t, depth);
     	}
     	clearReEntrentCache();
     }
@@ -752,6 +866,7 @@ public class Db implements AutoCloseable {
 		}
 		catch (SQLException e) {
 			// can't rollback nothing can be done!!!
+			throw new JaquError(e, "Unable to rollback session's underlying connection because --> {%s}", e.getMessage());
 		}
 	}
 
@@ -785,6 +900,7 @@ public class Db implements AutoCloseable {
 		}
 		catch (SQLException e) {
 			// can't commit nothing can be done!!!
+			throw new JaquError(e, "Unable to commit session's underlying connection because --> {%s}", e.getMessage());
 		}
 	}
 
@@ -1134,6 +1250,7 @@ public class Db implements AutoCloseable {
     
     /**
      * Run an update query directly on the database
+     * <p>
      * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure
 	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
 	 *
@@ -1142,27 +1259,12 @@ public class Db implements AutoCloseable {
      * @return int
      */
     public int executeUpdate(String preparedStmnt, Object ... args) {
-    	if (this.closed)
-    		throw new JaquError(SESSION_IS_CLOSED);
-    	
-    	try (PreparedStatement stmnt = this.prepare(preparedStmnt)) {
-    		if (null != args && 0 < args.length) {
-				for (int i = 0; i < args.length; i++) {
-					stmnt.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0
-				}
-	    	}
-    		this.multiCallCache.clearReEntrent();
-    		if (factory.isShowSQL())
-    			StatementLogger.update(preparedStmnt);
-	    	return stmnt.executeUpdate();
-    	}
-		catch (SQLException e) {
-			throw new JaquError(e, e.getMessage());
-		}
+    	return executeUpdate(true, preparedStmnt, args);
     }
 
     /**
      * Run a SQL statement directly against the database.
+     * <p>
      * <b>Note</b> Since update executes without objects but effects the state of the db jaqu can no longer insure
 	 * that the objects taken from the db before are still valid so MultiCache is cleared. Objects will no longer be the same instance if fetched again</b>
 	 *
@@ -1205,8 +1307,17 @@ public class Db implements AutoCloseable {
 
 	/**
 	 * Add a Db Session to the Entity class. Object must be annotated with @Entity
-	 * <p><b>note: <br>unlike {@link #checkSession(Object)} this does not attach the object, i.e no list merging is performed. This method is used mostly internally but is quicker for entities that do not need
-	 * list merging.
+	 * <p>
+	 * <b>note:
+	 * <ol>
+	 * <li>unlike {@link #checkSession(Object)} this does not attach the object, 
+	 * i.e no list merging is performed.</li>
+	 * <li>it does not go through the object tree and does not add a session to the relationships</li>
+	 * </ol>
+	 * </b>
+	 * This method is used mostly internally but is quicker for entities that do not need list merging.
+	 * 
+	 * @param t &lt;T&gt;
 	 */
 	public <T> void addSession(T t) {
 		try {
@@ -1465,30 +1576,27 @@ public class Db implements AutoCloseable {
 	<T> List<T> getRelationByRelationTable(FieldDefinition def, Object myPrimaryKey, Class<T> type){
 		TableDefinition<T> targetDef = define(type);
 		// for String primary keys do the following
-		String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
 		StatementBuilder builder = new StatementBuilder("SELECT target.* FROM ").append(targetDef.tableName).append(" target, ").append(def.relationDefinition.relationTableName);
-		builder.append(" rt where rt.").append(def.relationDefinition.relationFieldName).append("=").append(pk).append(" and rt.").append(def.relationDefinition.relationColumnName);
+		builder.append(" rt where rt.").append(def.relationDefinition.relationFieldName).append("= ?").append(" and rt.").append(def.relationDefinition.relationColumnName);
 		builder.append("= target.").append(targetDef.getPrimaryKeyFields().get(0).columnName);
 
 		if (null != def.relationDefinition.orderByColumn)
 			builder.append(" order by rt." + def.relationDefinition.orderByColumn + " " + def.relationDefinition.direction);
 		List<T> result = Utils.newArrayList();
-		ResultSet rs = null;
-		try {
-			if (factory.isShowSQL())
-				StatementLogger.info(builder.toString());
-
-        	rs = prepare(builder.toString()).executeQuery();
-            while (rs.next()) {
-                T item = targetDef.readRow(rs, this);
-                result.add(item);
-            }
+		
+		if (factory.isShowSQL())
+			StatementLogger.info(builder.toString());
+		try (PreparedStatement pStmnt = this.prepare(builder.toString())) {
+			pStmnt.setObject(1, myPrimaryKey);
+        	try (ResultSet rs = pStmnt.executeQuery()) {
+        		while (rs.next()) {
+                    T item = targetDef.readRow(rs, this);
+                    result.add(item);
+                }
+        	}
         }
         catch (SQLException e) {
             throw new JaquError(e, e.getMessage());
-        }
-        finally {
-            JdbcUtils.closeSilently(rs);
         }
         return result;
 	}
@@ -1544,7 +1652,7 @@ public class Db implements AutoCloseable {
 		Collection<?> relations = null;
 		try {
 			fdef.getter.setAccessible(true);
-			relations =  (Collection<?>) fdef.getter.invoke(parent); // this must be a collection by design
+			relations = (Collection<?>) fdef.getter.invoke(parent); // this must be a collection by design
 			fdef.getter.setAccessible(false);
 		}
 		catch (Exception e) {
@@ -1559,20 +1667,29 @@ public class Db implements AutoCloseable {
 		}
 		// this means we are not in cascade delete, so we just break the link
 		else {
-			// since the relationFieldName should be the sa,e for the hierarchy we can just get the first
+			// validate relation data type
+	        if (null == fdef.relationDefinition.dataType || 0 == fdef.relationDefinition.dataType.length) {
+	            throw new JaquError("Internal Error: Relation definition for field %s has no data types", fdef.field.getName());
+	        }
+	        
+			// since the relationFieldName should be the same for the hierarchy we can just get the first
 			TableDefinition<?> tdef = define(fdef.relationDefinition.dataType[0]);
 			// the following code runs only if we have not deleted our objects and we have an update interceptor.
-			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE) && relations != null) {
+			if (null != tdef.getInterceptor() && tdef.hasInterceptEvent(Event.UPDATE) && null != relations) {
 				for (Object o: relations)
 					tdef.getInterceptor().onUpdate(o);
 			}
-			if (fdef.relationDefinition.relationTableName == null) { // if it's cascade delete these objects where deleted already so we can skip
+			if (null == fdef.relationDefinition.relationTableName) { // if it's cascade delete these objects where deleted already so we can skip
 				// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists,
 				// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
-				String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-				StatementBuilder builder = new StatementBuilder(UPDATE).append(tdef.tableName).append(SET).append(fdef.relationDefinition.relationFieldName).append("=null WHERE ");
-				builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-				executeUpdate(false, builder.toString());
+				StatementBuilder builder = new StatementBuilder(UPDATE)
+						.append(tdef.tableName)
+						.append(SET)
+						.append(fdef.relationDefinition.relationFieldName)
+						.append("=null WHERE ");
+				builder.append(fdef.relationDefinition.relationFieldName).append("= ?");
+				Object pKey = factory.getPrimaryKey(parent);
+				executeUpdate(false, builder.toString(), pKey);
 				return;
 			}
 		}
@@ -1580,10 +1697,12 @@ public class Db implements AutoCloseable {
 		// relationTables exist both in O2M and M2M relations. In this case all we need to do is to remove all the entries in the table that include the parent
 		// this code runs also for cascade deletes because the normal delete removes the object, the following also removes the reference from the relationtable.
 		if (fdef.relationDefinition.relationTableName != null) {
-			String pk = (factory.getPrimaryKey(parent) instanceof String) ? "'" + factory.getPrimaryKey(parent).toString() + "'" : factory.getPrimaryKey(parent).toString();
-			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(WHERE);
-			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pk);
-			executeUpdate(builder.toString());
+			StatementBuilder builder = new StatementBuilder("DELETE FROM ")
+					.append(fdef.relationDefinition.relationTableName)
+					.append(WHERE);
+			builder.append(fdef.relationDefinition.relationFieldName).append("= ?");
+			Object pKey = factory.getPrimaryKey(parent);
+			executeUpdate(builder.toString(), pKey);
 		}
 	}
 
@@ -1597,12 +1716,12 @@ public class Db implements AutoCloseable {
 		if (fdef.relationDefinition.cascadeType == CascadeType.DELETE)
 			delete(child);
 		if (fdef.relationDefinition.relationTableName == null && fdef.relationDefinition.cascadeType != CascadeType.DELETE) {
+			Field otherSideRelation = null;
 			try {
 				// I use fdef.relationDefinition.dataType[0] because even in inheritance situation the relation field must be the same
-				Field otherSideRelation = ClassUtils.findField(fdef.relationDefinition.dataType[0], fdef.relationDefinition.relationFieldName);
+				otherSideRelation = ClassUtils.findField(fdef.relationDefinition.dataType[0], fdef.relationDefinition.relationFieldName);
 				otherSideRelation.setAccessible(true);
 				otherSideRelation.set(child, null);
-				otherSideRelation.setAccessible(false);
 				// updates the child in the DB.
 				update(child);
 			}
@@ -1613,36 +1732,55 @@ public class Db implements AutoCloseable {
 				// Calling define here costs very little since this table's definition is cached.
 				TableDefinition<?> def = define(child.getClass());
 				StatementBuilder updateQuery = new StatementBuilder(UPDATE).append(def.tableName);
-				updateQuery.append(SET).append(fdef.relationDefinition.relationFieldName).append(" = ").append("null");
-				// we assume that our table has a single column primary key.
-				String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
-				updateQuery.append(WHERE).append(fdef.relationDefinition.relationFieldName).append(" = ").append(pPk);
-
-				executeUpdate(false, updateQuery.toString());
+				updateQuery
+					.append(SET)
+					.append(fdef.relationDefinition.relationFieldName)
+					.append(" = ")
+					.append("null")
+					// we assume that our table has a single column primary key.
+					.append(WHERE)
+					.append(fdef.relationDefinition.relationFieldName)
+					.append(" = ?");
+				executeUpdate(false, updateQuery.toString(), parentPrimaryKey);
 			}
 			catch (Exception e) {
 				throw new JaquError(e, e.getMessage());
 			}
+			finally {
+				if (null != otherSideRelation) {
+					otherSideRelation.setAccessible(false);
+				}
+			}
 		}
 		// relationTables exist both in O2M and M2M relations. In this case all we need to remove a specific entry in the relation table.
 		if (fdef.relationDefinition.relationTableName != null) {
-			String pk = (factory.getPrimaryKey(child) instanceof String) ? "'" + factory.getPrimaryKey(child).toString() + "'" : factory.getPrimaryKey(child).toString();
-			String pPk = (parentPrimaryKey instanceof String) ? "'" + parentPrimaryKey.toString() + "'" : parentPrimaryKey.toString();
-			StatementBuilder builder = new StatementBuilder("DELETE FROM ").append(fdef.relationDefinition.relationTableName).append(WHERE);
-			builder.append(fdef.relationDefinition.relationFieldName).append("=").append(pPk).append(" AND ").append(fdef.relationDefinition.relationColumnName);
-			builder.append(" = ").append(pk);
-			executeUpdate(builder.toString());
+			StatementBuilder builder = new StatementBuilder("DELETE FROM ")
+					.append(fdef.relationDefinition.relationTableName)
+					.append(WHERE)
+					.append(fdef.relationDefinition.relationFieldName)
+					.append("= ?")
+					.append(" AND ")
+					.append(fdef.relationDefinition.relationColumnName)
+					.append(" = ?");
+			Object rPk = factory.getPrimaryKey(child);
+			executeUpdate(builder.toString(), parentPrimaryKey, rPk);
 		}
 	}
 
-	int executeUpdate(boolean cleanRenentrent, String sql) {
+	int executeUpdate(boolean cleanRenentrent, String sql, Object ... args) {
     	if (this.closed)
     		throw new JaquError(SESSION_IS_CLOSED);
-    	try (Statement stat = conn.createStatement()) {
-        	if (factory.isShowSQL()) {
-    			StatementLogger.update(sql);
-        	}
-            int updateCount = stat.executeUpdate(sql);
+    	
+    	if (factory.isShowSQL()) {
+			StatementLogger.update(sql);
+    	}
+    	try (PreparedStatement stat = conn.prepareStatement(sql)) {
+    		if (null != args && 0 < args.length) {
+				for (int i = 0; i < args.length; i++) {
+					stat.setObject(i + 1, args[i]); // +1 is because parameters in database APIs start with 1 not with 0														
+				}
+    		}
+            int updateCount = stat.executeUpdate();
             if (cleanRenentrent)
             	this.multiCallCache.clearReEntrent();
             return updateCount;
@@ -1654,14 +1792,14 @@ public class Db implements AutoCloseable {
 
 	private void clearReEntrentCache() {
 		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-		if (null != stackTrace[3] && stackTrace[3].getClassName().indexOf(COM_CENTIMIA_ORM) == -1)
+		if (stackTrace.length >= 4 && null != stackTrace[3] && stackTrace[3].getClassName().indexOf(COM_CENTIMIA_ORM) == -1)
 			reEntrantCache.clearReEntrent();
 	}
 	
 	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws NoSuchFieldException, IllegalAccessException {
 		T descriptor = Utils.newObject(type);
 		List<T> result;
-		if (def.relationDefinition.relationTableName == null) {
+		if (null == def.relationDefinition.relationTableName) {
 			QueryWhere<T> where = this.from(descriptor).where(st -> {
 				String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());
 				return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;

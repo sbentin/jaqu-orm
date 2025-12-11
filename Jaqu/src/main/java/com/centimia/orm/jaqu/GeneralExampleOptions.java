@@ -43,97 +43,57 @@ public class GeneralExampleOptions implements ExampleOptions {
 			this.fields.addAll(Arrays.asList(excludeFields));
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeProps(java.util.HashSet)
-	 */
 	@Override
 	public ExampleOptions setExcludeProps(HashSet<String> excludeProps) {
 		this.fields = new HashSet<>(excludeProps);
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#getExcludeProps()
-	 */
 	@Override
 	public HashSet<String> getExcludeProps() {
 		return this.fields;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#addExcludeProp(java.lang.String)
-	 */
 	@Override
 	public ExampleOptions addExcludeProp(String property) {
 		this.fields.add(property);
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#removeExcludeProp(java.lang.String)
-	 */
 	@Override
 	public ExampleOptions removeExcludeProp(String property) {
 		this.fields.remove(property);
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeNulls(boolean)
-	 */
 	@Override
 	public ExampleOptions setExcludeNulls(boolean exclude) {
 		this.excludeNulls = exclude;
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#getExcludeNulls()
-	 */
 	@Override
 	public boolean getExcludeNulls() {
 		return this.excludeNulls;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#setExcludeZeros(boolean)
-	 */
 	@Override
 	public ExampleOptions setExcludeZeros(boolean exclude) {
 		this.excludeZeros = exclude;
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#getExcludeZeros()
-	 */
 	@Override
 	public boolean getExcludeZeros() {
 		return excludeZeros;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#setLikeMode(com.centimia.orm.jaqu.LikeMode)
-	 */
 	@Override
 	public ExampleOptions setLikeMode(LikeMode mode) {
 		this.likeMode = mode;
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.ExampleOptions#getLikeMode()
-	 */
 	@Override
 	public LikeMode getLikeMode() {
 		return this.likeMode;

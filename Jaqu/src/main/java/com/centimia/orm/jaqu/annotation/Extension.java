@@ -59,7 +59,7 @@ import java.lang.annotation.Target;
  *  	Person p = new Person();
  *  	List<Person> res = select.from(p).where(p.getId()).is(3).select(new Person() {
  *  		{
- *  			firstName = p.getFirstNAme();
+ *  			firstName = p.getFirstName();
  *  			lastName = p.getLastName();
  *  			fullName = Function.concat(select, null, p.getFirstName(), " ", p.getLastName());
  *  		}

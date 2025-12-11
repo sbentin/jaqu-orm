@@ -22,7 +22,7 @@ public abstract class ReplacementFunctions implements Token {
     protected String name;
     protected boolean isField;
 
-    public ReplacementFunctions(final boolean isField, final String name, Object ... x){
+    protected ReplacementFunctions(final boolean isField, final String name, Object ... x){
         this.name = name;
         this.x = x;
         this.isField = isField;

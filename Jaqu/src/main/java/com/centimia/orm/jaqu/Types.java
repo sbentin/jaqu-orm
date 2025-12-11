@@ -10,14 +10,6 @@
  * (http://h2database.com/html/license.html).
  * Initial Developer: H2 Group, Centimia Inc.
  */
-
-/*
- * Update Log
- *
- *  Date			User				Comment
- * ------			-------				--------
- * 09/02/2010		Shai Bentin			 create
- */
 package com.centimia.orm.jaqu;
 
 /**

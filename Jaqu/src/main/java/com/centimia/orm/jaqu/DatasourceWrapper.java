@@ -55,9 +55,6 @@ class DatasourceWrapper implements DataSource, XADataSource {
 			throw new JaquError("%s Not a legal datasource. Must extend either javax.sql.XADatasource or javax.sql.Datasource", datasource.getClass());
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.XADataSource#getXAConnection()
-	 */
 	@Override
 	public XAConnection getXAConnection() throws SQLException {
 		if (isXA)
@@ -65,9 +62,6 @@ class DatasourceWrapper implements DataSource, XADataSource {
 		throw new JaquError("% is not an XADatasource!", datasource.getClass());
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.DataSource#getConnection()
-	 */
 	@Override
 	public Connection getConnection() throws SQLException {
 		if (!isXA)
@@ -75,57 +69,36 @@ class DatasourceWrapper implements DataSource, XADataSource {
 		throw new JaquError("% is not a Datasource!", datasource.getClass());
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.CommonDataSource#getLogWriter()
-	 */
 	@Override
 	public PrintWriter getLogWriter() throws SQLException {
 		return datasource.getLogWriter();
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.CommonDataSource#setLogWriter(java.io.PrintWriter)
-	 */
 	@Override
 	public void setLogWriter(PrintWriter out) throws SQLException {
 		datasource.setLogWriter(out);
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.CommonDataSource#setLoginTimeout(int)
-	 */
 	@Override
 	public void setLoginTimeout(int seconds) throws SQLException {
 		datasource.setLoginTimeout(seconds);
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.CommonDataSource#getLoginTimeout()
-	 */
 	@Override
 	public int getLoginTimeout() throws SQLException {
 		return datasource.getLoginTimeout();
 	}
 
-	/* (non-Javadoc)
-	 * @see java.sql.Wrapper#unwrap(java.lang.Class)
-	 */
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
 		return ((Wrapper)datasource).unwrap(iface);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.sql.Wrapper#isWrapperFor(java.lang.Class)
-	 */
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException, ClassCastException {
 		return ((Wrapper)datasource).isWrapperFor(iface);
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.XADataSource#getXAConnection(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public XAConnection getXAConnection(String user, String password) throws SQLException {
 		if (isXA)
@@ -133,9 +106,6 @@ class DatasourceWrapper implements DataSource, XADataSource {
 		throw new JaquError("% is not an XADatasource!", datasource.getClass());
 	}
 
-	/* (non-Javadoc)
-	 * @see javax.sql.DataSource#getConnection(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public Connection getConnection(String username, String password) throws SQLException {
 		if (!isXA)
@@ -151,10 +121,6 @@ class DatasourceWrapper implements DataSource, XADataSource {
 		return this.isXA;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see javax.sql.CommonDataSource#getParentLogger()
-	 */
 	@Override
 	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
 		return this.datasource.getParentLogger();

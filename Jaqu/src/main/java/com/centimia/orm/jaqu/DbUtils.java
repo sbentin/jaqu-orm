@@ -52,21 +52,34 @@ public class DbUtils {
 	}
 
 	/**
-     * Insert the array of pojo objects in batch mode.<p>
-     * <b>NOTE: using batch insert only works on pojos or {@link Entity} that has no relationship.<br>When relationships exist on the {@link Entity} it will insert but relationships are disregarded</b>
-     *
-     * @param batchSize - battch interval size
-     * @param tArray
-     */
+	 * Insert the array of pojo objects in batch mode.<p>
+	 * <b>NOTE: using batch insert only works on pojos or {@link Entity} that has no relationship.<br>
+	 * When relationships exist on the {@link Entity} it will insert but relationships are disregarded</b>
+	 * <p>
+	 * The method returns an array of update counts containing one element for each command in the batch.
+	 * Here are possible return values for each element:
+	 * <ul>
+	 * <li>a number greater than zero -- indicates that the command was processed and changed occurred in the db</li>
+	 * <li>zero -- indicates that the command was processed but no changes occurred in the db</li>
+	 * <li>Statement.SUCCESS_NO_INFO -- indicates that the command was processed successfully but that the number of rows affected is unknown</li>
+	 * <li>Statement.EXECUTE_FAILED -- indicates that the command failed to execute successfully</li>
+	 * <li>-100 -- When a batch iteration fails on a technical issue this gives extra information on a specific row that actually 
+	 * had the technical problem.</li>
+	 * </ul>
+	 * 
+	 * @param batchSize the size of each batch
+	 * @param tArray the objects to insert
+	 * @return int[] array of update counts 
+	 */
     @SuppressWarnings("unchecked")
-	public <T> void insertBatch(final int batchSize, T ... tArray) {
+	public <T> int[] insertBatch(final int batchSize, T ... tArray) {
     	if (null == tArray || 0 == tArray.length)
-    		return;
+    		return new int[0];
 
     	Class<?> clazz = tArray[0].getClass();
 		TableDefinition<?> definition = JaquSessionFactory.define(clazz, db);
 
-		definition.insertBatch(db, batchSize, tArray);
+		return definition.insertBatch(db, batchSize, tArray);
     }
 
     /**

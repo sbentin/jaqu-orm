@@ -16,12 +16,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.centimia.orm.jaqu.annotation.Cascade;
 import com.centimia.orm.jaqu.annotation.Column;
@@ -209,12 +215,13 @@ class TableDefinition<T> {
 							// here we need to fetch the parent object based on the id which is in the relationTable
 							// this is the same as an FK field accept for the fact that we have no value in the DB, i.e. 'tmp' == null and 'o' == null
 							// get the primary key...
-							String query = "select " + relationDefinition.relationColumnName + " from " + relationDefinition.relationTableName + " where " + relationDefinition.relationFieldName + " = " + db.factory.getPrimaryKey(objToSet);
+							String query = "select " + relationDefinition.relationColumnName + " from " + relationDefinition.relationTableName + " where " + relationDefinition.relationFieldName + " = ?";
+							final Object pk = db.factory.getPrimaryKey(objToSet);
 							Object result = db.executeQuery(query, rs -> {
 								if (rs.next())
 									return db.factory.getDialect().getValueByType(type, rs, relationDefinition.relationColumnName);
 								return null;
-							});
+							}, pk);
 							if (null != result) {
 								// field from db would have a 'null' which in this case is in correct so we have to set it up.
 								// create the object to hold the data (I could use field.getType() but this way we can find mistakes
@@ -327,7 +334,7 @@ class TableDefinition<T> {
 									QueryWhere<?> where = db.from(descriptor).where(st -> {
 										FieldDefinition fdef = ((SelectTable)st).getAliasDefinition().getDefinitionForField(relationDefinition.relationFieldName);
 										Object myPrimaryKey = db.factory.getPrimaryKey(objToSet);
-										String pk = (myPrimaryKey instanceof String) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString();
+										String pk = (myPrimaryKey instanceof String) ? "'" + ((String)myPrimaryKey).replace("'", "''") + "'" : myPrimaryKey.toString();
 
 										if (null != fdef)
 											// this is the case when it is a two sided relationship. To allow that the name of the column in the DB and the name of the field are
@@ -410,17 +417,13 @@ class TableDefinition<T> {
 			}
 		}
 
-		/*
-		 * @see java.lang.Object#hashCode()
-		 */
 		@Override
 		public int hashCode() {
-			return super.hashCode();
+			if (null == columnName)
+				return 0;
+			return columnName.hashCode();
 		}
 
-		/*
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
 		@Override
 		public boolean equals(Object obj) {
 			if (!(obj instanceof FieldDefinition))
@@ -433,7 +436,9 @@ class TableDefinition<T> {
 		 */
 		@Override
 		public int compareTo(FieldDefinition o) {
-			if (columnName.equals(o.columnName))
+			if (o == null)
+				return 1;
+			if (null != columnName && columnName.equals(o.columnName))
 				return 0;
 			return fieldType.compareTo(o.fieldType);
 		}
@@ -1007,10 +1012,27 @@ class TableDefinition<T> {
 		return dialect.getDataType(fieldClass);
 	}
 
-	/*
-	 * insert a batch of entities or pojos without entity relationships.
+	/**
+	 * Insert a batch of entities or pojos without O2M, M2M entity relationships. 
+	 * <br><b>O2O and M2O relationships are allowed but must be annotated with {@link NoUpdateOnSave}</b>
+	 * <p>
+	 * The method returns an array of update counts containing one element for each command in the batch.
+	 * Here are possible return values for each element:
+	 * <ul>
+	 * <li>a number greater than zero -- indicates that the command was processed and changed occurred in the db</li>
+	 * <li>zero -- indicates that the command was processed but no changes occurred in the db</li>
+	 * <li>Statement.SUCCESS_NO_INFO -- indicates that the command was processed successfully but that the number of rows affected is unknown</li>
+	 * <li>Statement.EXECUTE_FAILED -- indicates that the command failed to execute successfully</li>
+	 * <li>-100 -- When a batch iteration fails on a technical issue this gives extra information on a specific row that actually 
+	 * had the technical problem.</li>
+	 * </ul>
+	 * 
+	 * @param db the database connection
+	 * @param batchSize the size of each batch
+	 * @param objs the objects to insert
+	 * @return int[] array of update counts 
 	 */
-	void insertBatch(Db db, final int batchSize, Object ... objs) {
+	int[] insertBatch(Db db, final int batchSize, Object ... objs) {
 		// first we build an insert statement
 		SQLStatement stat = new SQLStatement(db);
 		StatementBuilder buff = new StatementBuilder("INSERT INTO ");
@@ -1024,8 +1046,10 @@ class TableDefinition<T> {
 			valueTypes.appendExceptFirst(", ");
 			valueTypes.append("'" + this.discriminatorValue + "'");
 		}
+		
+		final EnumSet<FieldType> rejectedFieldTypes = EnumSet.of(FieldType.M2M, FieldType.O2M);		
 		for (FieldDefinition field : fields) {
-			if (field.isSilent || field.isExtension || (field.fieldType != FieldType.NORMAL))
+			if (field.isSilent || field.isExtension || rejectedFieldTypes.contains(field.fieldType))
         		// skip everything which is not a plain field (i.e any type of relationship)
         		continue;
 
@@ -1037,26 +1061,32 @@ class TableDefinition<T> {
         }
 		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');
 		stat.setSQL(buff.toString());
+		List<Integer> results = new ArrayList<>();
 		int count = 0;
 		for (Object o: objs) {
 			// add the parameters
 			for (FieldDefinition field : fields) {
-				if (field.isSilent || field.isExtension || (field.fieldType != FieldType.NORMAL))
+				if (field.isSilent || field.isExtension || rejectedFieldTypes.contains(field.fieldType))
 	        		// skip everything which is not a plain field (i.e any type of relationship)
 	        		continue;
 
-				handleValue(db, o, stat, field);
+				handleValue(db, o, stat, field, -1);
 			}
 			stat.prepareBatch();
 
 			if (++count % batchSize == 0) {
-		        stat.executeBatch(false);
+				// we reduce by one because error counting starts from the beginning of batch
+		        int[] counts = executeBatch(db, stat, batchSize, false);
+		        results.addAll(Arrays.stream(counts).boxed().collect(Collectors.toList()));
 		    }
 		}
-		stat.executeBatch(true);
+		// here we have not completed a full batch so we don't need to reduce by one
+		int[] counts = executeBatch(db, stat, ++count % batchSize, true);
+		results.addAll(Arrays.stream(counts).boxed().collect(Collectors.toList()));
+		return results.stream().mapToInt(Integer::intValue).toArray();
 	}
 
-	void insert(Db db, Object obj) {
+	void insert(Db db, Object obj, int depth) {
 		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
 		SQLStatement stat = new SQLStatement(db);
@@ -1110,7 +1140,7 @@ class TableDefinition<T> {
 
         	valueTypes.appendExceptFirst(", ");
         	valueTypes.append('?');
-            handleValue(db, obj, stat, field);
+            handleValue(db, obj, stat, field, 0);
         }
 		buff.append(fieldTypes).append(") VALUES(").append(valueTypes).append(')');
 		stat.setSQL(buff.toString());
@@ -1126,11 +1156,11 @@ class TableDefinition<T> {
 			stat.executeUpdate();
 		if (null != primaryKeyColumnNames && !primaryKeyColumnNames.isEmpty()) {
 			// only an object with primary key fields can have relationships or silent fields so we do an update
-			update(db, obj);
+			update(db, obj, depth);
 		}
 	}
 
-	void merge(Db db, Object obj) {
+	void merge(Db db, Object obj, int depth) {
 		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
 		if (primaryKeyColumnNames == null || primaryKeyColumnNames.isEmpty()) {
@@ -1139,7 +1169,7 @@ class TableDefinition<T> {
 
 		if (null == db.factory.getPrimaryKey(obj)) {
 			// no primary key so we can only do insert
-			db.insert(obj);
+			db.insert(obj, depth);
 			return;
 		}
 		// check if object exists in the DB
@@ -1150,7 +1180,7 @@ class TableDefinition<T> {
 		for (FieldDefinition field : primaryKeyColumnNames) {
 			buff.appendExceptFirst(" AND ");
 			buff.append(field.columnName + " = ?");
-			handleValue(db, obj, stat, field);
+			handleValue(db, obj, stat, field, 0);
 		}
 
 		stat.setSQL(buff.toString());
@@ -1159,15 +1189,15 @@ class TableDefinition<T> {
 		stat.executeQuery(rs -> {
 			if (rs.next()) {
 				// such a row exists do an update
-				db.update(obj);
+				db.update(obj, depth);
 			}
 			else
-				db.insert(obj);
+				db.insert(obj, depth);
 			return null;
 		});
 	}
 
-	void update(Db db, Object obj) {
+	void update(Db db, Object obj, int depth) {
 		if (db.reEntrantCache.checkReEntrent(obj))
 			return;
 		if (null == primaryKeyColumnNames || primaryKeyColumnNames.isEmpty()) {
@@ -1210,13 +1240,15 @@ class TableDefinition<T> {
 					continue;
 				}
 				if (!field.isSilent) {
-					innerUpdate.appendExceptFirst(", ");
-					innerUpdate.append(as + ".");
-					innerUpdate.append(field.columnName);
-					innerUpdate.append(" = ?");
-					hasNoneSilent = true;
+					if (field.fieldType == FieldType.NORMAL || depth != 0) {						
+						innerUpdate.appendExceptFirst(", ");
+						innerUpdate.append(as + ".");
+						innerUpdate.append(field.columnName);
+						innerUpdate.append(" = ?");
+						hasNoneSilent = true;
+					}
 				}
-				handleValue(db, obj, stat, field);
+				handleValue(db, obj, stat, field, depth);
 			}
 		}
 		if (hasNoneSilent) {
@@ -1266,7 +1298,7 @@ class TableDefinition<T> {
 						this.version.field.set(obj, lVersion.intValue() + 1);
 				}
 				catch (IllegalArgumentException | IllegalAccessException e) {
-					// Nothing to do here
+					StatementLogger.debug("problem setting version field " + this.version.field.getName());
 				}
 			}
 		}
@@ -1343,6 +1375,35 @@ class TableDefinition<T> {
 	}
 
 	/*
+	 * Execute a batch and handle exceptions
+	 */
+	private int[] executeBatch(Db db, SQLStatement stat, int batchSize, boolean clean) {
+		try {
+			int[] results = stat.executeBatch(clean);
+			db.commit();
+			return results;
+		}
+		catch (BatchUpdateException bue) {
+			db.rollback();
+			int[] results = new int[batchSize];
+			int[] counts = bue.getUpdateCounts();
+			
+			Arrays.fill(results, Statement.EXECUTE_FAILED);
+			for (int i = 0; i < counts.length; i++) {
+				if (counts[i] == Statement.EXECUTE_FAILED)
+					results[i] = -100; // mark as the cause of the batch failure
+			}
+			return results;
+		}
+		catch (Exception e) {
+			db.rollback();
+			int[] results = new int[batchSize];
+			Arrays.fill(results, Statement.EXECUTE_FAILED);
+			return results;
+		}
+	}
+	
+	/*
 	 * The last identity called using this connection would be the one that inserted the parameter 'obj'. we use it to set the value
 	 */
 	private void updateWithId(Object obj, SQLStatement stat, FieldDefinition identityField) {
@@ -1364,7 +1425,7 @@ class TableDefinition<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void handleValue(Db db, Object obj, SQLStatement stat, FieldDefinition field) {
+	private void handleValue(Db db, Object obj, SQLStatement stat, FieldDefinition field, int depth) {
 		Object value = field.getValue(obj);
 		// Deal with null primary keys (if object is sequence do a sequence query and update object... if identity you need to query the
 		// object on the way out).
@@ -1444,33 +1505,35 @@ class TableDefinition<T> {
 				break;
 			case FK: {
 				// value is a table
-				if (value != null) {
-					// if this object exists it updates if not it is inserted. ForeignKeys are always table
-					Object pk = db.factory.getPrimaryKey(value);
-					if (null == pk || !field.noUpdateField) {
-						db.reEntrantCache.prepareReEntrent(obj);
-						db.merge(value);
+				if (depth != 0) {
+					if (value != null) {
+						// if this object exists it updates if not it is inserted. ForeignKeys are always table
+						Object pk = db.factory.getPrimaryKey(value);
+						if (null == pk || !field.noUpdateField) {
+							db.reEntrantCache.prepareReEntrent(obj);
+							db.merge(value, depth - 1); // we reduce depth here
+						}
+						if (null == pk)
+							// now after the merge the object has a primary key value
+							stat.addParameter(db.factory.getPrimaryKey(value));
+						else
+							stat.addParameter(pk);
 					}
-					if (null == pk)
-						// now after the merge the object has a primary key value
-						stat.addParameter(db.factory.getPrimaryKey(value));
 					else
-						stat.addParameter(pk);
+						stat.addParameter(null);
 				}
-				else
-					stat.addParameter(null);
 				break;
 			}
 			case O2M:
 			case M2M: {
 				// value is a list of tables (we got here only when merge was called from db by outside user
-				if (value != null && !((Collection<?>) value).isEmpty()) {
+				if (depth != 0 && value != null && !((Collection<?>) value).isEmpty()) {
 					// value is a Collection type
 					for (Object table : (Collection<?>) value) {
 						db.reEntrantCache.prepareReEntrent(obj);
 						Object pk = db.factory.getPrimaryKey(table);
 						if (null == pk || !field.noUpdateField)
-							db.merge(table);
+							db.merge(table, depth - 1); // we reduce depth here
 						db.updateRelationship(field, table, obj); // here object can only be a entity
 					}
 					if (!(value instanceof AbstractJaquCollection)) {
@@ -1485,7 +1548,7 @@ class TableDefinition<T> {
 							}
 						}
 						catch (IllegalArgumentException | IllegalAccessException e) {
-							// unable to set keeping the original
+							StatementLogger.log("Unable to set Jaqu Collection on field " + field.field.getName());
 						}
 					}
 				}
@@ -1493,11 +1556,11 @@ class TableDefinition<T> {
 			}
 			case M2O: {
 				// this is the many side of a join table managed O2M relationship.
-				if (value != null) {
+				if (depth != 0 && value != null) {
 					db.reEntrantCache.prepareReEntrent(obj);
 					Object pk = db.factory.getPrimaryKey(value);
 					if (null == pk || !field.noUpdateField)
-						db.merge(value);
+						db.merge(value, depth - 1); // we reduce depth here
 					db.updateRelationship(field, obj, value); // the parent(value) is still the one side as 'obj' is the many side
 				}
 				break;

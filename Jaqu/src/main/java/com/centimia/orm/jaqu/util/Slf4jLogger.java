@@ -17,21 +17,24 @@ package com.centimia.orm.jaqu.util;
  *
  */
 public class Slf4jLogger implements Logger {
-	
-	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("com.centimia.orm.jaqu.log");
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("com.centimia.orm.jaqu.log");
 
+	@Override
 	public void debug(String statement) {
 		logger.debug(statement);		
 	}
 
+	@Override
 	public void info(String statement) {
 		logger.info(statement);
 	}
 
+	@Override
 	public boolean isDebugEnabled(){
 		return logger.isDebugEnabled();
 	}
 
+	@Override
 	public void error(String statement) {
 		logger.error(statement);		
 	}

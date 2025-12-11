@@ -38,7 +38,6 @@ class SetDirective<A> implements Token {
 	}
 
 	/* (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.Token#appendSQL(com.centimia.orm.jaqu.SQLStatement, com.centimia.orm.jaqu.Query)
 	 * TODO check if new enum handler can change the ugliness here
 	 */
 	@Override

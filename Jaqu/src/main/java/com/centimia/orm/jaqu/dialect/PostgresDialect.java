@@ -149,9 +149,7 @@ public class PostgresDialect implements SQLDialect {
 		}
 	}
 
-	/**
-	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, int)
-	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
 		switch (type) {
 			case ENUM: return rs.getString(columnNumber);
@@ -188,7 +186,7 @@ public class PostgresDialect implements SQLDialect {
 	@Override
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
 		StringBuilder query = new StringBuilder();
-		if (name.length() == 0){
+		if (name.length() == 0) {
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)

@@ -12,6 +12,7 @@
  */
 package com.centimia.orm.jaqu;
 
+import java.sql.BatchUpdateException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -97,24 +98,61 @@ public class SQLStatement {
 			    setValue(batchPrep, i + 1, o);
 			}
 			batchPrep.addBatch();
+			params.clear(); // clear parameters for next batch
 		}
 		catch (SQLException e) {
 			throw new JaquError(e, e.getMessage());
 		}
     }
 
-    int[] executeBatch(boolean clean) {
+    /**
+     * 
+     * @param clean - true to remove the prepared statement after execution
+     * @return int[] the update counts for each command in the batch @see java.sql.PreparedStatement#executeBatch()
+     * @throws BatchUpdateException
+     */
+    int[] executeBatch(boolean clean) throws BatchUpdateException {
     	try {
 			int[] result = batchPrep.executeBatch();
 			if (clean) {
 				// we need to clear this statement from here
+				try {
+					batchPrep.close();
+				}
+				catch (SQLException e) {
+					// unable to close the statement, nothing to do, ignore
+				}
 				batchPrep = null;
 			}
 			return result;
 		}
+    	catch (BatchUpdateException e) {
+    		if (clean) {
+				// we need to clear this statement from here
+				try {
+					batchPrep.close();
+				}
+				catch (SQLException sqle) {
+					// unable to close the statement, nothing to do, ignore
+				}
+				batchPrep = null;
+			}
+    		throw e;
+    	}
 		catch (SQLException e) {
-			db.factory.dialect.dialect.handleDeadlockException(e);
-        	return null;
+			if (clean) {
+				// we need to clear this statement from here
+				try {
+					batchPrep.close();
+				}
+				catch (SQLException sqle) {
+					// unable to close the statement, nothing to do, ignore
+				}
+				batchPrep = null;
+			}
+			else
+				db.factory.dialect.dialect.handleDeadlockException(e);
+			throw new JaquError(e, e.getMessage());
 		}
     }
 

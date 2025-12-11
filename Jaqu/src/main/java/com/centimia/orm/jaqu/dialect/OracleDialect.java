@@ -136,6 +136,7 @@ public class OracleDialect implements SQLDialect {
 	 * 
 	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, java.lang.String)
 	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, String columnName) throws SQLException {
 		switch (type) {
     		case INTEGER: return (rs.getObject(columnName) != null) ? rs.getInt(columnName): null;
@@ -189,6 +190,7 @@ public class OracleDialect implements SQLDialect {
 	 * 
 	 * @see com.centimia.orm.jaqu.SQLDialect#getValueByType(com.centimia.orm.jaqu.Types, java.sql.ResultSet, java.lang.String)
 	 */
+	@Override
 	public Object getValueByType(Types type, ResultSet rs, int columnNumber) throws SQLException {
 		switch (type) {
     		case INTEGER: return (rs.getObject(columnNumber) != null) ? rs.getInt(columnNumber): null;
@@ -267,9 +269,10 @@ public class OracleDialect implements SQLDialect {
 		return "";
 	}
 
+	@Override
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
 		StringBuilder query = new StringBuilder();
-		if (name.length() == 0){
+		if (name.length() == 0) {
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)

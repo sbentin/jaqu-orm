@@ -37,14 +37,14 @@ public class QueryJoinCondition<T, A> {
 
     public QueryJoinWhere<T> is(A y) {
     	if (null == y)
-    		throw new JaquError("Cannot compare column to null using `is()`. Use `isNull()` instead. If null was unexpected fix your code!!!");
+    		return isNull();
     	join.addConditionToken(new Condition<>(x, y, CompareType.EQUAL));
         return new QueryJoinWhere<>(query, join);
     }
 
     public QueryJoinWhere<T> isNot(A y) {
     	if (null == y)
-    		throw new JaquError("Cannot compare column to null using `is()`. Use `isNotNull()` instead. If null was unexpected fix your code!!!");
+    		return isNotNull();
     	join.addConditionToken(new Condition<>(x, y, CompareType.NOT_EQUAL));
         return new QueryJoinWhere<>(query, join);
     }
@@ -103,6 +103,26 @@ public class QueryJoinCondition<T, A> {
     	if (null == pattern)
     		throw new JaquError("Cannot compare column to null using `like()`. Null was unexpected fix your code!!!");
     	join.addConditionToken(new LikeCondition<>(x, pattern, mode));
+        return new QueryJoinWhere<>(query, join);
+    }
+    
+    /**
+     * A condition representing a check for is not null
+     * 
+     * @return QueryJoinWhere&lt;T&gt;
+     */
+    public QueryJoinWhere<T> isNotNull() {
+        query.addConditionToken(new Condition<A>(x, null, CompareType.IS_NOT_NULL));
+        return new QueryJoinWhere<>(query, join);
+    }
+
+    /**
+     * A condition representing a check for is null
+     * 
+     * @return QueryJoinWhere&lt;T&gt;
+     */
+    public QueryJoinWhere<T> isNull() {
+        query.addConditionToken(new Condition<A>(x, null, CompareType.IS_NULL));
         return new QueryJoinWhere<>(query, join);
     }
 }

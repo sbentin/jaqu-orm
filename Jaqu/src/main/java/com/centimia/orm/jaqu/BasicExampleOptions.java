@@ -21,6 +21,12 @@ import com.centimia.orm.jaqu.TableDefinition.FieldType;
  */
 public class BasicExampleOptions extends GeneralExampleOptions {
 
+	/**
+	 * Creates a {@code BasicExampleOptions} instance for the supplied example.
+	 * 
+	 * @param example the example object whose fields are inspected
+	 * @param db the database session used for field definition lookup
+	 */
 	public BasicExampleOptions(Object example, Db db) {
 		super(null);
 

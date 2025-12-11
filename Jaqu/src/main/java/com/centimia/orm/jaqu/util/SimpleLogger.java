@@ -19,34 +19,22 @@ package com.centimia.orm.jaqu.util;
 public class SimpleLogger implements Logger {
 	private final static java.util.logging.Logger logger = java.util.logging.Logger.getLogger("com.centimia.orm.jaqu.logger");
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.util.Logger#isDebugEnabled()
-	 */
+	@Override
 	public boolean isDebugEnabled() {
 		return logger.isLoggable(java.util.logging.Level.FINEST);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.util.Logger#debug(java.lang.String)
-	 */
+	@Override
 	public void debug(String statement) {
 		logger.finest(statement);	
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.util.Logger#info(java.lang.String)
-	 */
+	@Override
 	public void info(String statement) {
 		logger.info(statement);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.centimia.orm.jaqu.util.Logger#error(java.lang.String)
-	 */
+	@Override
 	public void error(String statement) {
 		logger.severe(statement);
 	} 	

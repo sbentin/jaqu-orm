@@ -210,7 +210,7 @@ public class MySqlDialect implements SQLDialect {
 	@Override
 	public String createIndexStatement(String name, String tableName, boolean unique, String[] columns) {
 		StringBuilder query = new StringBuilder();
-		if (name.length() == 0){
+		if (name.isEmpty()) {
 			name = columns[0] + "_" + (Math.random() * 10000) + 1;
 		}
 		if (unique)

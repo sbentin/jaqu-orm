@@ -21,8 +21,8 @@ package com.centimia.orm.jaqu;
 
 
 /**
- * A condition created specificly in order to identify cases where the query involves a definit and known primary key.
- * Used for dicriminator type inheritence queries.
+ * A condition created specifically in order to identify cases where the query involves a definite and known primary key.
+ * Used for dicriminator type inheritance queries.
  *
  * @author shai
  */

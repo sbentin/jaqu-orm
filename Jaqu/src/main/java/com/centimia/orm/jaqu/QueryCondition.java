@@ -36,14 +36,14 @@ public class QueryCondition<T, A> {
 
     public QueryWhere<T> is(A y) {
     	if (null == y)
-    		throw new JaquError("Cannot compare column to null using `is()`. Use `isNull()` instead. If null was unexpected fix your code!!!");
+    		return isNull();
    		query.addConditionToken(new Condition<>(x, y, CompareType.EQUAL));
         return new QueryWhere<>(query);
     }
 
     public QueryWhere<T> isNot(A y) {
     	if (null == y)
-    		throw new JaquError("Cannot compare column to null using `isNot()`. Use `isNotNull()` instead. If null was unexpected fix your code!!!");
+    		return isNotNull();
     	query.addConditionToken(new Condition<>(x, y, CompareType.NOT_EQUAL));
         return new QueryWhere<>(query);
     }
@@ -94,7 +94,7 @@ public class QueryCondition<T, A> {
      * Like allows the 'LIKE' query. depending on the query string given. If '%' is used in the 'pattern' it will effect the result.
      *
      * @param pattern the pattern to check against.
-     * @return QueryWhere<T>
+     * @return QueryWhere&lt;T&gt;
      */
     public QueryWhere<T> like(A pattern) {
     	if (null == pattern)
@@ -110,7 +110,7 @@ public class QueryCondition<T, A> {
      *
      * @param pattern
      * @param mode
-     * @return QueryWhere<T>
+     * @return QueryWhere&lt;T&gt;
      */
     public QueryWhere<T> like(A pattern, LikeMode mode) {
     	if (null == pattern)
@@ -119,11 +119,20 @@ public class QueryCondition<T, A> {
         return new QueryWhere<>(query);
     }
 
+    /**
+     * A condition representing a check for is not null
+     * 
+     * @return QueryWhere&lt;T&gt;
+     */
     public QueryWhere<T> isNotNull() {
         query.addConditionToken(new Condition<A>(x, null, CompareType.IS_NOT_NULL));
         return new QueryWhere<>(query);
     }
 
+    /**
+     * A condition representing a check for null
+     * @return QueryWhere&lt;T&gt;
+     */
     public QueryWhere<T> isNull() {
         query.addConditionToken(new Condition<A>(x, null, CompareType.IS_NULL));
         return new QueryWhere<>(query);

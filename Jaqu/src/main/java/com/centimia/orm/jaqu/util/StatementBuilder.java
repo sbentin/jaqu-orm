@@ -69,7 +69,7 @@ public class StatementBuilder {
     /**
      * Append a Statement part.
      *
-     * @param s the statementpart to append
+     * @param s the statement part to append
      * @return itself
      */
     public StatementBuilder append(StatementBuilder s) {

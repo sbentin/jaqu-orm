@@ -255,7 +255,7 @@ public interface QueryInterface<T> {
 	public QueryInterface<T> orderByDescNullsLast(Object ... expr);
 
 	/**
-	 * returns the query of an sql build acording to the given object
+	 * returns the query of an sql build according to the given object
 	 * @param z
 	 * @return String
 	 */

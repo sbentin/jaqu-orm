@@ -23,7 +23,7 @@ package com.centimia.orm.jaqu;
  *
  * @author shai
  */
-public class PkQueryCondition<T, A> extends QueryCondition<T, A>{
+public class PkQueryCondition<T, A> extends QueryCondition<T, A> {
 
 	PkQueryCondition(Query<T> query, GenericMask<T, A> x, Class<A> mask) {
 		super(query, x, x.mask());

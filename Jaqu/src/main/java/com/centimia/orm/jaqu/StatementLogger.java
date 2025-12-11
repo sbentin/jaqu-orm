@@ -28,7 +28,6 @@ import com.centimia.orm.jaqu.util.Slf4jLogger;
  *
  */
 public class StatementLogger {
-
 	private static Logger logger;
 	static {
 		try {
@@ -40,7 +39,6 @@ public class StatementLogger {
 		}
 	}
 
-
     private static final AtomicLong SELECT_COUNT = new AtomicLong();
     private static final AtomicLong CREATE_COUNT = new AtomicLong();
     private static final AtomicLong INSERT_COUNT = new AtomicLong();
@@ -50,6 +48,8 @@ public class StatementLogger {
     private static final AtomicLong ALTER_COUNT = new AtomicLong();
     private static boolean isGathering = false;
 
+    private StatementLogger() {}
+    
     static void create(String statement) {
         CREATE_COUNT.incrementAndGet();
         log(statement);

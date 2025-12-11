@@ -10,18 +10,10 @@
  * (http://h2database.com/html/license.html).
  * Initial Developer: H2 Group, Centimia Inc.
  */
-
-/*
- ISSUE			DATE			AUTHOR
--------		   ------	       --------
-Created		   Aug 3, 2013			shai
-
-*/
 package com.centimia.orm.jaqu;
 
 /**
  * @author shai
- *
  */
 class UnificationToken implements Token {
 
