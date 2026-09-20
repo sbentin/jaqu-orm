@@ -302,8 +302,8 @@ class TableDefinition<T> {
 						if (relationDefinition.eagerLoad && db != null) {
 							if (relationDefinition.relationTableName != null) {
 								List resultList = Utils.newArrayList();
-								for (Class<?> lDataType: relationDefinition.dataType) {
-									resultList.addAll(db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet), lDataType));
+								for (Class<?> linkedType: relationDefinition.dataType) {
+									resultList.addAll(db.getRelationByRelationTable(this, db.factory.getPrimaryKey(objToSet), linkedType));
 								}
 
 								if (!resultList.isEmpty()) {
@@ -347,7 +347,7 @@ class TableDefinition<T> {
 									if (null != orderByField) {
 										Field lField = ClassUtils.findField(lDataType, relationDefinition.orderByField);
 										lField.setAccessible(true);
-										if ("DESC".equals(relationDefinition.direction))
+										if (relationDefinition.dedcending)
 											resultList.addAll(where.orderByDesc(lField.get(descriptor)).select());
 										else
 											resultList.addAll(where.orderBy(lField.get(descriptor)).select());
@@ -448,12 +448,11 @@ class TableDefinition<T> {
 		/** The name of the relationship table. On O2M relationships might be null. */
 		String relationTableName;
 		/**
-		 * The name of the column used for the relation. When O2M relationship and no relation table is used this value is the field holding
-		 * the other side relation
+		 * The name of the column used for the relation when using a relation table. 
 		 */
-		String relationColumnName;
-		/** The name of the field used for holding the other side mapping. */
-		String relationFieldName;
+		String relationColumnName = "";
+		/** The name of the field / or column used for holding the other side mapping. */
+		String relationFieldName = "";
 		/**
 		 * When true, related children will be loaded with the object data, otherwise they will load when the getter function is used.
 		 * 'false' is default
@@ -468,7 +467,7 @@ class TableDefinition<T> {
 		/** the name of a column in the other side of the relation that determines the order of the response */
 		String orderByColumn = null;
 		/** the direction of order by. Default is ASC" */
-		String direction = "ASC";
+		boolean dedcending = false;
 	}
 
 	final Dialect dialect;
@@ -581,7 +580,7 @@ class TableDefinition<T> {
 				throw new JaquError("When using orderBy on a relation the field must exist on child and must have a 'Column' annotation");
 			}
 		}
-		def.direction = many2Many.direction();
+		def.dedcending = many2Many.descending();
 
 		if (fieldDefinition != null) {
 			fieldDefinition.relationDefinition = def;
@@ -622,11 +621,11 @@ class TableDefinition<T> {
 		}
 
 		String relationFieldName = one2ManyAnnotation.relationFieldName();
-		if (relationFieldName == null || "".equals(relationFieldName))
+		if (relationFieldName == null || relationFieldName.isBlank())
 			relationFieldName = tableName;
 
 		String relationColumnName = one2ManyAnnotation.relationColumnName();
-		if (null == relationColumnName || "".equals(relationColumnName)) {
+		if (null == relationColumnName || relationColumnName.isBlank()) {
 			relationColumnName = childType[0].getSimpleName();
 		}
 
@@ -645,7 +644,7 @@ class TableDefinition<T> {
 				throw new JaquError("When using orderBy on a relation the field must exist on child and must have a 'Column' annotation");
 			}
 		}
-		def.direction = one2ManyAnnotation.direction();
+		def.dedcending = one2ManyAnnotation.descending();
 		if (one2ManyAnnotation.cascadeType() != null)
 			def.cascadeType = one2ManyAnnotation.cascadeType();
 
@@ -863,13 +862,16 @@ class TableDefinition<T> {
 							throw new JaquError("Field {%s} in class {%s} is anntoated with M2O and declares a parent field {%s} which does not exist!!!", f.getName(), clazz, many2one.relationFieldName());
 						}
 						def.relationTableName = otherSideAnnotation.joinTableName();
+						if (null == def.relationTableName || def.relationTableName.isBlank())
+							throw new JaquError("Field {%s} in class {%s} is anntoated with M2O and declares a parent field {%s}. "
+									+ "Many2One should only be declared when a relation table exists!!! join table is missing.", f.getName(), clazz, many2one.relationFieldName());
 						def.dataType = new Class<?>[] {otherSide};
 
 						def.relationColumnName = otherSideAnnotation.relationFieldName();
-						if ("".equals(def.relationColumnName))
+						if (def.relationColumnName.isBlank())
 							def.relationColumnName = f.getName();
 						def.relationFieldName = otherSideAnnotation.relationColumnName();
-						if ("".equals(def.relationFieldName))
+						if (def.relationFieldName.isBlank())
 							def.relationFieldName = clazz.getSimpleName();
 
 						fieldDef.relationDefinition = def;

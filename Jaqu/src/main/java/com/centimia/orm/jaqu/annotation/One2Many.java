@@ -43,8 +43,10 @@ import com.centimia.orm.jaqu.CascadeType;
 public @interface One2Many {
 	/** 
 	 * Optional - the class type of the related object. Inferred by the generic type if exists.
+	 * A parent object may be a parent of many objects, this is why this
+	 * uses an array.
 	 */
-	Class<?>[] childType() default {java.lang.Object.class};
+	Class<?>[] childType() default {Object.class};
 	/** 
 	 * the name of the DB table maintaining the relationship. (when it is maintained in a relation table and not by Foreign Key)<br> 
 	 * Default no relation table 
@@ -59,7 +61,7 @@ public @interface One2Many {
 	 * The name of the field in the many side object holding the other side of the relationship.<br> 
 	 * If left empty jaqu will assume that either there is a field on the other object which has a name identical to 'this' tableName or there is a column in the Db with 'this' tableName<p>
 	 * <b>Note:</b> <ol><li>When using a relation table this is the name of the column representing the parent object in the relation table.</li>
-	 * <li>In a single sided relationship, When not using a relationship table, a column FK must exist in the child table,<br>even if it does not exist in the object. In such a case instead of a field name one can write the column-name.</li>
+	 * <li>In a single sided relationship, When not using a relationship table, a column FK must exist in the child table,<br>even if it does not exist in the object. In such a case instead of a field name one should write the column-name.</li>
 	 * </ol></p> 
 	 */
 	String relationFieldName() default "";
@@ -80,5 +82,5 @@ public @interface One2Many {
 	/** the name of a column in the other side of the relation that determines the order of the response */
 	String orderBy() default "";
 	/** the direction of order by. Default is ASC" */
-	String direction() default "ASC";
+	boolean descending() default false;
 }

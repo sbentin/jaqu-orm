@@ -28,10 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-import javax.transaction.Status;
-import javax.transaction.SystemException;
-
 import com.centimia.orm.jaqu.TableDefinition.FieldDefinition;
+import com.centimia.orm.jaqu.annotation.Column;
 import com.centimia.orm.jaqu.annotation.Entity;
 import com.centimia.orm.jaqu.annotation.Event;
 import com.centimia.orm.jaqu.annotation.Immutable;
@@ -41,6 +39,9 @@ import com.centimia.orm.jaqu.util.FieldComperator;
 import com.centimia.orm.jaqu.util.StatementBuilder;
 import com.centimia.orm.jaqu.util.Utils;
 import com.centimia.orm.jaqu.util.WeakIdentityHashMap;
+
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
 
 /**
  * This class represents a connection to an underlying data store which supports JDBC.
@@ -686,6 +687,9 @@ public class Db implements AutoCloseable {
     
     /**
      * Represents the "from clause" of the SQL select
+     * The alias must be a unique instance of a class
+     * and must not be an anonymous class.
+     * 
      * @param <T>
      * @param alias
      * @return QueryInterface<T>
@@ -1460,14 +1464,14 @@ public class Db implements AutoCloseable {
 								}
 								if (List.class.isAssignableFrom(col.getClass())) {
 									@SuppressWarnings("rawtypes")
-									JaquList l = new JaquList((List) col, this, fdef, factory.getPrimaryKey(t));
+									JaquList l = new JaquList((List) col, this, fdef, pk);
 									l.setDb(this);
 									l.merge();
 									fdef.field.set(t, l);
 								}
 								else if (Set.class.isAssignableFrom(col.getClass())) {
 									@SuppressWarnings("rawtypes")
-									JaquSet s = new JaquSet((Set)col, this, fdef, factory.getPrimaryKey(t));
+									JaquSet s = new JaquSet((Set)col, this, fdef, pk);
 									s.setDb(this);
 									s.merge();
 									fdef.field.set(t, s);
@@ -1487,6 +1491,8 @@ public class Db implements AutoCloseable {
 
     /**
      * The method returns a list of relation objects. Used for lazy loading of object relationships
+     * called by asm code.
+     * 
      * @param <T>
      * @param fieldName
      * @param myObject
@@ -1581,7 +1587,7 @@ public class Db implements AutoCloseable {
 		builder.append("= target.").append(targetDef.getPrimaryKeyFields().get(0).columnName);
 
 		if (null != def.relationDefinition.orderByColumn)
-			builder.append(" order by rt." + def.relationDefinition.orderByColumn + " " + def.relationDefinition.direction);
+			builder.append(" order by rt." + def.relationDefinition.orderByColumn + " " + (def.relationDefinition.dedcending ? "DESC" : "ASC"));
 		List<T> result = Utils.newArrayList();
 		
 		if (factory.isShowSQL())
@@ -1630,12 +1636,10 @@ public class Db implements AutoCloseable {
 	void updateRelationship(FieldDefinition field, Object table, Object obj) {
 		Object pKey = factory.getPrimaryKey(table);
 		Object rPk = factory.getPrimaryKey(obj);
-		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
-		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
 		switch (field.fieldType) {
-			case O2M: handleO2MRelationship(field, table, obj, primaryKey, relationPK); return;
-			case M2M: handleM2Mrelationship(field, table, obj, primaryKey, relationPK); return;
-			case M2O: handleM2ORelationship(field, primaryKey, relationPK); return;
+			case O2M: handleO2MRelationship(field, table, obj, pKey, rPk); return;
+			case M2M: handleM2Mrelationship(field, table, obj, pKey, rPk); return;
+			case M2O: handleM2ORelationship(field, pKey, rPk); return;
 			case FK:
 			case NORMAL: return;
 		}
@@ -1679,15 +1683,36 @@ public class Db implements AutoCloseable {
 				for (Object o: relations)
 					tdef.getInterceptor().onUpdate(o);
 			}
-			if (null == fdef.relationDefinition.relationTableName) { // if it's cascade delete these objects where deleted already so we can skip
-				// O2M relation, we need to find the other side and update the field, only if we didn't delete it before. Two options here: 1. This is a two sided relationship, which means that the field exists,
-				// 2. One sided relationship, the field FK is only in the DB.... Either way deleting from the DB will do the job!
+			if (null == fdef.relationDefinition.relationTableName) { 
+				// since this is not a "cascade delete" these objects need to reset their pointer.
+				// M2M must have a relation table so this is an O2M relation. 
+				// We need to find the other side and update the field.
+				// Two options here: 
+				// 1. This is a two sided relationship, which means that the field exists,
+				// 2. One sided relationship, the field FK is only in the DB.... 
+				// Either way, since relations does not relate to an existing list on the parent (which is being deleted anyway)
+				// resetting directly in the DB will do the job!
+				String realColumnName = fdef.relationDefinition.relationFieldName;
+				try {
+					Field field = ClassUtils.findField(fdef.relationDefinition.dataType[0], fdef.relationDefinition.relationFieldName);
+					// if we're here we have this field on the collection target.
+					// this means that the parent pointed to the child by field and not by column.
+					// lets get the annotation and find out the name of the column.
+					Column annot = field.getAnnotation(Column.class);
+					if (null != annot)
+						realColumnName = annot.name();
+					else
+						realColumnName = field.getName();
+				}
+				catch (NoSuchFieldException nsfe) {
+					// in many cases this is OK and we just continue with a column name we have
+				}
 				StatementBuilder builder = new StatementBuilder(UPDATE)
 						.append(tdef.tableName)
 						.append(SET)
-						.append(fdef.relationDefinition.relationFieldName)
+						.append(realColumnName)
 						.append("=null WHERE ");
-				builder.append(fdef.relationDefinition.relationFieldName).append("= ?");
+				builder.append(realColumnName).append("= ?");
 				Object pKey = factory.getPrimaryKey(parent);
 				executeUpdate(false, builder.toString(), pKey);
 				return;
@@ -1798,16 +1823,33 @@ public class Db implements AutoCloseable {
 	
 	private <T> List<T> getRelationFromDb(final FieldDefinition def, final Object myPrimaryKey, Class<T> type) throws NoSuchFieldException, IllegalAccessException {
 		T descriptor = Utils.newObject(type);
+		// we might be in a situation where we have another side of the relationship
+		String realColumnName = def.relationDefinition.relationFieldName;
+		try {
+			Field field = ClassUtils.findField(type, def.relationDefinition.relationFieldName);
+			// if we're here we have this field on the collection target.
+			// this means that the parent pointed to the child by field and not by column.
+			// lets get the annotation and find out the name of the column.
+			Column annot = field.getAnnotation(Column.class);
+			if (null != annot)
+				realColumnName = annot.name();
+			else
+				realColumnName = field.getName();
+		}
+		catch (NoSuchFieldException nsfe) {
+			// in many cases this is OK and we just continue with a column name we have
+		}
+		final String columnName = realColumnName;
 		List<T> result;
 		if (null == def.relationDefinition.relationTableName) {
 			QueryWhere<T> where = this.from(descriptor).where(st -> {
 				String pk = (String.class.isAssignableFrom(myPrimaryKey.getClass()) ? "'" + myPrimaryKey.toString() + "'" : myPrimaryKey.toString());
-				return st.getAs() + "." + def.relationDefinition.relationFieldName  + " = " + pk;
+				return st.getAs() + "." + columnName  + " = " + pk;
 			});
 			if (null != def.relationDefinition.orderByField) {
 				Field field = ClassUtils.findField(type, def.relationDefinition.orderByField);
 				field.setAccessible(true);
-				if ("DESC".equals(def.relationDefinition.direction))
+				if (def.relationDefinition.dedcending)
 					result =  where.orderByDesc(field.get(descriptor)).select();
 				else
 					result = where.orderBy(field.get(descriptor)).select();
@@ -1894,7 +1936,7 @@ public class Db implements AutoCloseable {
 		return status != Status.STATUS_NO_TRANSACTION && status != Status.STATUS_UNKNOWN;
 	}
 
-	private void handleM2Mrelationship(FieldDefinition field, Object table, Object obj, String primaryKey, String relationPK) {
+	private void handleM2Mrelationship(FieldDefinition field, Object table, Object obj, Object pKey, Object rPk) {
 		// we wan't to update the other side relationship. Because we're in session we can simply get the list and set it to null
 		// when the user calls get again the list will be lazy loaded with the correct values....
 		Field targetField;
@@ -1909,21 +1951,36 @@ public class Db implements AutoCloseable {
 		}
 
 		// field has a relation table. In relation table we do a merge (i.e insert only if missing update if exists)
+		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
+		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
 		mergeRelationTable(field, primaryKey, relationPK);
 	}
 
-	private void handleO2MRelationship(FieldDefinition field, Object table, Object obj, String primaryKey, String relationPK) {
+	private void handleO2MRelationship(FieldDefinition field, Object table, Object obj, Object pKey, Object rPk) {
 		if (null == field.relationDefinition.relationTableName) {
 			// We have a relationship without a relationTable. We might have a two sided O2M relationship, or a single sided relationship
 			try {
 				Field realtedField = ClassUtils.findField(table.getClass(), field.relationDefinition.relationFieldName);
 				realtedField.setAccessible(true);
-				// update the object for consistency
-				realtedField.set(table, obj);
+				if (realtedField.getType() == obj.getClass())
+					// update the object for consistency
+					realtedField.set(table, obj);
+				else {
+					try {
+						// we're assuming that the other side of the relationship id declaring the primaryKey Instead
+						realtedField.set(table, factory.getPrimaryKey(obj));
+					}
+					catch (Exception any) {
+						// we will try the regular sql way
+						throw new NoSuchFieldException(any.getMessage());
+					}
+				}
 				realtedField.setAccessible(false);
 				update(table);
 			}
 			catch (NoSuchFieldException e) {
+				String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
+				String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
 				// this is not a two sided relationship, we need to update the table with the id
 				// when we reach here the object has already been merged. All we need to do is update it.
 
@@ -1943,6 +2000,8 @@ public class Db implements AutoCloseable {
 		}
 
 		// field has a relation table. In relation table we do a merge (i.e insert only if missing update if exists)
+		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
+		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
 		mergeRelationTable(field, primaryKey, relationPK);
 	}
 
@@ -1953,9 +2012,11 @@ public class Db implements AutoCloseable {
 	 * @param primaryKey - the one side key
 	 * @param relationPK - the many side key.
 	 */
-	private void handleM2ORelationship(FieldDefinition field, String primaryKey, String relationPK) {
+	private void handleM2ORelationship(FieldDefinition field, Object pKey, Object rPk) {
 		// first determine the relation table name.
 		String relationTableName = field.relationDefinition.relationTableName;
+		String primaryKey = (pKey instanceof String) ? "'" + pKey + "'" : pKey.toString();
+		String relationPK = (rPk instanceof String) ? "'" + rPk + "'" : rPk.toString();
 		if (null != relationTableName && !relationTableName.isEmpty()) {
 			mergeRelationTable(field, primaryKey, relationPK);
 		}

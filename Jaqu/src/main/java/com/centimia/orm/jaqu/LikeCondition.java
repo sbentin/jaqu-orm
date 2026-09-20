@@ -63,7 +63,7 @@ class LikeCondition<A> implements Token {
 	    	if (null == pk)
 	    		query.appendSQL(stat, y, false, null);
 	    	else
-	    		query.appendSQL(stat, query.getDb().factory.getPrimaryKey(y), false, null);
+	    		query.appendSQL(stat, pk, false, null);
         }
         else {
         	switch(mode) {

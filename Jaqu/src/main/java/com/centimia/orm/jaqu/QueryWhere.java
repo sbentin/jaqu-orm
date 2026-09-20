@@ -515,22 +515,23 @@ public class QueryWhere<T> {
 	public QueryWhere<T> orderByNullsFirst(Object ... expr) {
 		int length = expr.length;
 		switch (length) {
-			case 0: return this;
-			case 1: {
+			case 0 : break;
+			case 1 : {
 				OrderExpression<T> e = new OrderExpression<>(query, expr[length - 1], false, true, false);
 				query.addOrderBy(e);
-				return this;
+				break;
 			}
-			default: {
+			default : {
 				for (int i = 0; i < length - 1; i++) {
 					OrderExpression<T> e = new OrderExpression<>(query, expr[i], false, false, false);
 					query.addOrderBy(e);
 				}
 				OrderExpression<T> e = new OrderExpression<>(query, expr[length - 1], false, true, false);
 				query.addOrderBy(e);
-				return this;
+				break;
 			}
 		}
+		return this;
 	}
 
 	/**

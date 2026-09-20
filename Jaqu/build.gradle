@@ -22,7 +22,7 @@ targetCompatibility = '1.8'
 group = 'com.centimia'
 
 dependencies {
-	implementation 'javax.transaction:jta:1.1'
+	implementation 'jakarta.transaction:jakarta.transaction-api:2.0.1'
 	
 	compileOnly 'org.ow2.asm:asm:9.7.1'
 	compileOnly 'org.ow2.asm:asm-commons:9.7.1'

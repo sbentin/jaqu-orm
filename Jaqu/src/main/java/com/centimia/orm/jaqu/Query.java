@@ -47,6 +47,16 @@ public class Query<T> implements QueryInterface<T> {
         this.db = db;
     }
 
+    /**
+     * Creates a new query with the given alias as the from clause. 
+     * The alias must be an unique instance of a class
+     * and must not be an anonymous class.
+     * 
+     * @param &lt;T&gt;
+     * @param db
+     * @param alias
+     * @return Query&lt;T&gt;
+     */
     @SuppressWarnings("unchecked")
     static <T> Query<T> from(Db db, T alias) {
         Query<T> query = new Query<>(db);

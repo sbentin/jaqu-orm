@@ -37,7 +37,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface Many2Many {
 	/** 
-	 * The class type of the related object. 
+	 * The class type of the related object. A parent object may be a parent of many objects, this is why this
+	 * uses an array.
 	 */
 	Class<?>[] childType() default {Object.class};
 	/** 
@@ -61,5 +62,5 @@ public @interface Many2Many {
 	/** the name of a <b>field</b> in the other side of the relation that determines the order of the response. (field must exist and be annotated in other class) */
 	String orderBy() default "";
 	/** the direction of order by. Default is ASC" */
-	String direction() default "ASC";
+	boolean descending() default false;
 }
