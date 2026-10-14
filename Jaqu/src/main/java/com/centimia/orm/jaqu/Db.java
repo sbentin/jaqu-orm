@@ -1960,22 +1960,22 @@ public class Db implements AutoCloseable {
 		if (null == field.relationDefinition.relationTableName) {
 			// We have a relationship without a relationTable. We might have a two sided O2M relationship, or a single sided relationship
 			try {
-				Field realtedField = ClassUtils.findField(table.getClass(), field.relationDefinition.relationFieldName);
-				realtedField.setAccessible(true);
-				if (realtedField.getType() == obj.getClass())
+				Field relatedField = ClassUtils.findField(table.getClass(), field.relationDefinition.relationFieldName);
+				relatedField.setAccessible(true);
+				if (relatedField.getType().isInstance(obj))
 					// update the object for consistency
-					realtedField.set(table, obj);
+					relatedField.set(table, obj);
 				else {
 					try {
 						// we're assuming that the other side of the relationship id declaring the primaryKey Instead
-						realtedField.set(table, factory.getPrimaryKey(obj));
+						relatedField.set(table, factory.getPrimaryKey(obj));
 					}
 					catch (Exception any) {
 						// we will try the regular sql way
 						throw new NoSuchFieldException(any.getMessage());
 					}
 				}
-				realtedField.setAccessible(false);
+				relatedField.setAccessible(false);
 				update(table);
 			}
 			catch (NoSuchFieldException e) {
